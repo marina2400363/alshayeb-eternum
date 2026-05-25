@@ -1,38 +1,299 @@
-.App {
-  text-align: center;
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #050505;
+  color: white;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+.container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+}
+
+.container h1 {
+  letter-spacing: 4px;
+}
+
+input {
+  width: 320px;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #333;
+  background: #111;
   color: white;
+  margin: 20px 0;
+  font-size: 16px;
 }
 
-.App-link {
-  color: #61dafb;
+button {
+  padding: 14px 35px;
+  border: none;
+  border-radius: 12px;
+  background: white;
+  color: black;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.error {
+  color: #ff4b4b;
+  margin-top: 20px;
+}
+
+.ticket-page {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #1a1a1a, #000);
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+}
+
+.ticket-card {
+  width: 100%;
+  max-width: 1150px;
+  border: 1px solid #333;
+  border-radius: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 35px;
+  gap: 30px;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.left-side,
+.right-side {
+  border: 1px solid #222;
+  border-radius: 20px;
+  padding: 30px;
+}
+
+.left-side {
+  text-align: center;
+}
+
+.circle {
+  width: 95px;
+  height: 95px;
+  border: 2px solid white;
+  border-radius: 50%;
+  margin: 0 auto 25px;
+  box-shadow: 0 0 30px white;
+}
+
+.left-side h1 {
+  font-size: 52px;
+  letter-spacing: 14px;
+  margin: 0;
+}
+
+.left-side h3,
+.tagline,
+.right-side h2 {
+  letter-spacing: 8px;
+}
+
+.welcome {
+  margin: 50px 0;
+}
+
+.qr-section {
+  border: 1px solid #333;
+  border-radius: 22px;
+  padding: 25px;
+}
+
+.qr-white {
+  background: white;
+  padding: 18px;
+  display: inline-block;
+  border-radius: 14px;
+}
+
+.status {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.used {
+  background: rgba(255, 0, 0, 0.18);
+  color: #ff4b4b;
+  border: 1px solid #ff4b4b;
+}
+
+.not-used {
+  background: rgba(0, 255, 120, 0.15);
+  color: #49ff9a;
+  border: 1px solid #49ff9a;
+}
+
+.right-side p {
+  color: #bdbdbd;
+  line-height: 1.7;
+}
+
+.info-list div,
+.menu-box {
+  border-top: 1px solid #333;
+  padding: 18px 0;
+}
+
+.info-list span {
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+
+.info-list p {
+  margin: 6px 0 0;
+}
+
+.menu-box {
+  border: 1px solid #333;
+  border-radius: 15px;
+  margin-top: 12px;
+  padding: 18px;
+  letter-spacing: 3px;
+}
+
+.back-btn {
+  margin-top: 25px;
+  width: 100%;
+}
+
+@media (max-width: 850px) {
+  .ticket-card {
+    grid-template-columns: 1fr;
   }
-  to {
-    transform: rotate(360deg);
+
+  .left-side h1 {
+    font-size: 34px;
+    letter-spacing: 8px;
   }
+  .user-info-card {
+  margin-top: 25px;
+  border: 1px solid #333;
+  border-radius: 22px;
+  padding: 25px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.user-info-card h2 {
+  text-align: center;
+  letter-spacing: 4px;
+  margin-top: 0;
+}
+
+.user-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid #2a2a2a;
+  padding: 14px 0;
+}
+
+.user-row span {
+  color: #999;
+  letter-spacing: 2px;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.user-row p {
+  margin: 0;
+  color: white;
+  font-weight: bold;
+  text-align: right;
+}
+
+.user-row:first-of-type {
+  border-top: none;
+}
+@media (max-width: 850px) {
+  .ticket-page {
+    padding: 12px;
+  }
+
+  .ticket-card {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    gap: 16px;
+    border-radius: 18px;
+  }
+
+  .left-side,
+  .right-side {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .circle {
+    width: 70px;
+    height: 70px;
+  }
+
+  .left-side h1 {
+    font-size: 32px;
+    letter-spacing: 7px;
+  }
+
+  .left-side h3,
+  .tagline,
+  .right-side h2 {
+    letter-spacing: 4px;
+  }
+
+  .welcome {
+    margin: 32px 0;
+  }
+
+  .qr-white {
+    padding: 12px;
+  }
+
+  .qr-white svg {
+    width: 190px;
+    height: 190px;
+  }
+
+  .user-row {
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+  }
+
+  .user-row p {
+    text-align: center;
+  }
+
+  .menu-box {
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+
+  .container {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .container h1 {
+    font-size: 26px;
+    letter-spacing: 3px;
+  }
+
+  input {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  button {
+    width: 100%;
+    max-width: 320px;
+  }
+}
 }
