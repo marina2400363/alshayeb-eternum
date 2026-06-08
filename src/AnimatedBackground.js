@@ -22,7 +22,9 @@ function AnimatedBackground() {
             left: particle.left,
             animationDelay: particle.animationDelay,
             animationDuration: particle.animationDuration
-          }}
+          }}git add qr-code-app
+
+          
         ></span>
       ))}
     </div>
