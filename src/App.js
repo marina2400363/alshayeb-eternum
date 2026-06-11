@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "react-qr-code";
 import { motion } from "framer-motion";
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 import "./App.css";
 import AnimatedBackground from "./AnimatedBackground";
 import { dashboardStats, mockAttendees, mockEvents, mockOutcomers, mockPayments, recentActivity } from "./adminMockData";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbxg8nRm1dds5DDZRWqdIOmoo2fCD-XR__cgV13-m1m9GUacdpDRTG8MKrw6f3CKwxMJAA/exec";
+const BACKEND_API_URL = String(process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 
 const QR_REVEAL_TIME = "2026-12-31T18:00:00";
 const ADMIN_SESSION_KEY = "alshayebAdminSession";
@@ -19,6 +21,17 @@ const events = [
   { id: "bue-prom-2026", name: "BUE PROM 2026", date: "14 JUNE 2026", fee: "250 EGP" },
   { id: "aast-prom-2026", name: "AAST PROM 2026", date: "20 JUNE 2026", fee: "250 EGP" },
   { id: "future-prom-2026", name: "FUTURE ACADEMY PROM 2026", date: "28 JUNE 2026", fee: "250 EGP" }
+];
+
+const EXPORT_COLUMNS = [
+  "Full Name",
+  "Phone Number",
+  "Email",
+  "School / Origin Prom",
+  "Age",
+  "Instagram Username",
+  "Status",
+  "Prom"
 ];
 
 const pageMotion = {
@@ -34,10 +47,112 @@ const softPop = {
   transition: { duration: 0.45, ease: "easeOut" }
 };
 
-const Shell = ({ children }) => (
-  <div className="app-shell">
+function sanitizeExcelSheetName(name, usedNames = new Set()) {
+  const fallback = "Prom";
+  const invalidSheetChars = new Set(["[", "]", ":", "*", "?", "/", "\\"]);
+  const base = String(name || fallback)
+    .split("")
+    .map((character) => (invalidSheetChars.has(character) ? " " : character))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 31) || fallback;
+
+  let sheetName = base;
+  let counter = 2;
+
+  while (usedNames.has(sheetName.toLowerCase())) {
+    const suffix = ` ${counter}`;
+    sheetName = `${base.slice(0, 31 - suffix.length)}${suffix}`;
+    counter += 1;
+  }
+
+  usedNames.add(sheetName.toLowerCase());
+  return sheetName;
+}
+
+function buildRegistrationExportRows() {
+  const paymentLookup = new Map(
+    mockPayments.map((payment) => [`${payment.phone}-${payment.event}`, payment])
+  );
+
+  const attendeeRows = mockAttendees.map((attendee) => {
+    const payment = paymentLookup.get(`${attendee.phone}-${attendee.event}`);
+
+    return {
+      promName: attendee.event,
+      "Full Name": attendee.name,
+      "Phone Number": attendee.phone,
+      Email: attendee.email || "",
+      "School / Origin Prom": attendee.schoolOrOriginProm || "",
+      Age: attendee.age || "",
+      "Instagram Username": attendee.instagramUsername || "",
+      Status: attendee.status || attendee.paymentStatus || payment?.status || "",
+      Prom: attendee.event
+    };
+  });
+
+  const attendeeKeys = new Set(mockAttendees.map((attendee) => `${attendee.phone}-${attendee.event}`));
+  const outcomerRows = mockOutcomers
+    .filter((request) => !attendeeKeys.has(`${request.phone}-${request.event}`))
+    .map((request) => ({
+      promName: request.event,
+      "Full Name": request.name,
+      "Phone Number": request.phone,
+      Email: request.email || "",
+      "School / Origin Prom": request.schoolOrOriginProm || "",
+      Age: request.age || "",
+      "Instagram Username": request.instagramUsername || "",
+      Status: request.applicationStatus,
+      Prom: request.event
+    }));
+
+  return [...attendeeRows, ...outcomerRows];
+}
+
+function exportRegistrationsByProm() {
+  const rows = buildRegistrationExportRows();
+  const groupedRows = rows.reduce((groups, row) => {
+    const promName = row.promName || row.Prom || "Unknown Prom";
+    if (!groups.has(promName)) {
+      groups.set(promName, []);
+    }
+    groups.get(promName).push(row);
+    return groups;
+  }, new Map());
+
+  const workbook = XLSX.utils.book_new();
+  const usedSheetNames = new Set();
+
+  groupedRows.forEach((promRows, promName) => {
+    if (!promRows.length) return;
+
+    const orderedRows = promRows.map((row) =>
+      EXPORT_COLUMNS.reduce((ordered, column) => {
+        ordered[column] = row[column] ?? "";
+        return ordered;
+      }, {})
+    );
+    const worksheet = XLSX.utils.json_to_sheet(orderedRows, { header: EXPORT_COLUMNS });
+    worksheet["!cols"] = EXPORT_COLUMNS.map((column) => ({
+      wch: Math.max(column.length + 2, 16)
+    }));
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, sanitizeExcelSheetName(promName, usedSheetNames));
+  });
+
+  if (!workbook.SheetNames.length) {
+    const worksheet = XLSX.utils.aoa_to_sheet([["No registrations found"]]);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "No Registrations");
+  }
+
+  XLSX.writeFile(workbook, "alshayeb-registrations-by-prom.xlsx");
+}
+
+const Shell = ({ children, tone = "blue" }) => (
+  <div className={`app-shell tone-${tone}`}>
     <AnimatedBackground />
-    <motion.div className="cosmic-card" {...pageMotion}>
+    <motion.div className="cosmic-card tone-card" {...pageMotion}>
       {children}
     </motion.div>
   </div>
@@ -54,15 +169,12 @@ function PublicWebsite() {
   const [now, setNow] = useState(Date.now());
 
   const [request, setRequest] = useState({
-    name: "",
-    phone: "",
+    fullName: "",
+    phoneNumber: "",
     email: "",
-    gender: "",
-    school: "",
+    schoolOrOriginProm: "",
     age: "",
-    instagram: "",
-    referral: "",
-    notes: "",
+    instagramUsername: "",
     screenshot: null
   });
 
@@ -153,33 +265,35 @@ function PublicWebsite() {
 
   const validateRegistration = () => {
     const newErrors = {};
-    const name = request.name.trim();
-    const phoneNumber = cleanValue(request.phone);
+    const fullName = request.fullName.trim();
+    const phoneNumber = cleanValue(request.phoneNumber);
     const email = request.email.trim();
-    const school = request.school.trim();
+    const schoolOrOriginProm = request.schoolOrOriginProm.trim();
     const age = request.age.trim();
-    const instagram = request.instagram.trim();
+    const instagramUsername = request.instagramUsername.trim();
 
-    if (!name) {
-      newErrors.name = "Full name is required.";
-    } else if (name.length < 3) {
-      newErrors.name = "Full name must be at least 3 characters.";
-    } else if (!/^[a-zA-Z\s]+$/.test(name)) {
-      newErrors.name = "Full name can contain letters and spaces only.";
+    if (!fullName) {
+      newErrors.fullName = "Full name is required.";
+    } else if (fullName.length < 3) {
+      newErrors.fullName = "Full name must be at least 3 characters.";
+    } else if (!/^[a-zA-Z\s]+$/.test(fullName)) {
+      newErrors.fullName = "Full name can contain letters and spaces only.";
     }
 
     if (!phoneNumber) {
-      newErrors.phone = "Phone number is required.";
+      newErrors.phoneNumber = "Phone number is required.";
     } else if (!isEgyptianPhone(phoneNumber)) {
-      newErrors.phone = "Enter an Egyptian phone number starting with 01 and 11 digits long.";
+      newErrors.phoneNumber = "Enter an Egyptian phone number starting with 01 and 11 digits long.";
     }
 
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email) {
+      newErrors.email = "Email is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = "Enter a valid email address.";
     }
 
-    if (!school) {
-      newErrors.school = "University / School is required.";
+    if (!schoolOrOriginProm) {
+      newErrors.schoolOrOriginProm = "School / Origin Prom is required.";
     }
 
     if (!age) {
@@ -188,8 +302,10 @@ function PublicWebsite() {
       newErrors.age = "Age must be a number between 15 and 40.";
     }
 
-    if (instagram && /\s/.test(instagram)) {
-      newErrors.instagram = "Instagram cannot contain spaces.";
+    if (!instagramUsername) {
+      newErrors.instagramUsername = "Instagram username is required.";
+    } else if (/\s/.test(instagramUsername)) {
+      newErrors.instagramUsername = "Instagram username cannot contain spaces.";
     }
 
     setErrors(newErrors);
@@ -236,12 +352,136 @@ function PublicWebsite() {
     setErrors((prev) => ({ ...prev, screenshot: "" }));
   };
 
-  const goToPayment = () => {
+  const findExistingRegistration = (phoneNumber) => {
+    const normalizedPhone = cleanValue(phoneNumber);
+    const guest = clients.find((client) => cleanValue(client?.phone || client?.Phone) === normalizedPhone);
+
+    if (guest) {
+      const guestStatus = String(guest.status || guest.Status || "Approved").toLowerCase();
+      return {
+        source: "guest",
+        status: guestStatus.includes("reject") ? "rejected" : guestStatus.includes("pending") || guestStatus.includes("review") ? "pending" : "approved",
+        data: guest
+      };
+    }
+
+    try {
+      const saved = JSON.parse(localStorage.getItem("alshayebRequest") || "{}");
+      if (cleanValue(saved.phoneNumber || saved.phone) === normalizedPhone) {
+        return {
+          source: "local",
+          status: String(saved.applicationStatus || saved.status || "PENDING").toLowerCase(),
+          data: saved
+        };
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  };
+
+  const routeExistingRegistration = (existing) => {
+    const normalizedStatus = String(existing?.status || "").toLowerCase();
+
+    if (normalizedStatus.includes("approved") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
+      if (existing.source === "guest") {
+        setFoundClient(existing.data);
+        setErrors({});
+        setPage("ticket");
+        return true;
+      }
+
+      if (existing.source === "backend") {
+        setFoundClient({
+          Name: existing.data.fullName,
+          Phone: existing.data.phoneNumber || existing.data.phone,
+          QR: existing.data.qrToken || existing.data.qrId,
+          ID: existing.data.qrId || existing.data.id,
+          type: existing.data.accessType || "Outcomer",
+          Status: existing.data.status || "Approved",
+          Venue: existing.data.eventName || "ALSHAYEB ETERNUM"
+        });
+        setErrors({});
+        setPage("ticket");
+        return true;
+      }
+    }
+
+    if (normalizedStatus.includes("reject") || normalizedStatus.includes("declined")) {
+      setRequest((prev) => ({ ...prev, ...existing.data }));
+      setErrors({});
+      setPage("rejected");
+      return true;
+    }
+
+    if (normalizedStatus.includes("pending") || normalizedStatus.includes("review") || normalizedStatus.includes("verification")) {
+      localStorage.setItem("alshayebRequest", JSON.stringify(existing.data));
+      setRequest((prev) => ({ ...prev, ...existing.data }));
+      setErrors({});
+      setPage("track");
+      return true;
+    }
+
+    return false;
+  };
+
+  const lookupBackendRegistration = async (phoneNumber) => {
+    if (!BACKEND_API_URL) return null;
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/api/attendees/lookup?phone=${encodeURIComponent(cleanValue(phoneNumber))}`);
+      if (!response.ok) return null;
+      const result = await response.json();
+      if (!result?.found || !result.attendee) return null;
+      return {
+        source: "backend",
+        status: result.attendee.status,
+        data: result.attendee
+      };
+    } catch (error) {
+      console.log("Backend lookup failed:", error);
+      return null;
+    }
+  };
+
+  const submitBackendOutcomer = async (payload) => {
+    if (!BACKEND_API_URL) return null;
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/api/outcomers/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        if (result?.details) {
+          setErrors(result.details);
+        }
+        return null;
+      }
+
+      return response.json();
+    } catch (error) {
+      console.log("Backend registration failed:", error);
+      return null;
+    }
+  };
+
+  const goToPayment = async () => {
     if (!validateRegistration()) return;
+    const existing = findExistingRegistration(request.phoneNumber);
+    if (existing && routeExistingRegistration(existing)) return;
+    const backendExisting = await lookupBackendRegistration(request.phoneNumber);
+    if (backendExisting && routeExistingRegistration(backendExisting)) return;
     setPage("payment");
   };
 
-  const submitRequest = () => {
+  const submitRequest = async () => {
     if (!validateScreenshot()) return;
 
     const newRequest = {
@@ -254,8 +494,38 @@ function PublicWebsite() {
       submittedAt: new Date().toISOString()
     };
 
-    localStorage.setItem("alshayebRequest", JSON.stringify(newRequest));
-    setRequest(newRequest);
+    const backendResult = await submitBackendOutcomer({
+      fullName: request.fullName,
+      phoneNumber: request.phoneNumber,
+      email: request.email,
+      schoolOrOriginProm: request.schoolOrOriginProm,
+      age: request.age,
+      instagramUsername: request.instagramUsername,
+      eventName: selectedEvent.name
+    });
+
+    if (backendResult?.duplicate) {
+      const existing = {
+        source: "backend",
+        status: backendResult.attendee?.status,
+        data: backendResult.attendee
+      };
+      if (routeExistingRegistration(existing)) return;
+    }
+
+    const persistedRequest = backendResult?.attendee
+      ? {
+          ...newRequest,
+          ...backendResult.attendee,
+          event: backendResult.attendee.eventName || selectedEvent.name,
+          requestId: backendResult.attendee.id || newRequest.requestId,
+          applicationStatus: backendResult.attendee.status || newRequest.applicationStatus,
+          paymentStatus: backendResult.attendee.paymentStatus || newRequest.paymentStatus
+        }
+      : newRequest;
+
+    localStorage.setItem("alshayebRequest", JSON.stringify(persistedRequest));
+    setRequest(persistedRequest);
     setErrors({});
     setPage("submitted");
   };
@@ -267,7 +537,7 @@ function PublicWebsite() {
 
   if (page === "notfound") {
     return (
-      <Shell>
+      <Shell tone="blue">
         <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
           &larr;
         </button>
@@ -289,7 +559,7 @@ function PublicWebsite() {
 
   if (page === "chooseEvent") {
     return (
-      <Shell>
+      <Shell tone="purple">
         <button className="back-icon" onClick={() => setPage("notfound")} aria-label="Back">
           &larr;
         </button>
@@ -326,7 +596,7 @@ function PublicWebsite() {
 
   if (page === "register") {
     return (
-      <Shell>
+      <Shell tone="purple">
         <button className="back-icon" onClick={() => setPage("chooseEvent")} aria-label="Back">
           &larr;
         </button>
@@ -334,27 +604,32 @@ function PublicWebsite() {
         <p className="muted">{selectedEvent.name}</p>
 
         <div className="form-grid">
-          <input className={errors.name ? "error-input" : ""} name="name" placeholder="Full name" value={request.name} onChange={handleRequestChange} />
-          <FieldError name="name" />
+          <label><span>Full Name</span><input className={errors.fullName ? "error-input" : ""} name="fullName" placeholder="Full Name" value={request.fullName} onChange={handleRequestChange} /></label>
+          <FieldError name="fullName" />
 
-          <input className={errors.phone ? "error-input" : ""} name="phone" placeholder="Phone number" value={request.phone} onChange={handleRequestChange} />
-          <FieldError name="phone" />
+          <label><span>Phone Number</span><input className={errors.phoneNumber ? "error-input" : ""} name="phoneNumber" placeholder="Phone Number" value={request.phoneNumber} onChange={handleRequestChange} /></label>
+          <FieldError name="phoneNumber" />
 
-          <input className={errors.email ? "error-input" : ""} name="email" placeholder="Email optional" value={request.email} onChange={handleRequestChange} />
+          <label><span>Email</span><input className={errors.email ? "error-input" : ""} name="email" placeholder="Email" value={request.email} onChange={handleRequestChange} /></label>
           <FieldError name="email" />
 
-          <input className={errors.school ? "error-input" : ""} name="school" placeholder="University / School" value={request.school} onChange={handleRequestChange} />
-          <FieldError name="school" />
+          <label>
+            <span>School / Origin Prom</span>
+            <input
+              className={errors.schoolOrOriginProm ? "error-input" : ""}
+              name="schoolOrOriginProm"
+              placeholder="Which school/prom are you coming from? Example: MIU, BUE, AAST, GUC, Helwan, etc."
+              value={request.schoolOrOriginProm}
+              onChange={handleRequestChange}
+            />
+          </label>
+          <FieldError name="schoolOrOriginProm" />
 
-          <input className={errors.age ? "error-input" : ""} name="age" placeholder="Age" value={request.age} onChange={handleRequestChange} />
+          <label><span>Age</span><input className={errors.age ? "error-input" : ""} name="age" placeholder="Age" value={request.age} onChange={handleRequestChange} /></label>
           <FieldError name="age" />
 
-          <input className={errors.instagram ? "error-input" : ""} name="instagram" placeholder="Instagram username optional" value={request.instagram} onChange={handleRequestChange} />
-          <FieldError name="instagram" />
-
-          <input name="referral" placeholder="Referral code optional" value={request.referral} onChange={handleRequestChange} />
-
-          <textarea name="notes" placeholder="Notes optional" value={request.notes} onChange={handleRequestChange}></textarea>
+          <label><span>Instagram Username</span><input className={errors.instagramUsername ? "error-input" : ""} name="instagramUsername" placeholder="Instagram Username" value={request.instagramUsername} onChange={handleRequestChange} /></label>
+          <FieldError name="instagramUsername" />
         </div>
 
         <button className="purple-btn" onClick={goToPayment}>
@@ -366,7 +641,7 @@ function PublicWebsite() {
 
   if (page === "payment") {
     return (
-      <Shell>
+      <Shell tone="blue">
         <button className="back-icon" onClick={() => setPage("register")} aria-label="Back">
           &larr;
         </button>
@@ -390,7 +665,7 @@ function PublicWebsite() {
 
   if (page === "instapay") {
     return (
-      <Shell>
+      <Shell tone="blue">
         <h1 className="insta">instaPay</h1>
         <motion.div className="phone-pay" {...softPop}>
           <p>PAY</p>
@@ -409,7 +684,7 @@ function PublicWebsite() {
 
   if (page === "upload") {
     return (
-      <Shell>
+      <Shell tone="blue">
         <button className="back-icon" onClick={() => setPage("instapay")} aria-label="Back">
           &larr;
         </button>
@@ -438,7 +713,7 @@ function PublicWebsite() {
 
   if (page === "submitted") {
     return (
-      <Shell>
+      <Shell tone="purple">
         <motion.div className="success-icon" {...softPop}>
           OK
         </motion.div>
@@ -468,7 +743,7 @@ function PublicWebsite() {
     }
 
     return (
-      <Shell>
+      <Shell tone="purple">
         <div className="ring small-ring"></div>
         <h2 className="page-title">PENDING REVIEW</h2>
         <p className="muted">Your application is currently under review.</p>
@@ -486,6 +761,32 @@ function PublicWebsite() {
     );
   }
 
+  if (page === "rejected") {
+    let saved = request;
+    try {
+      saved = { ...request, ...JSON.parse(localStorage.getItem("alshayebRequest") || "{}") };
+    } catch {
+      saved = request;
+    }
+
+    return (
+      <Shell tone="purple">
+        <div className="ring small-ring"></div>
+        <h2 className="page-title">APPLICATION DECLINED</h2>
+        <p className="muted">Your application was declined.</p>
+
+        <div className="identity-card">
+          <div><span>EVENT</span><p>{safeValue(saved.event, selectedEvent.name)}</p></div>
+          <div><span>REQUEST ID</span><p>{safeValue(saved.requestId, "OUT-0000")}</p></div>
+          <div><span>APPLICATION STATUS</span><p><span className="status-badge used">REJECTED</span></p></div>
+          <div><span>PHONE</span><p>{safeValue(saved.phoneNumber || saved.phone, "Not available")}</p></div>
+        </div>
+
+        <button className="ghost-btn" onClick={() => setPage("home")}>BACK HOME</button>
+      </Shell>
+    );
+  }
+
   if (page === "ticket" && foundClient) {
     const guestName = safeValue(foundClient.name || foundClient.Name, "Guest");
     const guestPhone = safeValue(foundClient.phone || foundClient.Phone);
@@ -495,11 +796,17 @@ function PublicWebsite() {
     const rawStatus = safeValue(foundClient.status || foundClient.Status, "Active");
     const status = rawStatus.toLowerCase();
     const venue = safeValue(foundClient.venue || foundClient.Venue, "ALSHAYEB ETERNUM");
+    const normalizedAccessType = accessType.toLowerCase();
+    const ticketTone = normalizedAccessType.includes("guest") || normalizedAccessType.includes("invited")
+      ? "gold"
+      : normalizedAccessType.includes("outcomer")
+        ? "purple"
+        : "blue";
 
     return (
-      <div className="ticket-page">
+      <div className={`ticket-page tone-${ticketTone}`}>
         <AnimatedBackground />
-        <motion.div className="ticket-pass" {...pageMotion}>
+        <motion.div className="ticket-pass tone-card" {...pageMotion}>
           <div className="ticket-hero">
             <div className="ring"></div>
             <h3>ALSHAYEB</h3>
@@ -567,48 +874,132 @@ function PublicWebsite() {
     );
   }
 
+  if (page === "incomer" || page === "guestList") {
+    const isIncomer = page === "incomer";
+
+    return (
+      <Shell tone={isIncomer ? "blue" : "gold"}>
+        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
+          &larr;
+        </button>
+        <div className="ring small-ring"></div>
+        <h3>ALSHAYEB</h3>
+        <h1 className="brand-title">{isIncomer ? "INCOMER" : "GUEST LIST"}</h1>
+        <p className="tagline">{isIncomer ? "ACCESS YOUR DIGITAL PASS" : "CHECK THE ETERNAL LIST"}</p>
+
+        <div className="welcome-block">
+          <p>{isIncomer ? "ALREADY REGISTERED?" : "FEELING LUCKY?"}</p>
+          <h2>{isIncomer ? "ENTER YOUR PHONE" : "FIND YOUR NAME"}</h2>
+          <p>{isIncomer ? "Enter your phone number to continue" : "Use your phone number to check your status"}</p>
+        </div>
+
+        {loading && <p className="loading-message">Loading guest list...</p>}
+        {errors.home && (
+          <div className="home-error">
+            <p className="field-error center-error">{errors.home}</p>
+            <button className="retry-btn" onClick={loadGuests} disabled={loading}>
+              RETRY
+            </button>
+          </div>
+        )}
+
+        <input
+          className={errors.phoneSearch ? "error-input" : ""}
+          type="text"
+          placeholder="Enter your phone number"
+          value={phone}
+          onChange={(e) => {
+            setPhone(e.target.value);
+            setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+          }}
+        />
+        <FieldError name="phoneSearch" />
+
+        <button className="purple-btn" onClick={handleSearch} disabled={loading}>
+          {loading ? "LOADING" : "CONTINUE"}
+        </button>
+
+        <p className="secure">Your information is secure and encrypted</p>
+      </Shell>
+    );
+  }
+
   return (
-    <motion.div className="container" {...pageMotion}>
+    <motion.main className="eternum-home" {...pageMotion}>
       <AnimatedBackground />
-      <div className="ring"></div>
-      <h3>ALSHAYEB</h3>
-      <h1>ETERNUM</h1>
-      <p className="tagline">NO BEGINNING. NO END.</p>
+      <div className="eternum-frame" aria-hidden="true"></div>
+      <div className="eternum-axis" aria-hidden="true"></div>
 
-      <div className="welcome-block">
-        <p>WELCOME TO</p>
-        <h2>THE ETERNITY</h2>
-        <p>Enter your phone number to continue</p>
-      </div>
+      <section className="eternum-hero" aria-label="ALSHAYEB ETERNUM">
+        <div className="sigil-mark" aria-hidden="true">
+          <span></span>
+        </div>
 
-      {loading && <p className="loading-message">Loading guest list...</p>}
-      {errors.home && (
-        <div className="home-error">
-          <p className="field-error center-error">{errors.home}</p>
-          <button className="retry-btn" onClick={loadGuests} disabled={loading}>
-            RETRY
+        <div className="brand-lockup">
+          <p>ALSHAYEB</p>
+          <h1>ETERNUM</h1>
+          <span>NO BEGINNING. NO END.</span>
+        </div>
+
+        <div className="portal-scene" aria-hidden="true">
+          <div className="portal-rings"></div>
+          <div className="portal-gate"></div>
+          <div className="portal-floor"></div>
+          <span className="obelisk obelisk-left one"></span>
+          <span className="obelisk obelisk-left two"></span>
+          <span className="obelisk obelisk-right one"></span>
+          <span className="obelisk obelisk-right two"></span>
+        </div>
+      </section>
+
+      <section className="path-section" aria-label="Choose your path">
+        <div className="path-title">
+          <span></span>
+          <h2>CHOOSE YOUR PATH</h2>
+          <span></span>
+        </div>
+
+        <div className="path-card-list">
+          <button className="path-card path-blue" type="button" onClick={() => setPage("incomer")}>
+            <span className="path-number">01</span>
+            <span className="path-copy">
+              <span className="path-kicker">THE ETERNAL LIST</span>
+              <strong>INCOMER</strong>
+              <span className="path-description">Already registered?<br />Access your digital pass and event details.</span>
+            </span>
+            <span className="path-divider"></span>
+            <span className="path-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+
+          <button className="path-card path-purple" type="button" onClick={() => setPage("chooseEvent")}>
+            <span className="path-number">02</span>
+            <span className="path-copy">
+              <span className="path-kicker">THE SEEKERS</span>
+              <strong>OUTCOMER</strong>
+              <span className="path-description">Request access to join the experience. Applications are reviewed by the committee.</span>
+            </span>
+            <span className="path-divider"></span>
+            <span className="path-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+
+          <button className="path-card path-gold" type="button" onClick={() => setPage("guestList")}>
+            <span className="path-number">03</span>
+            <span className="path-copy">
+              <span className="path-kicker">THE INVITED</span>
+              <strong>GUEST LIST</strong>
+              <span className="path-description">Feeling lucky?<br />Check if your name made it onto the Eternal List.</span>
+            </span>
+            <span className="path-divider"></span>
+            <span className="path-arrow" aria-hidden="true">&rarr;</span>
           </button>
         </div>
-      )}
 
-      <input
-        className={errors.phoneSearch ? "error-input" : ""}
-        type="text"
-        placeholder="Enter your phone number"
-        value={phone}
-        onChange={(e) => {
-          setPhone(e.target.value);
-          setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-        }}
-      />
-      <FieldError name="phoneSearch" />
-
-      <button className="purple-btn" onClick={handleSearch} disabled={loading}>
-        {loading ? "LOADING" : "CONTINUE"}
-      </button>
-
-      <p className="secure">Your information is secure and encrypted</p>
-    </motion.div>
+        <footer className="home-footer">
+          <p>YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
+          <span>ALSHAYEB ETERNUM</span>
+        </footer>
+      </section>
+    </motion.main>
   );
 }
 
@@ -659,9 +1050,9 @@ function AdminLogin() {
   };
 
   return (
-    <div className="app-shell admin-page">
+    <div className="app-shell admin-page tone-gold">
       <AnimatedBackground />
-      <motion.form className="cosmic-card admin-login-card" {...pageMotion} onSubmit={handleSubmit}>
+      <motion.form className="cosmic-card tone-card admin-login-card" {...pageMotion} onSubmit={handleSubmit}>
         <div className="ring small-ring"></div>
         <h3>ALSHAYEB</h3>
         <h1 className="brand-title">CONTROL</h1>
@@ -722,7 +1113,7 @@ function AdminLayout({ children }) {
   };
 
   return (
-    <div className="admin-control-page">
+    <div className="admin-control-page tone-gold">
       <AnimatedBackground />
       <motion.div className="admin-control-shell" {...pageMotion}>
         <aside className="admin-sidebar">
@@ -900,7 +1291,7 @@ function AttendeesPage() {
   const eventNames = ["All", ...new Set(mockAttendees.map((attendee) => attendee.event))];
 
   const filteredAttendees = mockAttendees.filter((attendee) => {
-    const matchesQuery = `${attendee.name} ${attendee.phone}`.toLowerCase().includes(query.toLowerCase());
+    const matchesQuery = `${attendee.name} ${attendee.phone} ${attendee.email || ""} ${attendee.schoolOrOriginProm || ""} ${attendee.instagramUsername || ""}`.toLowerCase().includes(query.toLowerCase());
     const matchesAccess = accessType === "All" || attendee.accessType === accessType;
     const matchesEvent = eventFilter === "All" || attendee.event === eventFilter;
     const matchesQr = qrStatus === "All" || attendee.qrStatus === qrStatus;
@@ -925,17 +1316,18 @@ function AttendeesPage() {
         </div>
 
         <AdminTable
-          columns={["Name", "Phone", "Event", "Access Type", "QR ID", "Payment Status", "QR Status"]}
+          columns={["Full Name", "Phone Number", "Email", "School / Origin Prom", "Age", "Instagram Username", "Status / Current Phase", "Prom"]}
           rows={filteredAttendees}
           renderRow={(attendee) => (
             <tr key={attendee.id}>
               <td>{attendee.name}</td>
               <td>{attendee.phone}</td>
+              <td>{attendee.email}</td>
+              <td>{attendee.schoolOrOriginProm}</td>
+              <td>{attendee.age}</td>
+              <td>{attendee.instagramUsername}</td>
+              <td><span className={`status-badge ${statusClass(attendee.status || attendee.paymentStatus)}`}>{attendee.status || attendee.paymentStatus}</span></td>
               <td>{attendee.event}</td>
-              <td>{attendee.accessType}</td>
-              <td>{attendee.qrId}</td>
-              <td><span className={`status-badge ${statusClass(attendee.paymentStatus)}`}>{attendee.paymentStatus}</span></td>
-              <td><span className={`status-badge ${statusClass(attendee.qrStatus)}`}>{attendee.qrStatus}</span></td>
             </tr>
           )}
         />
@@ -948,6 +1340,7 @@ function OutcomersPage() {
   const [requests, setRequests] = useState(mockOutcomers);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Pending");
+  const [actionMessage, setActionMessage] = useState("");
 
   const updateStatus = (id, nextStatus) => {
     setRequests((prev) =>
@@ -961,10 +1354,15 @@ function OutcomersPage() {
           : request
       )
     );
+    setActionMessage(
+      nextStatus === "Approved"
+        ? "Application approved. Approval email queued if email is configured."
+        : "Application rejected. Rejection email queued if email is configured."
+    );
   };
 
   const filteredRequests = requests.filter((request) => {
-    const matchesQuery = `${request.name} ${request.phone}`.toLowerCase().includes(query.toLowerCase());
+    const matchesQuery = `${request.name} ${request.phone} ${request.email} ${request.schoolOrOriginProm} ${request.instagramUsername} ${request.event}`.toLowerCase().includes(query.toLowerCase());
     const matchesStatus = statusFilter === "All" || request.applicationStatus === statusFilter;
     return matchesQuery && matchesStatus;
   });
@@ -974,13 +1372,15 @@ function OutcomersPage() {
       <AdminHeader eyebrow="OUTCOMER REVIEW" title="Outcomers" />
       <section className="admin-panel">
         <div className="admin-filter-bar outcomer-filters">
-          <input placeholder="Search by name or phone" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input placeholder="Search name, phone, email, origin prom, Instagram, or Prom" value={query} onChange={(event) => setQuery(event.target.value)} />
           {["All", "Pending", "Approved", "Rejected"].map((status) => (
             <button key={status} className={statusFilter === status ? "filter-pill active-filter" : "filter-pill"} onClick={() => setStatusFilter(status)} type="button">
               {status}
             </button>
           ))}
         </div>
+
+        {actionMessage && <div className="admin-success-state">{actionMessage}</div>}
 
         <div className="outcomer-card-grid">
           {filteredRequests.map((request) => (
@@ -991,15 +1391,18 @@ function OutcomersPage() {
                 <p>{request.phone}</p>
               </div>
               <div className="outcomer-meta">
-                <div><span>EVENT</span><strong>{request.event}</strong></div>
-                <div><span>SUBMITTED</span><strong>{request.submissionDate}</strong></div>
-                <div><span>SCREENSHOT</span><strong>{request.paymentScreenshot}</strong></div>
-                <div><span>PAYMENT</span><strong>{request.paymentStatus}</strong></div>
+                <div><span>FULL NAME</span><strong>{request.name}</strong></div>
+                <div><span>PHONE NUMBER</span><strong>{request.phone}</strong></div>
+                <div><span>EMAIL</span><strong>{request.email}</strong></div>
+                <div><span>SCHOOL / ORIGIN PROM</span><strong>{request.schoolOrOriginProm}</strong></div>
+                <div><span>AGE</span><strong>{request.age}</strong></div>
+                <div><span>INSTAGRAM USERNAME</span><strong>{request.instagramUsername}</strong></div>
+                <div><span>STATUS / CURRENT PHASE</span><strong>{request.applicationStatus}</strong></div>
+                <div><span>PROM</span><strong>{request.event}</strong></div>
               </div>
               <div className="outcomer-status-row">
                 <span className={`status-badge ${statusClass(request.applicationStatus)}`}>{request.applicationStatus}</span>
                 <div className="table-actions">
-                  <button type="button">View Screenshot</button>
                   <button type="button" onClick={() => updateStatus(request.id, "Approved")}>Approve</button>
                   <button type="button" onClick={() => updateStatus(request.id, "Rejected")}>Reject</button>
                 </div>
@@ -1081,20 +1484,39 @@ function ScannerPage() {
 }
 
 function ExportPage() {
-  const exportOptions = ["Export All Attendees", "Export Incomers", "Export Outcomers", "Export Committee", "Export Pending Payments", "Export Event Data"];
+  const exportRows = buildRegistrationExportRows();
+  const promCount = new Set(exportRows.map((row) => row.Prom)).size;
 
   return (
     <AdminLayout>
       <AdminHeader eyebrow="DATA EXPORT" title="Export Excel" />
       <section className="admin-panel">
-        <p className="muted">Placeholder export controls. Excel API will be connected after backend testing.</p>
-        <div className="export-grid">
-          {exportOptions.map((option) => (
-            <button className="export-option" type="button" key={option}>
-              {option}
-            </button>
-          ))}
+        <div className="admin-panel-title">
+          <div>
+            <h3>Registrations By Prom</h3>
+            <p className="muted">Creates one workbook with one sheet per prom. Status stays inside each sheet.</p>
+          </div>
+          <span className="status-badge active">{promCount} PROM SHEETS</span>
         </div>
+
+        <div className="export-summary-grid">
+          <div>
+            <span>WORKBOOK</span>
+            <strong>alshayeb-registrations-by-prom.xlsx</strong>
+          </div>
+          <div>
+            <span>REGISTRATIONS</span>
+            <strong>{exportRows.length}</strong>
+          </div>
+          <div>
+            <span>GROUPING</span>
+            <strong>PROM NAME</strong>
+          </div>
+        </div>
+
+        <button className="export-primary-btn" type="button" onClick={exportRegistrationsByProm}>
+          DOWNLOAD PROM WORKBOOK
+        </button>
       </section>
     </AdminLayout>
   );
@@ -1110,7 +1532,7 @@ function SettingsPage() {
           <label><span>Default Registration Fee</span><input defaultValue="250 EGP" /></label>
           <label><span>QR Reveal Time</span><input defaultValue="2026-12-31T18:00:00" /></label>
           <label><span>Venue Name</span><input defaultValue="ALSHAYEB ETERNUM" /></label>
-          <label><span>Event Background Image</span><input defaultValue="venue-bg.png" /></label>
+          <label><span>Event Background Image</span><input defaultValue="eternum-reference" /></label>
           <label><span>Registration Open / Closed</span><select defaultValue="Open"><option>Open</option><option>Closed</option></select></label>
         </div>
         <button className="purple-btn settings-save" type="button">SAVE SETTINGS LATER</button>

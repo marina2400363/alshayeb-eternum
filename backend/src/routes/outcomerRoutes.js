@@ -6,17 +6,18 @@ const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { serializeAttendee } = require("../utils/serializers");
+const { sendStatusEmail } = require("../utils/email");
 
 const router = express.Router();
 
 function validateRegistration(body) {
   const errors = {};
   const fullName = String(body.fullName || body.name || "").trim();
-  const phone = cleanPhone(body.phone);
+  const phone = cleanPhone(body.phoneNumber || body.phone);
   const email = String(body.email || "").trim();
-  const university = String(body.university || body.school || "").trim();
+  const university = String(body.schoolOrOriginProm || body.university || body.school || "").trim();
   const age = String(body.age || "").trim();
-  const instagram = String(body.instagram || "").trim();
+  const instagram = String(body.instagramUsername || body.instagram || "").trim();
 
   if (!fullName) {
     errors.fullName = "Full name is required.";
@@ -32,12 +33,14 @@ function validateRegistration(body) {
     errors.phone = "Enter an Egyptian phone number starting with 01 and 11 digits long.";
   }
 
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email) {
+    errors.email = "Email is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = "Enter a valid email address.";
   }
 
   if (!university) {
-    errors.university = "University / School is required.";
+    errors.schoolOrOriginProm = "School / Origin Prom is required.";
   }
 
   if (!age) {
@@ -46,8 +49,10 @@ function validateRegistration(body) {
     errors.age = "Age must be a number between 15 and 40.";
   }
 
-  if (instagram && /\s/.test(instagram)) {
-    errors.instagram = "Instagram cannot contain spaces.";
+  if (!instagram) {
+    errors.instagramUsername = "Instagram username is required.";
+  } else if (/\s/.test(instagram)) {
+    errors.instagramUsername = "Instagram username cannot contain spaces.";
   }
 
   return {
@@ -82,9 +87,28 @@ router.post(
       }
     }
 
+    const existingAttendee = await Attendee.findOne({ phone: values.phone }).sort({ createdAt: -1 });
+
+    if (existingAttendee) {
+      const status = String(existingAttendee.status || "").toLowerCase();
+      const nextAction = status === "approved"
+        ? "ticket"
+        : status === "rejected"
+          ? "rejected"
+          : "track";
+
+      res.json({
+        success: true,
+        duplicate: true,
+        nextAction,
+        message: "Existing registration found.",
+        attendee: serializeAttendee(existingAttendee)
+      });
+      return;
+    }
+
     const attendee = await Attendee.create({
       ...values,
-      notes: req.body.notes,
       event: event?._id,
       eventName: event?.name || req.body.eventName,
       attendeeType: "outcomer",
@@ -92,6 +116,20 @@ router.post(
       status: "pending",
       paymentStatus: "pending"
     });
+
+    const emailSent = await sendStatusEmail(
+      attendee,
+      "ALSHAYEB ETERNUM application received",
+      "Application received and currently under review."
+    );
+
+    if (emailSent) {
+      attendee.emailNotifications = {
+        ...attendee.emailNotifications,
+        registrationReceivedAt: new Date()
+      };
+      await attendee.save();
+    }
 
     res.status(201).json({
       success: true,

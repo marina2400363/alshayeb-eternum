@@ -103,6 +103,11 @@ const attendeeSchema = new mongoose.Schema(
     rejectionReason: {
       type: String,
       trim: true
+    },
+    emailNotifications: {
+      registrationReceivedAt: Date,
+      approvedAt: Date,
+      rejectedAt: Date
     }
   },
   { timestamps: true }
