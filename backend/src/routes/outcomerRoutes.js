@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 
 const Attendee = require("../models/Attendee");
 const Event = require("../models/Event");
@@ -7,8 +8,40 @@ const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { serializeAttendee } = require("../utils/serializers");
 const { sendStatusEmail } = require("../utils/email");
+const { uploadPaymentProof } = require("../utils/cloudinaryUpload");
 
 const router = express.Router();
+const allowedPaymentProofTypes = new Set(["image/png", "image/jpeg", "image/jpg"]);
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  },
+  fileFilter(req, file, callback) {
+    if (!allowedPaymentProofTypes.has(file.mimetype)) {
+      callback(apiError("Only PNG, JPG, or JPEG payment screenshots are allowed.", 422));
+      return;
+    }
+
+    callback(null, true);
+  }
+});
+
+function uploadPaymentProofMiddleware(req, res, next) {
+  upload.single("paymentProof")(req, res, (error) => {
+    if (!error) {
+      next();
+      return;
+    }
+
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+      next(apiError("Payment screenshot must be 5MB or smaller.", 422));
+      return;
+    }
+
+    next(error);
+  });
+}
 
 function validateRegistration(body) {
   const errors = {};
@@ -70,6 +103,7 @@ function validateRegistration(body) {
 
 router.post(
   "/register",
+  uploadPaymentProofMiddleware,
   asyncHandler(async (req, res) => {
     const { errors, values } = validateRegistration(req.body);
 
@@ -107,6 +141,18 @@ router.post(
       return;
     }
 
+    let paymentProof = undefined;
+    if (req.file) {
+      const uploadedProof = await uploadPaymentProof(req.file);
+      paymentProof = {
+        url: uploadedProof.secure_url || uploadedProof.url,
+        publicId: uploadedProof.public_id,
+        fileName: req.file.originalname,
+        fileType: req.file.mimetype,
+        uploadedAt: new Date()
+      };
+    }
+
     const attendee = await Attendee.create({
       ...values,
       event: event?._id,
@@ -114,7 +160,8 @@ router.post(
       attendeeType: "outcomer",
       accessType: "OUTCOMER",
       status: "pending",
-      paymentStatus: "pending"
+      paymentStatus: "under_verification",
+      paymentProof
     });
 
     const emailSent = await sendStatusEmail(
@@ -141,25 +188,29 @@ router.post(
 
 router.post(
   "/payment-proof",
+  uploadPaymentProofMiddleware,
   asyncHandler(async (req, res) => {
-    const { attendeeId, fileName, fileType, placeholderUrl } = req.body;
+    const { attendeeId } = req.body;
 
     if (!attendeeId) {
       throw apiError("attendeeId is required.");
     }
 
-    if (!fileName) {
-      throw apiError("Payment proof file name is required.");
+    if (!req.file) {
+      throw apiError("Payment proof screenshot is required.", 422);
     }
+
+    const uploadedProof = await uploadPaymentProof(req.file);
 
     const attendee = await Attendee.findByIdAndUpdate(
       attendeeId,
       {
         paymentStatus: "under_verification",
         paymentProof: {
-          fileName,
-          fileType,
-          placeholderUrl,
+          url: uploadedProof.secure_url || uploadedProof.url,
+          publicId: uploadedProof.public_id,
+          fileName: req.file.originalname,
+          fileType: req.file.mimetype,
           uploadedAt: new Date()
         }
       },

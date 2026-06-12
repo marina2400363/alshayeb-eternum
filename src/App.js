@@ -1,15 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import jsQR from "jsqr";
 import QRCode from "react-qr-code";
 import { motion } from "framer-motion";
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import "./App.css";
 import AnimatedBackground from "./AnimatedBackground";
-import { dashboardStats, mockAttendees, mockEvents, mockOutcomers, mockPayments, recentActivity } from "./adminMockData";
 
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbxg8nRm1dds5DDZRWqdIOmoo2fCD-XR__cgV13-m1m9GUacdpDRTG8MKrw6f3CKwxMJAA/exec";
-const BACKEND_API_URL = String(process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
+const BACKEND_API_URL = String(process.env.REACT_APP_API_URL || "http://127.0.0.1:5000").replace(/\/$/, "");
 
 const QR_REVEAL_TIME = "2026-12-31T18:00:00";
 const ADMIN_SESSION_KEY = "alshayebAdminSession";
@@ -17,11 +15,17 @@ const ADMIN_EMAIL = "admin@alshayeb.com";
 const ADMIN_PASSWORD = "admin123";
 
 const events = [
-  { id: "miu-prom-2026", name: "MIU PROM 2026", date: "31 MAY 2026", fee: "250 EGP" },
-  { id: "bue-prom-2026", name: "BUE PROM 2026", date: "14 JUNE 2026", fee: "250 EGP" },
-  { id: "aast-prom-2026", name: "AAST PROM 2026", date: "20 JUNE 2026", fee: "250 EGP" },
-  { id: "future-prom-2026", name: "FUTURE ACADEMY PROM 2026", date: "28 JUNE 2026", fee: "250 EGP" }
+  { id: "miu-prom-2026", name: "MIU PROM 2026", date: "31 MAY 2026", dateTime: "2026-05-31T21:30:00+03:00", fee: "250 EGP" },
+  { id: "bue-prom-2026", name: "BUE PROM 2026", date: "14 JUNE 2026", dateTime: "2026-06-14T21:30:00+03:00", fee: "250 EGP" },
+  { id: "aast-prom-2026", name: "AAST PROM 2026", date: "20 JUNE 2026", dateTime: "2026-06-20T21:30:00+03:00", fee: "250 EGP" },
+  { id: "future-prom-2026", name: "FUTURE ACADEMY PROM 2026", date: "28 JUNE 2026", dateTime: "2026-06-28T21:30:00+03:00", fee: "250 EGP" }
 ];
+
+const DEFAULT_OUTCOMER_SELECTION = {
+  approved: 129,
+  pending: 73,
+  declined: 46
+};
 
 const EXPORT_COLUMNS = [
   "Full Name",
@@ -33,6 +37,83 @@ const EXPORT_COLUMNS = [
   "Status",
   "Prom"
 ];
+
+async function apiRequest(path, options = {}) {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  let response;
+
+  try {
+    response = await fetch(`${BACKEND_API_URL}${path}`, {
+      ...options,
+      headers: {
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+        ...(options.headers || {})
+      }
+    });
+  } catch (networkError) {
+    const error = new Error("Could not reach the backend API. Please make sure the backend server is running and CORS allows this app URL.");
+    error.cause = networkError;
+    throw error;
+  }
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(result.message || result.reason || "Backend request failed.");
+    error.details = result.details;
+    throw error;
+  }
+
+  return result;
+}
+
+function normalizeStatusLabel(status, fallback = "Pending") {
+  const normalized = String(status || fallback).replace(/_/g, " ").trim();
+  if (!normalized) return fallback;
+  return normalized
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function attendeeName(attendee) {
+  return attendee?.fullName || attendee?.name || attendee?.Name || "Unknown";
+}
+
+function attendeePhone(attendee) {
+  return attendee?.phoneNumber || attendee?.phone || attendee?.Phone || "";
+}
+
+function attendeeProm(attendee) {
+  return attendee?.eventName || attendee?.event || attendee?.Prom || attendee?.Venue || "ALSHAYEB ETERNUM";
+}
+
+function toAdminAttendee(attendee) {
+  return {
+    id: attendee.id || attendee._id,
+    requestId: attendee.requestId || attendee.qrId || attendee.id,
+    name: attendeeName(attendee),
+    phone: attendeePhone(attendee),
+    email: attendee.email || "",
+    schoolOrOriginProm: attendee.schoolOrOriginProm || attendee.university || "",
+    age: attendee.age || "",
+    instagramUsername: attendee.instagramUsername || attendee.instagram || "",
+    status: normalizeStatusLabel(attendee.status),
+    rawStatus: attendee.status,
+    applicationStatus: normalizeStatusLabel(attendee.applicationStatus || attendee.status),
+    paymentStatus: normalizeStatusLabel(attendee.paymentStatus),
+    rawPaymentStatus: attendee.paymentStatus,
+    accessType: normalizeStatusLabel(attendee.accessType || attendee.attendeeType || "Guest"),
+    attendeeType: attendee.attendeeType || "",
+    qrStatus: attendee.status === "used" ? "Used" : attendee.qrToken || attendee.qrId ? "Active" : "Pending",
+    qrToken: attendee.qrToken,
+    qrId: attendee.qrId,
+    event: attendeeProm(attendee),
+    amount: attendee.amount || "250 EGP",
+    submittedAt: attendee.createdAt ? new Date(attendee.createdAt).toLocaleString() : "",
+    paymentProof: attendee.paymentProof
+  };
+}
 
 const pageMotion = {
   initial: { opacity: 0, y: 25, scale: 0.98 },
@@ -71,47 +152,26 @@ function sanitizeExcelSheetName(name, usedNames = new Set()) {
   return sheetName;
 }
 
-function buildRegistrationExportRows() {
-  const paymentLookup = new Map(
-    mockPayments.map((payment) => [`${payment.phone}-${payment.event}`, payment])
-  );
-
-  const attendeeRows = mockAttendees.map((attendee) => {
-    const payment = paymentLookup.get(`${attendee.phone}-${attendee.event}`);
+function buildRegistrationExportRows(attendees = []) {
+  return attendees.map((attendee) => {
+    const row = toAdminAttendee(attendee);
 
     return {
-      promName: attendee.event,
-      "Full Name": attendee.name,
-      "Phone Number": attendee.phone,
-      Email: attendee.email || "",
-      "School / Origin Prom": attendee.schoolOrOriginProm || "",
-      Age: attendee.age || "",
-      "Instagram Username": attendee.instagramUsername || "",
-      Status: attendee.status || attendee.paymentStatus || payment?.status || "",
-      Prom: attendee.event
+      promName: row.event,
+      "Full Name": row.name,
+      "Phone Number": row.phone,
+      Email: row.email || "",
+      "School / Origin Prom": row.schoolOrOriginProm || "",
+      Age: row.age || "",
+      "Instagram Username": row.instagramUsername || "",
+      Status: row.status || row.paymentStatus || "",
+      Prom: row.event
     };
   });
-
-  const attendeeKeys = new Set(mockAttendees.map((attendee) => `${attendee.phone}-${attendee.event}`));
-  const outcomerRows = mockOutcomers
-    .filter((request) => !attendeeKeys.has(`${request.phone}-${request.event}`))
-    .map((request) => ({
-      promName: request.event,
-      "Full Name": request.name,
-      "Phone Number": request.phone,
-      Email: request.email || "",
-      "School / Origin Prom": request.schoolOrOriginProm || "",
-      Age: request.age || "",
-      "Instagram Username": request.instagramUsername || "",
-      Status: request.applicationStatus,
-      Prom: request.event
-    }));
-
-  return [...attendeeRows, ...outcomerRows];
 }
 
-function exportRegistrationsByProm() {
-  const rows = buildRegistrationExportRows();
+function exportRegistrationsByProm(attendees = []) {
+  const rows = buildRegistrationExportRows(attendees);
   const groupedRows = rows.reduce((groups, row) => {
     const promName = row.promName || row.Prom || "Unknown Prom";
     if (!groups.has(promName)) {
@@ -149,8 +209,22 @@ function exportRegistrationsByProm() {
   XLSX.writeFile(workbook, "alshayeb-registrations-by-prom.xlsx");
 }
 
-const Shell = ({ children, tone = "blue" }) => (
-  <div className={`app-shell tone-${tone}`}>
+function normalizeEventFee(fee) {
+  if (!fee) return "250 EGP";
+  if (typeof fee === "string") return fee;
+  return `${fee.amount || 0} ${fee.currency || "EGP"}`;
+}
+
+function eventDateTimeValue(event) {
+  return event?.dateTime || event?.date || QR_REVEAL_TIME;
+}
+
+function formatCountdownUnit(value) {
+  return String(value).padStart(2, "0");
+}
+
+const Shell = ({ children, tone = "blue", className = "" }) => (
+  <div className={`app-shell tone-${tone} ${className}`}>
     <AnimatedBackground />
     <motion.div className="cosmic-card tone-card" {...pageMotion}>
       {children}
@@ -160,13 +234,15 @@ const Shell = ({ children, tone = "blue" }) => (
 
 function PublicWebsite() {
   const [phone, setPhone] = useState("");
-  const [clients, setClients] = useState([]);
   const [foundClient, setFoundClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState("home");
   const [errors, setErrors] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(events[0]);
+  const [liveEvents, setLiveEvents] = useState(events);
+  const [outcomerSelection, setOutcomerSelection] = useState(DEFAULT_OUTCOMER_SELECTION);
   const [now, setNow] = useState(Date.now());
+  const [trackedRegistration, setTrackedRegistration] = useState(null);
 
   const [request, setRequest] = useState({
     fullName: "",
@@ -175,13 +251,32 @@ function PublicWebsite() {
     schoolOrOriginProm: "",
     age: "",
     instagramUsername: "",
-    screenshot: null
+    screenshot: null,
+    screenshotFile: null
   });
 
   const cleanValue = (value) => String(value || "").replace(/\s/g, "").replace(/'/g, "").trim();
   const safeValue = (value, fallback = "Not available") => {
     const text = String(value ?? "").trim();
     return text || fallback;
+  };
+  const displayEvents = liveEvents.length ? liveEvents : events;
+  const findPromEvent = (promName) => {
+    const normalizedProm = String(promName || "").trim().toLowerCase();
+    return displayEvents.find((event) => String(event.name || "").trim().toLowerCase() === normalizedProm) || selectedEvent;
+  };
+  const toTicketClient = (attendee) => {
+    const promEvent = findPromEvent(attendee.eventName || attendee.event || attendee.Venue);
+    return {
+      Name: attendee.fullName || attendee.name || attendee.Name,
+      Phone: attendee.phoneNumber || attendee.phone || attendee.Phone,
+      QR: attendee.qrToken || attendee.qrId || attendee.QR,
+      ID: attendee.qrId || attendee.id || attendee.ID,
+      type: attendee.accessType || attendee.type || attendee.attendeeType || "Guest",
+      Status: attendee.status || attendee.Status || "Approved",
+      Venue: attendee.eventName || attendee.Venue || promEvent.name || "ALSHAYEB ETERNUM",
+      PromDateTime: eventDateTimeValue(promEvent)
+    };
   };
 
   const isEgyptianPhone = (value) => /^01[0-9]{9}$/.test(cleanValue(value));
@@ -190,24 +285,16 @@ function PublicWebsite() {
     setLoading(true);
     setErrors((prev) => ({ ...prev, home: "" }));
 
-    fetch(API_URL + "?t=" + new Date().getTime())
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Guest list request failed");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setClients(Array.isArray(data) ? data : []);
+    apiRequest("/api/attendees?status=approved")
+      .then(() => {
         setLoading(false);
       })
       .catch((error) => {
         console.log("Error:", error);
-        setClients([]);
         setLoading(false);
         setErrors((prev) => ({
           ...prev,
-          home: "We could not load the guest list. Please check your connection and try again."
+          home: "We could not connect to MongoDB records. Please check the backend API and try again."
         }));
       });
   }, []);
@@ -217,20 +304,42 @@ function PublicWebsite() {
   }, [loadGuests]);
 
   useEffect(() => {
+    apiRequest("/api/events")
+      .then((result) => {
+        const backendEvents = Array.isArray(result.events) && result.events.length
+          ? result.events.map((event) => ({
+              id: event._id || event.id || event.slug,
+              name: event.name,
+              date: event.date ? new Date(event.date).toLocaleDateString(undefined, { day: "2-digit", month: "long", year: "numeric" }).toUpperCase() : "DATE TBA",
+              dateTime: event.date || QR_REVEAL_TIME,
+              fee: normalizeEventFee(event.fee),
+              venue: event.venue || "ALSHAYEB ETERNUM"
+            }))
+          : events;
+        setLiveEvents(backendEvents);
+        setSelectedEvent((current) => backendEvents.find((event) => event.name === current.name) || backendEvents[0] || current);
+      })
+      .catch((error) => {
+        console.log("Event load failed:", error);
+        setLiveEvents(events);
+      });
+
+    apiRequest("/api/admin/site-settings")
+      .then((result) => {
+        setOutcomerSelection({
+          ...DEFAULT_OUTCOMER_SELECTION,
+          ...(result.settings?.outcomerSelection || {})
+        });
+      })
+      .catch((error) => {
+        console.log("Site settings load failed:", error);
+      });
+  }, []);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-
-  const qrRevealDate = useMemo(() => new Date(QR_REVEAL_TIME).getTime(), []);
-  const qrLocked = now < qrRevealDate;
-  const countdown = useMemo(() => {
-    const distance = Math.max(qrRevealDate - now, 0);
-    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((distance / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((distance / (1000 * 60)) % 60);
-    const seconds = Math.floor((distance / 1000) % 60);
-    return { days, hours, minutes, seconds };
-  }, [now, qrRevealDate]);
 
   const validatePhoneSearch = () => {
     const newErrors = {};
@@ -245,22 +354,49 @@ function PublicWebsite() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (loading) return;
     if (!validatePhoneSearch()) return;
 
-    const typedPhone = cleanValue(phone);
-    const client = clients.find((c) => cleanValue(c?.phone || c?.Phone) === typedPhone);
+    setLoading(true);
+    const existing = await lookupBackendRegistration(phone);
+    setLoading(false);
 
-    if (client) {
-      setFoundClient(client);
-      setErrors({});
-      setPage("ticket");
-    } else {
+    if (existing && routeExistingRegistration(existing)) return;
+
+    setFoundClient(null);
+    setErrors({});
+    setPage("notfound");
+  };
+
+  const handleTrackLookup = async () => {
+    if (loading) return;
+    if (!validatePhoneSearch()) return;
+
+    setLoading(true);
+    const existing = await lookupBackendRegistration(phone);
+    setLoading(false);
+
+    if (!existing) {
+      setTrackedRegistration(null);
       setFoundClient(null);
       setErrors({});
       setPage("notfound");
+      return;
     }
+
+    const normalizedStatus = String(existing.status || "").toLowerCase();
+    if (normalizedStatus.includes("approved") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
+      setFoundClient(toTicketClient(existing.data));
+      setErrors({});
+      setPage("ticket");
+      return;
+    }
+
+    setTrackedRegistration(existing.data);
+    setRequest((prev) => ({ ...prev, ...existing.data }));
+    setErrors({});
+    setPage(normalizedStatus.includes("reject") || normalizedStatus.includes("declined") ? "rejected" : "track");
   };
 
   const validateRegistration = () => {
@@ -333,7 +469,7 @@ function PublicWebsite() {
     const file = e.target.files?.[0];
 
     if (!file) {
-      setRequest((prev) => ({ ...prev, screenshot: null }));
+      setRequest((prev) => ({ ...prev, screenshot: null, screenshotFile: null }));
       return;
     }
 
@@ -343,72 +479,35 @@ function PublicWebsite() {
     const hasAllowedExtension = allowedExtensions.some((extension) => fileName.endsWith(extension));
 
     if (!allowedTypes.includes(file.type) || !hasAllowedExtension) {
-      setRequest((prev) => ({ ...prev, screenshot: null }));
+      setRequest((prev) => ({ ...prev, screenshot: null, screenshotFile: null }));
       setErrors((prev) => ({ ...prev, screenshot: "Only PNG, JPG, or JPEG files are allowed." }));
       return;
     }
 
-    setRequest((prev) => ({ ...prev, screenshot: file.name }));
+    if (file.size > 5 * 1024 * 1024) {
+      setRequest((prev) => ({ ...prev, screenshot: null, screenshotFile: null }));
+      setErrors((prev) => ({ ...prev, screenshot: "Payment screenshot must be 5MB or smaller." }));
+      return;
+    }
+
+    setRequest((prev) => ({ ...prev, screenshot: file.name, screenshotFile: file }));
     setErrors((prev) => ({ ...prev, screenshot: "" }));
   };
 
-  const findExistingRegistration = (phoneNumber) => {
-    const normalizedPhone = cleanValue(phoneNumber);
-    const guest = clients.find((client) => cleanValue(client?.phone || client?.Phone) === normalizedPhone);
-
-    if (guest) {
-      const guestStatus = String(guest.status || guest.Status || "Approved").toLowerCase();
-      return {
-        source: "guest",
-        status: guestStatus.includes("reject") ? "rejected" : guestStatus.includes("pending") || guestStatus.includes("review") ? "pending" : "approved",
-        data: guest
-      };
-    }
-
-    try {
-      const saved = JSON.parse(localStorage.getItem("alshayebRequest") || "{}");
-      if (cleanValue(saved.phoneNumber || saved.phone) === normalizedPhone) {
-        return {
-          source: "local",
-          status: String(saved.applicationStatus || saved.status || "PENDING").toLowerCase(),
-          data: saved
-        };
-      }
-    } catch {
-      return null;
-    }
-
-    return null;
-  };
+  const findExistingRegistration = (phoneNumber) => lookupBackendRegistration(phoneNumber);
 
   const routeExistingRegistration = (existing) => {
     const normalizedStatus = String(existing?.status || "").toLowerCase();
 
     if (normalizedStatus.includes("approved") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
-      if (existing.source === "guest") {
-        setFoundClient(existing.data);
-        setErrors({});
-        setPage("ticket");
-        return true;
-      }
-
-      if (existing.source === "backend") {
-        setFoundClient({
-          Name: existing.data.fullName,
-          Phone: existing.data.phoneNumber || existing.data.phone,
-          QR: existing.data.qrToken || existing.data.qrId,
-          ID: existing.data.qrId || existing.data.id,
-          type: existing.data.accessType || "Outcomer",
-          Status: existing.data.status || "Approved",
-          Venue: existing.data.eventName || "ALSHAYEB ETERNUM"
-        });
-        setErrors({});
-        setPage("ticket");
-        return true;
-      }
+      setFoundClient(toTicketClient(existing.data));
+      setErrors({});
+      setPage("ticket");
+      return true;
     }
 
     if (normalizedStatus.includes("reject") || normalizedStatus.includes("declined")) {
+      setTrackedRegistration(existing.data);
       setRequest((prev) => ({ ...prev, ...existing.data }));
       setErrors({});
       setPage("rejected");
@@ -416,7 +515,7 @@ function PublicWebsite() {
     }
 
     if (normalizedStatus.includes("pending") || normalizedStatus.includes("review") || normalizedStatus.includes("verification")) {
-      localStorage.setItem("alshayebRequest", JSON.stringify(existing.data));
+      setTrackedRegistration(existing.data);
       setRequest((prev) => ({ ...prev, ...existing.data }));
       setErrors({});
       setPage("track");
@@ -427,12 +526,8 @@ function PublicWebsite() {
   };
 
   const lookupBackendRegistration = async (phoneNumber) => {
-    if (!BACKEND_API_URL) return null;
-
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/attendees/lookup?phone=${encodeURIComponent(cleanValue(phoneNumber))}`);
-      if (!response.ok) return null;
-      const result = await response.json();
+      const result = await apiRequest(`/api/attendees/lookup?phone=${encodeURIComponent(cleanValue(phoneNumber))}`);
       if (!result?.found || !result.attendee) return null;
       return {
         source: "backend",
@@ -441,43 +536,35 @@ function PublicWebsite() {
       };
     } catch (error) {
       console.log("Backend lookup failed:", error);
+      setErrors((prev) => ({ ...prev, home: "MongoDB lookup failed. Please check the backend API." }));
       return null;
     }
   };
 
   const submitBackendOutcomer = async (payload) => {
-    if (!BACKEND_API_URL) return null;
-
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/outcomers/register`, {
+      return await apiRequest("/api/outcomers/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
+        body: payload
       });
-
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        if (result?.details) {
-          setErrors(result.details);
-        }
-        return null;
-      }
-
-      return response.json();
     } catch (error) {
       console.log("Backend registration failed:", error);
+      if (error.details) {
+        setErrors(error.details);
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          screenshot: error.message || "Could not save this registration. Please make sure the backend server is running."
+        }));
+      }
       return null;
     }
   };
 
   const goToPayment = async () => {
     if (!validateRegistration()) return;
-    const existing = findExistingRegistration(request.phoneNumber);
+    const existing = await findExistingRegistration(request.phoneNumber);
     if (existing && routeExistingRegistration(existing)) return;
-    const backendExisting = await lookupBackendRegistration(request.phoneNumber);
-    if (backendExisting && routeExistingRegistration(backendExisting)) return;
     setPage("payment");
   };
 
@@ -494,15 +581,19 @@ function PublicWebsite() {
       submittedAt: new Date().toISOString()
     };
 
-    const backendResult = await submitBackendOutcomer({
-      fullName: request.fullName,
-      phoneNumber: request.phoneNumber,
-      email: request.email,
-      schoolOrOriginProm: request.schoolOrOriginProm,
-      age: request.age,
-      instagramUsername: request.instagramUsername,
-      eventName: selectedEvent.name
-    });
+    const formData = new FormData();
+    formData.append("fullName", request.fullName);
+    formData.append("phoneNumber", request.phoneNumber);
+    formData.append("email", request.email);
+    formData.append("schoolOrOriginProm", request.schoolOrOriginProm);
+    formData.append("age", request.age);
+    formData.append("instagramUsername", request.instagramUsername);
+    formData.append("eventName", selectedEvent.name);
+    formData.append("paymentProof", request.screenshotFile);
+
+    const backendResult = await submitBackendOutcomer(formData);
+
+    if (!backendResult) return;
 
     if (backendResult?.duplicate) {
       const existing = {
@@ -524,7 +615,7 @@ function PublicWebsite() {
         }
       : newRequest;
 
-    localStorage.setItem("alshayebRequest", JSON.stringify(persistedRequest));
+    setTrackedRegistration(persistedRequest);
     setRequest(persistedRequest);
     setErrors({});
     setPage("submitted");
@@ -546,7 +637,7 @@ function PublicWebsite() {
         <p className="muted">This phone number is not in our guest list yet.</p>
         <p className="muted">You can request access as an outcomer.</p>
 
-        <button className="purple-btn" onClick={() => setPage("chooseEvent")}>
+        <button className="purple-btn" onClick={() => setPage("outcomerLanding")}>
           REGISTER AS OUTCOMER
         </button>
 
@@ -557,10 +648,102 @@ function PublicWebsite() {
     );
   }
 
+  if (page === "outcomerLanding") {
+    return (
+      <Shell tone="purple" className="reference-flow outcomer-reference">
+        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
+          &larr;
+        </button>
+        <div className="mini-brand-lockup">
+          <div className="ring small-ring"></div>
+          <span>ALSHAYEB</span>
+          <strong>ETERNUM</strong>
+          <em>NO BEGINNING. NO END.</em>
+        </div>
+        <div className="reference-gate" aria-hidden="true">
+          <span className="gate-orb"></span>
+          <span className="gate-door"></span>
+          <span className="gate-floor"></span>
+        </div>
+
+        <section className="outcomer-selection-panel">
+          <h2>THE SEEKERS</h2>
+          <p>Not everyone is chosen.<br />Request access to join the experience.</p>
+          <div className="selection-display">
+            <div><strong>{outcomerSelection.approved}</strong><span>APPROVED</span></div>
+            <div><strong>{outcomerSelection.pending}</strong><span>PENDING</span></div>
+            <div><strong>{outcomerSelection.declined}</strong><span>DECLINED</span></div>
+          </div>
+        </section>
+
+        <div className="outcomer-action-list">
+          <button type="button" className="outcomer-action-card" onClick={() => setPage("chooseEvent")}>
+            <span className="action-icon">01</span>
+            <span><strong>REGISTER</strong><em>Begin your application to join Eternum.</em></span>
+            <b>&rarr;</b>
+          </button>
+          <button type="button" className="outcomer-action-card" onClick={() => setPage("alreadyRegistered")}>
+            <span className="action-icon">02</span>
+            <span><strong>ALREADY REGISTERED</strong><em>Get your QR Code and access your pass.</em></span>
+            <b>&rarr;</b>
+          </button>
+          <button type="button" className="outcomer-action-card" onClick={() => setPage("trackLookup")}>
+            <span className="action-icon">03</span>
+            <span><strong>TRACK YOUR REQUEST</strong><em>Check your application status and committee updates.</em></span>
+            <b>&rarr;</b>
+          </button>
+        </div>
+
+        <footer className="reference-footer">ALSHAYEB EXPERIENCE</footer>
+      </Shell>
+    );
+  }
+
+  if (page === "alreadyRegistered" || page === "trackLookup") {
+    const isTrackLookup = page === "trackLookup";
+
+    return (
+      <Shell tone="purple" className="reference-flow lookup-reference">
+        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
+          &larr;
+        </button>
+        <div className="ring small-ring"></div>
+        <h2 className="page-title">{isTrackLookup ? "TRACK YOUR REQUEST" : "ALREADY REGISTERED"}</h2>
+        <p className="tagline">{isTrackLookup ? "THE SEEKERS" : "ACCESS YOUR PASS"}</p>
+        <div className="reference-gate compact-gate" aria-hidden="true">
+          <span className="gate-door"></span>
+          <span className="gate-floor"></span>
+        </div>
+        <div className="welcome-block">
+          <p>{isTrackLookup ? "Enter your phone number" : "Your QR pass is waiting."}</p>
+          <h2>{isTrackLookup ? "CURRENT PHASE" : "OPEN THE GATE"}</h2>
+          <p>{isTrackLookup ? "Pending. Declined. Confirmed." : "Enter your phone number to access your universal ticket."}</p>
+        </div>
+        <div className="phone-field">
+          <span>+20</span>
+          <input
+            className={errors.phoneSearch ? "error-input" : ""}
+            type="text"
+            placeholder="Phone Number"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+            }}
+          />
+        </div>
+        <FieldError name="phoneSearch" />
+        <button className="purple-btn" onClick={isTrackLookup ? handleTrackLookup : handleSearch} disabled={loading}>
+          {loading ? "LOADING" : isTrackLookup ? "TRACK REQUEST" : "ACCESS THE GATE"}
+        </button>
+      </Shell>
+    );
+  }
+
   if (page === "chooseEvent") {
     return (
-      <Shell tone="purple">
-        <button className="back-icon" onClick={() => setPage("notfound")} aria-label="Back">
+      <Shell tone="purple" className="reference-flow">
+        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
           &larr;
         </button>
         <div className="ring small-ring"></div>
@@ -568,7 +751,7 @@ function PublicWebsite() {
         <p className="muted">SELECT YOUR DESTINATION</p>
 
         <div className="event-list">
-          {events.map((event, index) => (
+          {displayEvents.map((event, index) => (
             <motion.button
               type="button"
               key={event.id}
@@ -596,7 +779,7 @@ function PublicWebsite() {
 
   if (page === "register") {
     return (
-      <Shell tone="purple">
+      <Shell tone="purple" className="reference-flow form-reference">
         <button className="back-icon" onClick={() => setPage("chooseEvent")} aria-label="Back">
           &larr;
         </button>
@@ -641,7 +824,7 @@ function PublicWebsite() {
 
   if (page === "payment") {
     return (
-      <Shell tone="blue">
+      <Shell tone="purple" className="reference-flow form-reference">
         <button className="back-icon" onClick={() => setPage("register")} aria-label="Back">
           &larr;
         </button>
@@ -665,7 +848,7 @@ function PublicWebsite() {
 
   if (page === "instapay") {
     return (
-      <Shell tone="blue">
+      <Shell tone="purple" className="reference-flow form-reference">
         <h1 className="insta">instaPay</h1>
         <motion.div className="phone-pay" {...softPop}>
           <p>PAY</p>
@@ -684,7 +867,7 @@ function PublicWebsite() {
 
   if (page === "upload") {
     return (
-      <Shell tone="blue">
+      <Shell tone="purple" className="reference-flow form-reference">
         <button className="back-icon" onClick={() => setPage("instapay")} aria-label="Back">
           &larr;
         </button>
@@ -713,7 +896,7 @@ function PublicWebsite() {
 
   if (page === "submitted") {
     return (
-      <Shell tone="purple">
+      <Shell tone="purple" className="reference-flow form-reference">
         <motion.div className="success-icon" {...softPop}>
           OK
         </motion.div>
@@ -735,23 +918,24 @@ function PublicWebsite() {
   }
 
   if (page === "track") {
-    let saved = {};
-    try {
-      saved = JSON.parse(localStorage.getItem("alshayebRequest") || "{}");
-    } catch {
-      saved = {};
-    }
+    const saved = trackedRegistration || request || {};
+    const normalizedPhase = String(saved.status || saved.applicationStatus || "pending").toLowerCase();
+    const phaseLabel = normalizedPhase.includes("approved") || normalizedPhase.includes("confirmed")
+      ? "CONFIRMED"
+      : normalizedPhase.includes("reject") || normalizedPhase.includes("declined")
+        ? "DECLINED"
+        : "PENDING";
 
     return (
-      <Shell tone="purple">
+      <Shell tone="purple" className="reference-flow form-reference">
         <div className="ring small-ring"></div>
-        <h2 className="page-title">PENDING REVIEW</h2>
-        <p className="muted">Your application is currently under review.</p>
+        <h2 className="page-title">{phaseLabel}</h2>
+        <p className="muted">Your application current phase is {phaseLabel.toLowerCase()}.</p>
 
         <div className="identity-card">
           <div><span>EVENT</span><p>{safeValue(saved.event, selectedEvent.name)}</p></div>
           <div><span>REQUEST ID</span><p>{safeValue(saved.requestId, "OUT-0000")}</p></div>
-          <div><span>APPLICATION STATUS</span><p><span className="status-badge pending">PENDING REVIEW</span></p></div>
+          <div><span>APPLICATION STATUS</span><p><span className={`status-badge ${statusClass(phaseLabel)}`}>{phaseLabel}</span></p></div>
           <div><span>PAYMENT STATUS</span><p><span className="status-badge pending">UNDER VERIFICATION</span></p></div>
         </div>
 
@@ -762,15 +946,10 @@ function PublicWebsite() {
   }
 
   if (page === "rejected") {
-    let saved = request;
-    try {
-      saved = { ...request, ...JSON.parse(localStorage.getItem("alshayebRequest") || "{}") };
-    } catch {
-      saved = request;
-    }
+    const saved = trackedRegistration || request || {};
 
     return (
-      <Shell tone="purple">
+      <Shell tone="purple" className="reference-flow form-reference">
         <div className="ring small-ring"></div>
         <h2 className="page-title">APPLICATION DECLINED</h2>
         <p className="muted">Your application was declined.</p>
@@ -796,6 +975,17 @@ function PublicWebsite() {
     const rawStatus = safeValue(foundClient.status || foundClient.Status, "Active");
     const status = rawStatus.toLowerCase();
     const venue = safeValue(foundClient.venue || foundClient.Venue, "ALSHAYEB ETERNUM");
+    const ticketPromEvent = findPromEvent(venue);
+    const ticketRevealDate = new Date(foundClient.PromDateTime || eventDateTimeValue(ticketPromEvent)).getTime();
+    const safeTicketRevealDate = Number.isFinite(ticketRevealDate) ? ticketRevealDate : new Date(QR_REVEAL_TIME).getTime();
+    const ticketQrLocked = now < safeTicketRevealDate;
+    const ticketDistance = Math.max(safeTicketRevealDate - now, 0);
+    const ticketCountdown = {
+      days: Math.floor(ticketDistance / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((ticketDistance / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((ticketDistance / (1000 * 60)) % 60),
+      seconds: Math.floor((ticketDistance / 1000) % 60)
+    };
     const normalizedAccessType = accessType.toLowerCase();
     const ticketTone = normalizedAccessType.includes("guest") || normalizedAccessType.includes("invited")
       ? "gold"
@@ -814,19 +1004,22 @@ function PublicWebsite() {
             <p>NO BEGINNING. NO END.</p>
           </div>
 
-          {qrLocked ? (
+          {ticketQrLocked ? (
             <motion.div className="locked-qr-card" {...softPop}>
+              <span className="qr-lock-icon" aria-hidden="true">&#128274;</span>
               <span className="status-badge active">ACCESS CONFIRMED</span>
               <h2>QR UNLOCKS SOON</h2>
               <div className="countdown-grid">
-                <div><strong>{countdown.days}</strong><span>DAYS</span></div>
-                <div><strong>{countdown.hours}</strong><span>HRS</span></div>
-                <div><strong>{countdown.minutes}</strong><span>MIN</span></div>
-                <div><strong>{countdown.seconds}</strong><span>SEC</span></div>
+                <div><strong>{formatCountdownUnit(ticketCountdown.days)}</strong><span>DAYS</span></div>
+                <div><strong>{formatCountdownUnit(ticketCountdown.hours)}</strong><span>HRS</span></div>
+                <div><strong>{formatCountdownUnit(ticketCountdown.minutes)}</strong><span>MIN</span></div>
+                <div><strong>{formatCountdownUnit(ticketCountdown.seconds)}</strong><span>SEC</span></div>
               </div>
+              <p className="muted">Unlocks at {new Date(safeTicketRevealDate).toLocaleString()}</p>
             </motion.div>
           ) : (
             <motion.div className="qr-card" {...softPop}>
+              <span className="qr-lock-icon unlocked" aria-hidden="true">&#128275;</span>
               <h2>{qrValue ? "SCAN TO ENTER" : "QR NOT AVAILABLE YET"}</h2>
               {qrValue ? (
                 <>
@@ -878,19 +1071,23 @@ function PublicWebsite() {
     const isIncomer = page === "incomer";
 
     return (
-      <Shell tone={isIncomer ? "blue" : "gold"}>
+      <Shell tone={isIncomer ? "blue" : "gold"} className="reference-flow incomer-reference">
         <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
           &larr;
         </button>
         <div className="ring small-ring"></div>
-        <h3>ALSHAYEB</h3>
-        <h1 className="brand-title">{isIncomer ? "INCOMER" : "GUEST LIST"}</h1>
-        <p className="tagline">{isIncomer ? "ACCESS YOUR DIGITAL PASS" : "CHECK THE ETERNAL LIST"}</p>
+        <h1 className="brand-title">{isIncomer ? "THE ETERNAL LIST" : "THE INVITED"}</h1>
+        <p className="tagline">{isIncomer ? "INCOMER" : "GUEST LIST"}</p>
+        <div className="reference-gate" aria-hidden="true">
+          <span className="gate-orb"></span>
+          <span className="gate-door"></span>
+          <span className="gate-floor"></span>
+        </div>
 
         <div className="welcome-block">
-          <p>{isIncomer ? "ALREADY REGISTERED?" : "FEELING LUCKY?"}</p>
-          <h2>{isIncomer ? "ENTER YOUR PHONE" : "FIND YOUR NAME"}</h2>
-          <p>{isIncomer ? "Enter your phone number to continue" : "Use your phone number to check your status"}</p>
+          <p>{isIncomer ? "Your place has already been secured." : "Feeling lucky?"}</p>
+          {isIncomer && <div className="incomer-divider" aria-hidden="true"><span></span></div>}
+          <h2>{isIncomer ? "Enter your phone number to access your pass." : "Check if your name made it onto the Eternal List."}</h2>
         </div>
 
         {loading && <p className="loading-message">Loading guest list...</p>}
@@ -903,23 +1100,26 @@ function PublicWebsite() {
           </div>
         )}
 
-        <input
-          className={errors.phoneSearch ? "error-input" : ""}
-          type="text"
-          placeholder="Enter your phone number"
-          value={phone}
-          onChange={(e) => {
-            setPhone(e.target.value);
-            setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-          }}
-        />
+        <div className="phone-field">
+          <span>+20</span>
+          <input
+            className={errors.phoneSearch ? "error-input" : ""}
+            type="text"
+            placeholder="Phone Number"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+            }}
+          />
+        </div>
         <FieldError name="phoneSearch" />
 
         <button className="purple-btn" onClick={handleSearch} disabled={loading}>
-          {loading ? "LOADING" : "CONTINUE"}
+          {loading ? "LOADING" : isIncomer ? "ACCESS THE GATE" : "CHECK NOW"}
         </button>
 
-        <p className="secure">Your information is secure and encrypted</p>
+        <p className="secure">{isIncomer && <span aria-hidden="true">◇</span>}Your information is secure and encrypted.</p>
       </Shell>
     );
   }
@@ -971,7 +1171,7 @@ function PublicWebsite() {
             <span className="path-arrow" aria-hidden="true">&rarr;</span>
           </button>
 
-          <button className="path-card path-purple" type="button" onClick={() => setPage("chooseEvent")}>
+          <button className="path-card path-purple" type="button" onClick={() => setPage("outcomerLanding")}>
             <span className="path-number">02</span>
             <span className="path-copy">
               <span className="path-kicker">THE SEEKERS</span>
@@ -1156,7 +1356,7 @@ function statusClass(status) {
   return "pending";
 }
 
-function AdminHeader({ eyebrow, title, badge = "MOCK DATA" }) {
+function AdminHeader({ eyebrow, title, badge = "LIVE MONGODB" }) {
   return (
     <div className="admin-header">
       <div>
@@ -1193,39 +1393,84 @@ function QuickAction({ children, to }) {
   );
 }
 
+function useBackendData(path, fallback) {
+  const [data, setData] = useState(fallback);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const fallbackRef = useRef(fallback);
+
+  const reload = useCallback(() => {
+    setLoading(true);
+    setError("");
+
+    return apiRequest(path)
+      .then((result) => {
+        setData(result);
+        setLoading(false);
+        return result;
+      })
+      .catch((requestError) => {
+        console.log("Admin API request failed:", requestError);
+        setData(fallbackRef.current);
+        setError(requestError.message || "Could not load MongoDB records.");
+        setLoading(false);
+        return null;
+      });
+  }, [path]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  return { data, loading, error, reload, setData };
+}
+
 function AdminDashboard() {
+  const { data, loading, error } = useBackendData("/api/admin/dashboard", {
+    stats: [],
+    recentActivity: [],
+    recentAttendees: []
+  });
+  const stats = data.stats || [];
+  const activity = data.recentActivity || [];
+  const recentEvents = [...new Set((data.recentAttendees || []).map((attendee) => attendeeProm(attendee)).filter(Boolean))];
+
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="CONTROL ROOM" title="Admin Dashboard" badge="FRONTEND PROTOTYPE" />
+      <AdminHeader eyebrow="CONTROL ROOM" title="Admin Dashboard" badge={loading ? "LOADING MONGODB" : "LIVE MONGODB"} />
+      {error && <div className="admin-empty-state">{error}</div>}
 
       <div className="admin-stat-grid">
-        {dashboardStats.map((stat) => (
+        {stats.map((stat) => (
           <div className="admin-stat-card" key={stat.label}>
             <span>{stat.label}</span>
             <strong>{stat.value}</strong>
           </div>
         ))}
+        {!loading && stats.length === 0 && <div className="admin-empty-state">NO MONGODB STATS YET</div>}
       </div>
 
       <div className="admin-dashboard-grid">
         <section className="admin-panel">
           <h3>Recent Activity</h3>
           <div className="activity-list">
-            {recentActivity.map((item) => (
+            {activity.map((item) => (
               <div key={item}>{item}</div>
             ))}
+            {!loading && activity.length === 0 && <div>NO RECENT MONGODB ACTIVITY</div>}
           </div>
         </section>
 
         <section className="admin-panel">
-          <h3>Upcoming Events</h3>
+          <h3>Proms In MongoDB</h3>
           <div className="compact-list">
-            {mockEvents.map((event) => (
-              <div key={event.id}>
-                <strong>{event.name}</strong>
-                <span>{event.date} / {event.totalAttendees} attendees</span>
+            {recentEvents.map((eventName) => (
+              <div key={eventName}>
+                <strong>{eventName}</strong>
+                <span>Live registration records</span>
               </div>
             ))}
+            {!loading && recentEvents.length === 0 && <div><strong>NO PROMS FOUND</strong><span>Submit registrations to populate MongoDB.</span></div>}
           </div>
         </section>
 
@@ -1244,30 +1489,34 @@ function AdminDashboard() {
 }
 
 function EventsPage() {
+  const { data, loading, error } = useBackendData("/api/events", { events: [] });
+  const liveEvents = data.events || [];
+
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="EVENT OPERATIONS" title="Events" />
+      <AdminHeader eyebrow="EVENT OPERATIONS" title="Events" badge={loading ? "LOADING MONGODB" : "LIVE MONGODB"} />
       <section className="admin-panel">
         <div className="admin-panel-title">
           <div>
             <h3>Event Registry</h3>
-            <p className="muted">Mock events only. Backend connection comes later.</p>
+            <p className="muted">Events are loaded from MongoDB.</p>
           </div>
           <button className="mini-admin-btn">CREATE EVENT</button>
         </div>
+        {error && <div className="admin-empty-state">{error}</div>}
 
         <AdminTable
           columns={["Event Name", "Date", "Venue", "Registration Fee", "QR Reveal Time", "Registration Status", "Total Attendees", "Actions"]}
-          rows={mockEvents}
+          rows={liveEvents}
           renderRow={(event) => (
-            <tr key={event.id}>
+            <tr key={event.id || event._id}>
               <td>{event.name}</td>
-              <td>{event.date}</td>
+              <td>{event.date ? new Date(event.date).toLocaleDateString() : "Not set"}</td>
               <td>{event.venue}</td>
               <td>{event.fee}</td>
-              <td>{event.qrRevealTime}</td>
-              <td><span className={`status-badge ${statusClass(event.registrationStatus)}`}>{event.registrationStatus}</span></td>
-              <td>{event.totalAttendees}</td>
+              <td>{event.qrRevealTime || "Global default"}</td>
+              <td><span className={`status-badge ${statusClass(event.isActive ? "Open" : "Closed")}`}>{event.isActive ? "Open" : "Closed"}</span></td>
+              <td>{event.totalAttendees || 0}</td>
               <td>
                 <div className="table-actions">
                   <button>Edit</button>
@@ -1278,6 +1527,7 @@ function EventsPage() {
             </tr>
           )}
         />
+        {!loading && liveEvents.length === 0 && <div className="admin-empty-state">NO EVENTS IN MONGODB YET</div>}
       </section>
     </AdminLayout>
   );
@@ -1288,9 +1538,11 @@ function AttendeesPage() {
   const [accessType, setAccessType] = useState("All");
   const [eventFilter, setEventFilter] = useState("All");
   const [qrStatus, setQrStatus] = useState("All");
-  const eventNames = ["All", ...new Set(mockAttendees.map((attendee) => attendee.event))];
+  const { data, loading, error } = useBackendData("/api/admin/attendees", { attendees: [] });
+  const attendees = (data.attendees || []).map(toAdminAttendee);
+  const eventNames = ["All", ...new Set(attendees.map((attendee) => attendee.event).filter(Boolean))];
 
-  const filteredAttendees = mockAttendees.filter((attendee) => {
+  const filteredAttendees = attendees.filter((attendee) => {
     const matchesQuery = `${attendee.name} ${attendee.phone} ${attendee.email || ""} ${attendee.schoolOrOriginProm || ""} ${attendee.instagramUsername || ""}`.toLowerCase().includes(query.toLowerCase());
     const matchesAccess = accessType === "All" || attendee.accessType === accessType;
     const matchesEvent = eventFilter === "All" || attendee.event === eventFilter;
@@ -1300,8 +1552,9 @@ function AttendeesPage() {
 
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="ACCESS DATABASE" title="Attendees" />
+      <AdminHeader eyebrow="ACCESS DATABASE" title="Attendees" badge={loading ? "LOADING MONGODB" : "LIVE MONGODB"} />
       <section className="admin-panel">
+        {error && <div className="admin-empty-state">{error}</div>}
         <div className="admin-filter-bar">
           <input placeholder="Search by name or phone" value={query} onChange={(event) => setQuery(event.target.value)} />
           <select value={accessType} onChange={(event) => setAccessType(event.target.value)}>
@@ -1331,34 +1584,41 @@ function AttendeesPage() {
             </tr>
           )}
         />
+        {!loading && filteredAttendees.length === 0 && <div className="admin-empty-state">NO MONGODB ATTENDEES MATCH THIS VIEW</div>}
       </section>
     </AdminLayout>
   );
 }
 
 function OutcomersPage() {
-  const [requests, setRequests] = useState(mockOutcomers);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Pending");
   const [actionMessage, setActionMessage] = useState("");
+  const { data, loading, error, setData } = useBackendData("/api/admin/attendees?type=outcomer", { attendees: [] });
+  const requests = (data.attendees || []).map(toAdminAttendee);
 
-  const updateStatus = (id, nextStatus) => {
-    setRequests((prev) =>
-      prev.map((request) =>
-        request.id === id
-          ? {
-              ...request,
-              applicationStatus: nextStatus,
-              paymentStatus: nextStatus === "Approved" ? "Verified" : nextStatus === "Rejected" ? "Rejected" : request.paymentStatus
-            }
-          : request
-      )
-    );
-    setActionMessage(
-      nextStatus === "Approved"
-        ? "Application approved. Approval email queued if email is configured."
-        : "Application rejected. Rejection email queued if email is configured."
-    );
+  const updateStatus = async (id, nextStatus) => {
+    const endpoint = nextStatus === "Approved" ? "approve" : "reject";
+
+    try {
+      const result = await apiRequest(`/api/admin/attendees/${id}/${endpoint}`, {
+        method: "PATCH",
+        body: JSON.stringify({})
+      });
+
+      setData((prev) => ({
+        ...prev,
+        attendees: (prev.attendees || []).map((attendee) => (attendee.id === id ? result.attendee : attendee))
+      }));
+      setActionMessage(
+        nextStatus === "Approved"
+          ? "Application approved in MongoDB. Approval email queued if email is configured."
+          : "Application rejected in MongoDB. Rejection email queued if email is configured."
+      );
+    } catch (requestError) {
+      console.log("Admin status update failed:", requestError);
+      setActionMessage(requestError.message || "Could not update MongoDB status.");
+    }
   };
 
   const filteredRequests = requests.filter((request) => {
@@ -1369,8 +1629,9 @@ function OutcomersPage() {
 
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="OUTCOMER REVIEW" title="Outcomers" />
+      <AdminHeader eyebrow="OUTCOMER REVIEW" title="Outcomers" badge={loading ? "LOADING MONGODB" : "LIVE MONGODB"} />
       <section className="admin-panel">
+        {error && <div className="admin-empty-state">{error}</div>}
         <div className="admin-filter-bar outcomer-filters">
           <input placeholder="Search name, phone, email, origin prom, Instagram, or Prom" value={query} onChange={(event) => setQuery(event.target.value)} />
           {["All", "Pending", "Approved", "Rejected"].map((status) => (
@@ -1418,33 +1679,62 @@ function OutcomersPage() {
 }
 
 function PaymentsPage() {
-  const [payments, setPayments] = useState(mockPayments);
-  const updatePayment = (id, status) => {
-    setPayments((prev) => prev.map((payment) => (payment.id === id ? { ...payment, status } : payment)));
+  const { data, loading, error, setData } = useBackendData("/api/admin/attendees?paymentReview=true", { attendees: [] });
+  const payments = (data.attendees || []).map(toAdminAttendee);
+
+  const updatePayment = async (id, status) => {
+    const paymentStatus = status === "Verified" ? "verified" : "rejected";
+
+    try {
+      const result = await apiRequest(`/api/admin/attendees/${id}/payment-status`, {
+        method: "PATCH",
+        body: JSON.stringify({ paymentStatus })
+      });
+
+      setData((prev) => ({
+        ...prev,
+        attendees: (prev.attendees || []).map((attendee) => (attendee.id === id ? result.attendee : attendee))
+      }));
+    } catch (requestError) {
+      console.log("Payment status update failed:", requestError);
+    }
   };
 
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="PAYMENT VERIFICATION" title="Payments" />
+      <AdminHeader eyebrow="PAYMENT VERIFICATION" title="Payments" badge={loading ? "LOADING MONGODB" : "LIVE MONGODB"} />
+      {error && <div className="admin-empty-state">{error}</div>}
       <div className="payment-review-grid">
         {payments.map((payment) => (
           <section className="admin-panel payment-card" key={payment.id}>
-            <div className="screenshot-preview">SCREENSHOT PREVIEW</div>
+            <div className="screenshot-preview">
+              {payment.paymentProof?.url ? (
+                <img src={payment.paymentProof.url} alt={`${payment.name} payment proof`} />
+              ) : (
+                <span>No screenshot uploaded.</span>
+              )}
+            </div>
             <div className="payment-info">
               <h3>{payment.name}</h3>
               <p className="muted">{payment.phone}</p>
               <div><span>EVENT</span><strong>{payment.event}</strong></div>
               <div><span>AMOUNT</span><strong>{payment.amount}</strong></div>
               <div><span>SUBMITTED</span><strong>{payment.submittedAt}</strong></div>
-              <div><span>STATUS</span><strong><span className={`status-badge ${statusClass(payment.status)}`}>{payment.status}</span></strong></div>
+              <div><span>STATUS</span><strong><span className={`status-badge ${statusClass(payment.paymentStatus)}`}>{payment.paymentStatus}</span></strong></div>
             </div>
             <div className="table-actions payment-actions">
+              {payment.paymentProof?.url && (
+                <a className="mini-admin-btn" href={payment.paymentProof.url} target="_blank" rel="noreferrer">
+                  View Full Screenshot
+                </a>
+              )}
               <button type="button" onClick={() => updatePayment(payment.id, "Verified")}>Approve Payment</button>
               <button type="button" onClick={() => updatePayment(payment.id, "Rejected")}>Reject Payment</button>
             </div>
           </section>
         ))}
       </div>
+      {!loading && payments.length === 0 && <div className="admin-empty-state">NO MONGODB PAYMENT RECORDS YET</div>}
     </AdminLayout>
   );
 }
@@ -1452,25 +1742,195 @@ function PaymentsPage() {
 function ScannerPage() {
   const [scanValue, setScanValue] = useState("");
   const [scanResult, setScanResult] = useState(null);
-  const results = {
-    granted: { title: "Access Granted", detail: "ALSHAYEB-A7K2 is valid for entry.", status: "active" },
-    used: { title: "Already Used", detail: "This QR was scanned earlier today.", status: "used" },
-    invalid: { title: "Invalid QR", detail: "No matching QR credentials were found.", status: "used" }
-  };
+  const [cameraStatus, setCameraStatus] = useState("idle");
+  const [cameraMessage, setCameraMessage] = useState("Start the camera to scan an Eternum QR pass.");
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const scanLoopRef = useRef(null);
+  const scanningRef = useRef(false);
+  const lastDetectedRef = useRef("");
+
+  const stopCamera = useCallback((updateStatus = true) => {
+    scanningRef.current = false;
+    if (scanLoopRef.current) {
+      window.cancelAnimationFrame(scanLoopRef.current);
+      scanLoopRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    if (updateStatus) {
+      setCameraStatus((currentStatus) => currentStatus === "active" || currentStatus === "starting" ? "idle" : currentStatus);
+    }
+  }, []);
+
+  const formatScannerError = useCallback((requestError) => {
+    const detail = requestError.message || "No matching QR credentials were found.";
+    const normalized = detail.toLowerCase();
+
+    if (normalized.includes("used") || normalized.includes("already")) {
+      return { title: "Already Used", detail, status: "used" };
+    }
+
+    if (
+      normalized.includes("status") ||
+      normalized.includes("pending") ||
+      normalized.includes("review") ||
+      normalized.includes("rejected") ||
+      normalized.includes("declined") ||
+      normalized.includes("not approved")
+    ) {
+      return { title: "Access Denied", detail, status: "denied" };
+    }
+
+    return { title: "Invalid QR", detail, status: "invalid" };
+  }, []);
+
+  const validateScan = useCallback(async (value = scanValue) => {
+    const qrCredential = String(value || "").trim();
+    if (!qrCredential) {
+      setScanResult({
+        title: "Invalid QR",
+        detail: "Paste a QR token or start the camera scanner first.",
+        status: "invalid"
+      });
+      return;
+    }
+
+    try {
+      const result = await apiRequest("/api/scanner/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          qrToken: qrCredential,
+          qrId: qrCredential,
+          markUsed: true
+        })
+      });
+
+      const attendeeDetail = result.attendee ? `${attendeeName(result.attendee)} / ${attendeeProm(result.attendee)}` : "Entry token validated.";
+      setScanValue(qrCredential);
+      setScanResult({
+        title: result.valid ? "Access Granted" : "Access Denied",
+        detail: result.message || result.reason || attendeeDetail,
+        status: result.valid ? "active" : "denied"
+      });
+    } catch (requestError) {
+      setScanValue(qrCredential);
+      setScanResult(formatScannerError(requestError));
+    }
+  }, [formatScannerError, scanValue]);
+
+  const readCameraFrame = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
+
+    if (!scanningRef.current || !video || !canvas || !context) {
+      return;
+    }
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth && video.videoHeight) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+
+      if (code?.data && code.data !== lastDetectedRef.current) {
+        lastDetectedRef.current = code.data;
+        setCameraMessage("QR detected. Validating access...");
+        stopCamera();
+        validateScan(code.data);
+        return;
+      }
+    }
+
+    scanLoopRef.current = window.requestAnimationFrame(readCameraFrame);
+  }, [stopCamera, validateScan]);
+
+  const startCamera = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraStatus("unavailable");
+      setCameraMessage("This device or browser does not support camera scanning. Use manual input below.");
+      return;
+    }
+
+    stopCamera();
+    lastDetectedRef.current = "";
+    setScanResult(null);
+    setCameraStatus("starting");
+    setCameraMessage("Requesting camera permission...");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      scanningRef.current = true;
+      setCameraStatus("active");
+      setCameraMessage("Camera live. Point the frame at an Eternum QR code.");
+      scanLoopRef.current = window.requestAnimationFrame(readCameraFrame);
+    } catch (cameraError) {
+      const errorName = cameraError?.name || "";
+      stopCamera();
+
+      if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError") {
+        setCameraStatus("denied");
+        setCameraMessage("Camera permission was denied. Enable camera access or use manual input below.");
+      } else if (errorName === "NotFoundError" || errorName === "OverconstrainedError") {
+        setCameraStatus("unavailable");
+        setCameraMessage("No usable camera was found on this device. Use manual input below.");
+      } else {
+        setCameraStatus("error");
+        setCameraMessage("Camera could not be started. Use manual input below.");
+      }
+    }
+  }, [readCameraFrame, stopCamera]);
+
+  useEffect(() => () => stopCamera(false), [stopCamera]);
 
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="ENTRY GATE" title="Scanner Page" badge="READY" />
+      <AdminHeader eyebrow="ENTRY GATE" title="Scanner Page" badge={cameraStatus === "active" ? "CAMERA LIVE" : "READY"} />
       <section className="admin-panel scanner-panel">
-        <div className="camera-placeholder">
-          <div className="scan-frame"></div>
-          <p>CAMERA SCANNER PLACEHOLDER</p>
+        <div className={`camera-preview ${cameraStatus}`}>
+          <video ref={videoRef} muted playsInline aria-label="Live QR scanner camera preview" />
+          <canvas ref={canvasRef} aria-hidden="true" />
+          <div className="camera-overlay">
+            <div className="scan-frame"></div>
+            <p>{cameraStatus === "active" ? "SCAN TO ENTER" : "ETERNUM CAMERA GATE"}</p>
+          </div>
         </div>
-        <input placeholder="Paste QR token or ALSHAYEB ID" value={scanValue} onChange={(event) => setScanValue(event.target.value)} />
+        <p className={`camera-status ${cameraStatus}`}>{cameraMessage}</p>
+        <div className="camera-actions">
+          <button className="purple-btn" type="button" onClick={startCamera} disabled={cameraStatus === "starting" || cameraStatus === "active"}>
+            {cameraStatus === "starting" ? "Opening Camera..." : "Start Camera"}
+          </button>
+          <button className="ghost-btn" type="button" onClick={stopCamera} disabled={cameraStatus !== "active" && cameraStatus !== "starting"}>Stop Camera</button>
+        </div>
+        <input className="scanner-manual-input" placeholder="Paste QR token or ALSHAYEB ID" value={scanValue} onChange={(event) => setScanValue(event.target.value)} />
         <div className="scanner-actions">
-          <button className="purple-btn" type="button" onClick={() => setScanResult(results.granted)}>Simulated Scan</button>
-          <button className="ghost-btn" type="button" onClick={() => setScanResult(results.used)}>Already Used</button>
-          <button className="ghost-btn" type="button" onClick={() => setScanResult(results.invalid)}>Invalid QR</button>
+          <button className="purple-btn" type="button" onClick={() => validateScan()}>Validate Manual QR</button>
+          <button className="ghost-btn" type="button" onClick={() => {
+            setScanResult(null);
+            setScanValue("");
+          }}>Clear Result</button>
         </div>
         {scanResult && (
           <div className={`scan-result-card ${scanResult.status}`}>
@@ -1484,13 +1944,16 @@ function ScannerPage() {
 }
 
 function ExportPage() {
-  const exportRows = buildRegistrationExportRows();
+  const { data, loading, error } = useBackendData("/api/export/attendees", { attendees: [] });
+  const exportAttendees = data.attendees || [];
+  const exportRows = buildRegistrationExportRows(exportAttendees);
   const promCount = new Set(exportRows.map((row) => row.Prom)).size;
 
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="DATA EXPORT" title="Export Excel" />
+      <AdminHeader eyebrow="DATA EXPORT" title="Export Excel" badge={loading ? "LOADING MONGODB" : "LIVE MONGODB"} />
       <section className="admin-panel">
+        {error && <div className="admin-empty-state">{error}</div>}
         <div className="admin-panel-title">
           <div>
             <h3>Registrations By Prom</h3>
@@ -1514,7 +1977,7 @@ function ExportPage() {
           </div>
         </div>
 
-        <button className="export-primary-btn" type="button" onClick={exportRegistrationsByProm}>
+        <button className="export-primary-btn" type="button" onClick={() => exportRegistrationsByProm(exportAttendees)} disabled={loading}>
           DOWNLOAD PROM WORKBOOK
         </button>
       </section>
@@ -1523,9 +1986,63 @@ function ExportPage() {
 }
 
 function SettingsPage() {
+  const { data, loading, error, setData } = useBackendData("/api/admin/site-settings", {
+    settings: { outcomerSelection: DEFAULT_OUTCOMER_SELECTION }
+  });
+  const [message, setMessage] = useState("");
+  const selection = {
+    ...DEFAULT_OUTCOMER_SELECTION,
+    ...(data.settings?.outcomerSelection || {})
+  };
+
+  const updateSelectionField = (field, value) => {
+    setMessage("");
+    setData((prev) => ({
+      ...prev,
+      settings: {
+        ...(prev.settings || {}),
+        outcomerSelection: {
+          ...selection,
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const saveSelectionNumbers = async () => {
+    setMessage("");
+
+    try {
+      const result = await apiRequest("/api/admin/site-settings", {
+        method: "PATCH",
+        body: JSON.stringify({ outcomerSelection: selection })
+      });
+      setData(result);
+      setMessage("Outcomer display numbers updated.");
+    } catch (requestError) {
+      setMessage(requestError.message || "Could not update display numbers.");
+    }
+  };
+
   return (
     <AdminLayout>
-      <AdminHeader eyebrow="SYSTEM DEFAULTS" title="Settings" />
+      <AdminHeader eyebrow="SYSTEM DEFAULTS" title="Settings" badge={loading ? "LOADING MONGODB" : "DISPLAY CONTROLS"} />
+      <section className="admin-panel">
+        {error && <div className="admin-empty-state">{error}</div>}
+        <div className="admin-panel-title">
+          <div>
+            <h3>Outcomer Selection Display</h3>
+            <p className="muted">Manual public display numbers. They are not calculated from MongoDB registrations.</p>
+          </div>
+        </div>
+        <div className="settings-grid">
+          <label><span>Approved Display Number</span><input type="number" min="0" value={selection.approved} onChange={(event) => updateSelectionField("approved", event.target.value)} /></label>
+          <label><span>Pending Display Number</span><input type="number" min="0" value={selection.pending} onChange={(event) => updateSelectionField("pending", event.target.value)} /></label>
+          <label><span>Declined Display Number</span><input type="number" min="0" value={selection.declined} onChange={(event) => updateSelectionField("declined", event.target.value)} /></label>
+        </div>
+        <button className="purple-btn settings-save" type="button" onClick={saveSelectionNumbers} disabled={loading}>SAVE DISPLAY NUMBERS</button>
+        {message && <div className="admin-empty-state">{message}</div>}
+      </section>
       <section className="admin-panel">
         <div className="settings-grid">
           <label><span>InstaPay Link</span><input defaultValue="https://instapay.example/alshayeb" /></label>

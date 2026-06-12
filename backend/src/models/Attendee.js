@@ -45,7 +45,7 @@ const attendeeSchema = new mongoose.Schema(
     },
     attendeeType: {
       type: String,
-      enum: ["guest", "outcomer"],
+      enum: ["guest", "incomer", "outcomer"],
       default: "guest",
       index: true
     },
@@ -66,9 +66,10 @@ const attendeeSchema = new mongoose.Schema(
       default: "pending"
     },
     paymentProof: {
+      url: String,
+      publicId: String,
       fileName: String,
       fileType: String,
-      placeholderUrl: String,
       uploadedAt: Date
     },
     qrId: {

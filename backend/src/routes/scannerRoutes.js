@@ -16,9 +16,11 @@ router.post(
       throw apiError("qrToken or qrId is required.");
     }
 
-    const attendee = await Attendee.findOne({
-      ...(qrToken ? { qrToken } : { qrId })
-    });
+    const attendee = await Attendee.findOne(
+      qrToken && qrId
+        ? { $or: [{ qrToken }, { qrId }] }
+        : { ...(qrToken ? { qrToken } : { qrId }) }
+    );
 
     if (!attendee) {
       res.status(404).json({

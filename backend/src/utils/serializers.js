@@ -3,9 +3,11 @@ function serializeAttendee(attendee) {
 
   return {
     id: attendee._id,
+    requestId: attendee.qrId || attendee._id,
+    name: attendee.fullName,
     fullName: attendee.fullName,
-    phone: attendee.phone,
     phoneNumber: attendee.phone,
+    phone: attendee.phone,
     email: attendee.email || null,
     university: attendee.university || null,
     schoolOrOriginProm: attendee.university || null,
@@ -16,8 +18,10 @@ function serializeAttendee(attendee) {
     event: attendee.event,
     eventName: attendee.eventName || null,
     attendeeType: attendee.attendeeType,
+    type: attendee.accessType,
     accessType: attendee.accessType,
     status: attendee.status,
+    applicationStatus: attendee.status,
     paymentStatus: attendee.paymentStatus,
     paymentProof: attendee.paymentProof || null,
     qrId: attendee.qrId || null,

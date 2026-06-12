@@ -14,12 +14,13 @@ const notFound = require("./middleware/notFound");
 
 const app = express();
 
-const allowedOrigins = String(process.env.CLIENT_ORIGIN || "http://localhost:3000")
+const allowedOrigins = String(process.env.CLIENT_ORIGIN || "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
 app.use(helmet());
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -30,9 +31,12 @@ app.use(
 
       callback(new Error("Not allowed by CORS"));
     },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })
 );
+
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
