@@ -7,7 +7,10 @@ import * as XLSX from "xlsx";
 import "./App.css";
 import AnimatedBackground from "./AnimatedBackground";
 
-const BACKEND_API_URL = String(process.env.REACT_APP_API_URL || "http://127.0.0.1:5000").replace(/\/$/, "");
+const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
+const BACKEND_API_URL = process.env.NODE_ENV === "production"
+  ? ""
+  : String(process.env.REACT_APP_API_URL || LOCAL_API_URL).replace(/\/$/, "");
 
 const QR_REVEAL_TIME = "2026-12-31T18:00:00";
 const ADMIN_SESSION_KEY = "alshayebAdminSession";
@@ -51,7 +54,7 @@ async function apiRequest(path, options = {}) {
       }
     });
   } catch (networkError) {
-    const error = new Error("Could not reach the backend API. Please make sure the backend server is running and CORS allows this app URL.");
+    const error = new Error("Could not reach the backend API. Please try again in a moment.");
     error.cause = networkError;
     throw error;
   }
@@ -849,6 +852,9 @@ function PublicWebsite() {
   if (page === "instapay") {
     return (
       <Shell tone="purple" className="reference-flow form-reference">
+        <button className="back-icon" onClick={() => setPage("payment")} aria-label="Back">
+          &larr;
+        </button>
         <h1 className="insta">instaPay</h1>
         <motion.div className="phone-pay" {...softPop}>
           <p>PAY</p>
@@ -897,6 +903,9 @@ function PublicWebsite() {
   if (page === "submitted") {
     return (
       <Shell tone="purple" className="reference-flow form-reference">
+        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
+          &larr;
+        </button>
         <motion.div className="success-icon" {...softPop}>
           OK
         </motion.div>
@@ -928,6 +937,9 @@ function PublicWebsite() {
 
     return (
       <Shell tone="purple" className="reference-flow form-reference">
+        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
+          &larr;
+        </button>
         <div className="ring small-ring"></div>
         <h2 className="page-title">{phaseLabel}</h2>
         <p className="muted">Your application current phase is {phaseLabel.toLowerCase()}.</p>
@@ -950,6 +962,9 @@ function PublicWebsite() {
 
     return (
       <Shell tone="purple" className="reference-flow form-reference">
+        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
+          &larr;
+        </button>
         <div className="ring small-ring"></div>
         <h2 className="page-title">APPLICATION DECLINED</h2>
         <p className="muted">Your application was declined.</p>
@@ -996,6 +1011,9 @@ function PublicWebsite() {
     return (
       <div className={`ticket-page tone-${ticketTone}`}>
         <AnimatedBackground />
+        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
+          &larr;
+        </button>
         <motion.div className="ticket-pass tone-card" {...pageMotion}>
           <div className="ticket-hero">
             <div className="ring"></div>

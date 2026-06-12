@@ -231,7 +231,7 @@ body::after {
 .eternum-frame {
   position: fixed;
   inset: 16px;
-  border: 1px solid rgba(204, 224, 255, 0.72);
+  border: 1px solid rgba(140, 170, 255, 0.45);
   border-radius: 32px;
   box-shadow:
     inset 0 0 26px rgba(56, 113, 255, 0.16),
@@ -856,15 +856,50 @@ button:disabled,
 }
 
 .back-icon {
-  width: auto;
   position: absolute;
-  left: 18px;
-  top: 16px;
-  padding: 7px 10px;
+  left: clamp(20px, 5vw, 34px);
+  top: clamp(20px, 5vw, 34px);
+  z-index: 80;
+  width: 38px;
+  height: 38px;
+  padding: 0;
   background: transparent;
-  color: white;
-  border: none;
-  font-size: 22px;
+  color: transparent;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  font-size: 0;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.back-icon::before,
+.back-icon::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 22px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: rgba(248, 251, 255, 0.95);
+  box-shadow: 0 0 7px rgba(223, 236, 255, 0.48);
+  transform-origin: 1px 50%;
+}
+
+.back-icon::before {
+  transform: rotate(-40deg);
+}
+
+.back-icon::after {
+  transform: rotate(40deg);
+}
+
+.back-icon:hover,
+.back-icon:focus-visible {
+  background: rgba(255, 255, 255, 0.035);
+  outline: 1px solid rgba(220, 235, 255, 0.24);
 }
 
 .page-title {
@@ -4190,16 +4225,16 @@ body::after {
 
 .reference-flow .back-icon {
   position: absolute;
-  top: clamp(24px, 5vw, 44px);
-  left: clamp(24px, 6vw, 50px);
-  width: auto;
-  height: auto;
+  top: clamp(20px, 5vw, 34px);
+  left: clamp(20px, 5vw, 34px);
+  width: 38px;
+  height: 38px;
   padding: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
-  color: rgba(236,242,255,0.9);
-  font-size: 2.2rem;
+  color: transparent;
+  font-size: 0;
   line-height: 1;
 }
 
@@ -4639,6 +4674,16 @@ body:has(.eternum-home)::after {
   }
 }
 
+@media (max-width: 480px) {
+  .eternum-home {
+    width: 102.5vw;
+    max-width: none;
+    height: calc(102.5vw * 2.1621621622);
+    margin-left: -1.25vw;
+    margin-right: 0;
+  }
+}
+
 /* Incomer exact component reconstruction: Image A layout over Image B decorative background. */
 .app-shell.incomer-reference.tone-blue {
   min-height: 100vh;
@@ -4675,14 +4720,14 @@ body:has(.eternum-home)::after {
 
 .incomer-reference.tone-blue .back-icon {
   position: absolute;
-  left: 8.45%;
-  top: 4.05%;
+  left: clamp(20px, 5vw, 34px);
+  top: clamp(20px, 5vw, 34px);
   z-index: 5;
-  width: 6.8%;
-  height: 3.6%;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border: 0;
-  border-radius: 0;
+  border-radius: 999px;
   background: transparent;
   box-shadow: none;
   color: transparent;
@@ -4693,13 +4738,13 @@ body:has(.eternum-home)::after {
 .incomer-reference.tone-blue .back-icon::after {
   content: "";
   position: absolute;
-  left: 0;
+  left: 9px;
   top: 50%;
-  width: 100%;
-  height: 2px;
+  width: 22px;
+  height: 1.5px;
   background: rgba(247, 251, 255, 0.92);
   box-shadow: 0 0 6px rgba(247, 251, 255, 0.45);
-  transform-origin: 0 50%;
+  transform-origin: 1px 50%;
 }
 
 .incomer-reference.tone-blue .back-icon::before {
@@ -4994,7 +5039,6 @@ body:has(.eternum-home)::after {
 .app-shell.outcomer-reference::before,
 .app-shell.outcomer-reference::after,
 .outcomer-reference .animated-bg,
-.outcomer-reference .back-icon,
 .outcomer-reference .mini-brand-lockup,
 .outcomer-reference .reference-gate,
 .outcomer-reference .outcomer-selection-panel > h2,
