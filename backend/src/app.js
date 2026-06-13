@@ -14,17 +14,28 @@ const notFound = require("./middleware/notFound");
 
 const app = express();
 
-const allowedOrigins = String(process.env.CLIENT_ORIGIN || "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001")
+const defaultClientOrigins = [
+  "https://www.alshayebexperience.com",
+  "https://alshayebexperience.com",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001"
+];
+
+const allowedOrigins = String(process.env.CLIENT_ORIGIN || defaultClientOrigins.join(","))
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const isVercelPreviewOrigin = (origin) => /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin || "");
 
 app.use(helmet());
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || isVercelPreviewOrigin(origin)) {
         callback(null, true);
         return;
       }

@@ -8,9 +8,11 @@ import "./App.css";
 import AnimatedBackground from "./AnimatedBackground";
 
 const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
+const CONFIGURED_API_URL = String(process.env.REACT_APP_API_URL || "").trim().replace(/\/$/, "");
+const CONFIGURED_API_URL_IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(CONFIGURED_API_URL);
 const BACKEND_API_URL = process.env.NODE_ENV === "production"
-  ? ""
-  : String(process.env.REACT_APP_API_URL || LOCAL_API_URL).replace(/\/$/, "");
+  ? (CONFIGURED_API_URL_IS_LOCAL ? "" : CONFIGURED_API_URL)
+  : CONFIGURED_API_URL || LOCAL_API_URL;
 
 const QR_REVEAL_TIME = "2026-12-31T18:00:00";
 const ADMIN_SESSION_KEY = "alshayebAdminSession";
@@ -119,16 +121,10 @@ function toAdminAttendee(attendee) {
 }
 
 const pageMotion = {
-  initial: { opacity: 0, y: 25, scale: 0.98 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -20, scale: 0.98 },
-  transition: { duration: 0.45, ease: "easeOut" }
-};
-
-const softPop = {
-  initial: { opacity: 0, y: 18, scale: 0.96 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  transition: { duration: 0.45, ease: "easeOut" }
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.2, ease: "easeOut" }
 };
 
 function sanitizeExcelSheetName(name, usedNames = new Set()) {
@@ -226,12 +222,85 @@ function formatCountdownUnit(value) {
   return String(value).padStart(2, "0");
 }
 
-const Shell = ({ children, tone = "blue", className = "" }) => (
-  <div className={`app-shell tone-${tone} ${className}`}>
-    <AnimatedBackground />
-    <motion.div className="cosmic-card tone-card" {...pageMotion}>
+const Shell = ({ children, tone = "blue", className = "" }) => {
+  const shouldRenderAnimatedBackground = !className.includes("eternum-public-flow");
+
+  return (
+    <div className={`app-shell tone-${tone} ${className}`}>
+      {shouldRenderAnimatedBackground && <AnimatedBackground />}
+      <div className="cosmic-card tone-card">
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const BackButton = ({ to = "home", onNavigate }) => (
+  <button className="back-icon" onClick={() => onNavigate(to)} aria-label="Back">
+    &larr;
+  </button>
+);
+
+const EternumHeader = ({ eyebrow = "ALSHAYEB", title = "ETERNUM", subtitle = "NO BEGINNING. NO END.", compact = false }) => (
+  <header className={`eternum-header ${compact ? "compact" : ""}`}>
+    <div className="eternum-sigil" aria-hidden="true"></div>
+    <p>{eyebrow}</p>
+    <h1>{title}</h1>
+    {subtitle && <span>{subtitle}</span>}
+    <div className="eternum-divider" aria-hidden="true"><i></i></div>
+  </header>
+);
+
+const PublicShell = ({ children, backTo = "home", className = "", onNavigate }) => (
+  <Shell tone="blue" className={`eternum-public-flow ${className}`}>
+    <BackButton to={backTo} onNavigate={onNavigate} />
+    {children}
+  </Shell>
+);
+
+const PrimaryButton = ({ children, onClick, disabled, type = "button", className = "" }) => (
+  <button type={type} className={`eternum-button ${className}`} onClick={onClick} disabled={disabled}>
+    <span>{children}</span>
+    <b aria-hidden="true">&rarr;</b>
+  </button>
+);
+
+const PhoneInput = ({ value, onChange, error }) => (
+  <div className={`eternum-phone ${error ? "error-input" : ""}`}>
+    <span>+20</span>
+    <input type="text" placeholder="Enter your phone number" value={value} onChange={onChange} />
+  </div>
+);
+
+const SelectionStats = ({ selection, className = "" }) => (
+  <section className={`eternum-card selection-card ${className}`}>
+    <h3>THE SELECTION</h3>
+    <div className="selection-grid">
+      <div><strong>{selection.approved}</strong><span>APPROVED</span></div>
+      <div><strong>{selection.pending}</strong><span>PENDING</span></div>
+      <div><strong>{selection.declined}</strong><span>DECLINED</span></div>
+    </div>
+  </section>
+);
+
+const StatusRow = ({ icon = "◇", label, value, note }) => (
+  <div className="eternum-status-card">
+    <span className="status-icon" aria-hidden="true">{icon}</span>
+    <div>
+      <small>{label}</small>
+      <strong>{value}</strong>
+      {note && <p>{note}</p>}
+    </div>
+  </div>
+);
+
+const TextInputCard = ({ icon, label, error, children }) => (
+  <div className={`eternum-input-card ${error ? "has-error" : ""}`}>
+    <span className="input-icon" aria-hidden="true">{icon}</span>
+    <span className="input-copy">
+      <small>{label}</small>
       {children}
-    </motion.div>
+    </span>
   </div>
 );
 
@@ -239,7 +308,12 @@ function PublicWebsite() {
   const [phone, setPhone] = useState("");
   const [foundClient, setFoundClient] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState("home");
+  const [page, setPageState] = useState(() => {
+    if (typeof window === "undefined") return "home";
+    return window.history.state?.eternumPage || "home";
+  });
+  const pageRef = useRef(page);
+  const isBrowserHistoryNavigation = useRef(false);
   const [errors, setErrors] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(events[0]);
   const [liveEvents, setLiveEvents] = useState(events);
@@ -257,6 +331,61 @@ function PublicWebsite() {
     screenshot: null,
     screenshotFile: null
   });
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
+  const setPage = useCallback((nextPage, options = {}) => {
+    if (!nextPage) return;
+
+    setPageState((currentPage) => {
+      if (currentPage === nextPage) return currentPage;
+
+      if (!isBrowserHistoryNavigation.current && typeof window !== "undefined") {
+        const currentState = window.history.state || {};
+        const nextState = {
+          ...currentState,
+          eternumPage: nextPage
+        };
+
+        if (options.replace) {
+          window.history.replaceState(nextState, "", window.location.href);
+        } else {
+          window.history.pushState(nextState, "", window.location.href);
+        }
+      }
+
+      return nextPage;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const currentState = window.history.state || {};
+    if (!currentState.eternumPage) {
+      window.history.replaceState(
+        {
+          ...currentState,
+          eternumPage: pageRef.current
+        },
+        "",
+        window.location.href
+      );
+    }
+
+    const handlePopState = (event) => {
+      isBrowserHistoryNavigation.current = true;
+      setPageState(event.state?.eternumPage || "home");
+      window.setTimeout(() => {
+        isBrowserHistoryNavigation.current = false;
+      }, 0);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const cleanValue = (value) => String(value || "").replace(/\s/g, "").replace(/'/g, "").trim();
   const safeValue = (value, fallback = "Not available") => {
@@ -340,9 +469,12 @@ function PublicWebsite() {
   }, []);
 
   useEffect(() => {
+    if (page !== "ticket") return undefined;
+
+    setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [page]);
 
   const validatePhoneSearch = () => {
     const newErrors = {};
@@ -389,7 +521,7 @@ function PublicWebsite() {
     }
 
     const normalizedStatus = String(existing.status || "").toLowerCase();
-    if (normalizedStatus.includes("approved") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
+    if (normalizedStatus.includes("approved") || normalizedStatus.includes("confirmed") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
       setFoundClient(toTicketClient(existing.data));
       setErrors({});
       setPage("ticket");
@@ -502,7 +634,7 @@ function PublicWebsite() {
   const routeExistingRegistration = (existing) => {
     const normalizedStatus = String(existing?.status || "").toLowerCase();
 
-    if (normalizedStatus.includes("approved") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
+    if (normalizedStatus.includes("approved") || normalizedStatus.includes("confirmed") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
       setFoundClient(toTicketClient(existing.data));
       setErrors({});
       setPage("ticket");
@@ -534,7 +666,7 @@ function PublicWebsite() {
       if (!result?.found || !result.attendee) return null;
       return {
         source: "backend",
-        status: result.attendee.status,
+        status: result.attendee.status || result.attendee.applicationStatus,
         data: result.attendee
       };
     } catch (error) {
@@ -543,6 +675,66 @@ function PublicWebsite() {
       return null;
     }
   };
+
+  useEffect(() => {
+    if (page !== "track") return undefined;
+
+    const phoneForLookup = cleanValue(
+      trackedRegistration?.phoneNumber ||
+      trackedRegistration?.phone ||
+      request.phoneNumber ||
+      phone
+    );
+
+    if (!phoneForLookup) return undefined;
+
+    let cancelled = false;
+
+    const refreshTrackingStatus = async () => {
+      const existing = await lookupBackendRegistration(phoneForLookup);
+      if (cancelled || !existing?.data) return;
+
+      const normalizedStatus = String(existing.status || existing.data.status || existing.data.applicationStatus || "").toLowerCase();
+
+      if (normalizedStatus.includes("approved") || normalizedStatus.includes("confirmed") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
+        setFoundClient(toTicketClient(existing.data));
+        setTrackedRegistration(existing.data);
+        setRequest((prev) => ({ ...prev, ...existing.data }));
+        setErrors({});
+        setPage("ticket");
+        return;
+      }
+
+      setTrackedRegistration(existing.data);
+      setRequest((prev) => ({ ...prev, ...existing.data }));
+      setErrors({});
+
+      if (normalizedStatus.includes("reject") || normalizedStatus.includes("declined")) {
+        setPage("rejected");
+      }
+    };
+
+    refreshTrackingStatus();
+    const timer = window.setInterval(refreshTrackingStatus, 5000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        refreshTrackingStatus();
+      }
+    };
+
+    window.addEventListener("focus", refreshTrackingStatus);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshTrackingStatus);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  // The lookup helpers are intentionally omitted so this polling effect does not
+  // restart on every render while the user is waiting on the tracking page.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, trackedRegistration, request.phoneNumber, phone]);
 
   const submitBackendOutcomer = async (payload) => {
     try {
@@ -631,23 +823,21 @@ function PublicWebsite() {
 
   if (page === "notfound") {
     return (
-      <Shell tone="blue">
-        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
-          &larr;
-        </button>
-        <div className="ring small-ring"></div>
-        <h2 className="page-title">NOT FOUND</h2>
-        <p className="muted">This phone number is not in our guest list yet.</p>
-        <p className="muted">You can request access as an outcomer.</p>
-
-        <button className="purple-btn" onClick={() => setPage("outcomerLanding")}>
-          REGISTER AS OUTCOMER
-        </button>
-
-        <button className="ghost-btn" onClick={() => setPage("home")}>
-          BACK
-        </button>
-      </Shell>
+      <PublicShell className="status-public-page" onNavigate={setPage}>
+        <EternumHeader compact />
+        <section className="eternum-copy-block">
+          <h2>APPLICATION NOT FOUND</h2>
+          <p>No application was found with this phone number.</p>
+        </section>
+        <div className="eternum-card not-found-card">
+          <span className="status-icon" aria-hidden="true">!</span>
+          <div>
+            <h3>APPLICATION NOT FOUND</h3>
+            <p>No application was found with this phone number.</p>
+            <button type="button" className="eternum-text-link" onClick={() => setPage("outcomerLanding")}>REGISTER NOW <b>&rarr;</b></button>
+          </div>
+        </div>
+      </PublicShell>
     );
   }
 
@@ -706,29 +896,17 @@ function PublicWebsite() {
     const isTrackLookup = page === "trackLookup";
 
     return (
-      <Shell tone="purple" className="reference-flow lookup-reference">
-        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
-          &larr;
-        </button>
-        <div className="ring small-ring"></div>
-        <h2 className="page-title">{isTrackLookup ? "TRACK YOUR REQUEST" : "ALREADY REGISTERED"}</h2>
-        <p className="tagline">{isTrackLookup ? "THE SEEKERS" : "ACCESS YOUR PASS"}</p>
-        <div className="reference-gate compact-gate" aria-hidden="true">
-          <span className="gate-door"></span>
-          <span className="gate-floor"></span>
-        </div>
-        <div className="welcome-block">
-          <p>{isTrackLookup ? "Enter your phone number" : "Your QR pass is waiting."}</p>
-          <h2>{isTrackLookup ? "CURRENT PHASE" : "OPEN THE GATE"}</h2>
-          <p>{isTrackLookup ? "Pending. Declined. Confirmed." : "Enter your phone number to access your universal ticket."}</p>
-        </div>
-        <div className="phone-field">
-          <span>+20</span>
-          <input
-            className={errors.phoneSearch ? "error-input" : ""}
-            type="text"
-            placeholder="Phone Number"
+      <PublicShell backTo="outcomerLanding" className="lookup-public-page" onNavigate={setPage}>
+        <EternumHeader />
+        <section className="eternum-copy-block">
+          <h2>{isTrackLookup ? "ACCESS YOUR APPLICATION" : "ACCESS YOUR PASS"}</h2>
+          <p>{isTrackLookup ? "Enter your phone number to access your application and track its status." : "Enter your phone number to open your universal ticket."}</p>
+        </section>
+        <div className="eternum-field-group">
+          <label>PHONE NUMBER</label>
+          <PhoneInput
             value={phone}
+            error={errors.phoneSearch}
             onChange={(e) => {
               setPhone(e.target.value);
               setErrors((prev) => ({ ...prev, phoneSearch: "" }));
@@ -736,193 +914,187 @@ function PublicWebsite() {
           />
         </div>
         <FieldError name="phoneSearch" />
-        <button className="purple-btn" onClick={isTrackLookup ? handleTrackLookup : handleSearch} disabled={loading}>
-          {loading ? "LOADING" : isTrackLookup ? "TRACK REQUEST" : "ACCESS THE GATE"}
-        </button>
-      </Shell>
+        <PrimaryButton onClick={isTrackLookup ? handleTrackLookup : handleSearch} disabled={loading}>
+          {loading ? "LOADING" : "CONTINUE"}
+        </PrimaryButton>
+      </PublicShell>
     );
   }
 
   if (page === "chooseEvent") {
     return (
-      <Shell tone="purple" className="reference-flow">
-        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
-          &larr;
-        </button>
-        <div className="ring small-ring"></div>
-        <h1 className="brand-title">ETERNUM</h1>
-        <p className="muted">SELECT YOUR DESTINATION</p>
+      <PublicShell backTo="outcomerLanding" className="event-public-page" onNavigate={setPage}>
+        <EternumHeader />
+        <section className="eternum-copy-block">
+          <h2>SELECT YOUR DESTINATION</h2>
+          <p>Choose the experience you wish to request access to.</p>
+        </section>
 
-        <div className="event-list">
+        <div className="eternum-event-list">
           {displayEvents.map((event, index) => (
-            <motion.button
+            <button
               type="button"
               key={event.id}
-              className={`event-card ${selectedEvent.id === event.id ? "active-event" : ""}`}
+              className={`eternum-event-card ${selectedEvent.id === event.id ? "active-event" : ""}`}
               onClick={() => setSelectedEvent(event)}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.06, duration: 0.35 }}
             >
-              <div className="mini-venue"></div>
+              <span>{String(index + 1).padStart(2, "0")}</span>
               <div>
                 <h3>{event.name}</h3>
                 <p>{event.date}</p>
+                <small>{event.venue || "ALSHAYEB ETERNUM"}</small>
               </div>
-            </motion.button>
+              <b>{selectedEvent.id === event.id ? "SELECTED" : "REQUEST ACCESS"}</b>
+            </button>
           ))}
         </div>
 
-        <button className="purple-btn" onClick={() => setPage("register")}>
+        <PrimaryButton onClick={() => setPage("register")}>
           CONTINUE
-        </button>
-      </Shell>
+        </PrimaryButton>
+      </PublicShell>
     );
   }
 
   if (page === "register") {
     return (
-      <Shell tone="purple" className="reference-flow form-reference">
-        <button className="back-icon" onClick={() => setPage("chooseEvent")} aria-label="Back">
-          &larr;
-        </button>
-        <h2 className="page-title">REQUEST ACCESS</h2>
-        <p className="muted">{selectedEvent.name}</p>
+      <PublicShell backTo="chooseEvent" className="register-public-page" onNavigate={setPage}>
+        <EternumHeader eyebrow="REQUEST ACCESS" title="ETERNITY" subtitle={`${selectedEvent.date} • ${selectedEvent.venue || "ALSHAYEB ETERNUM"}`} />
 
-        <div className="form-grid">
-          <label><span>Full Name</span><input className={errors.fullName ? "error-input" : ""} name="fullName" placeholder="Full Name" value={request.fullName} onChange={handleRequestChange} /></label>
+        <div className="eternum-form-grid">
+          <TextInputCard icon="♙" label="FULL NAME" error={errors.fullName}>
+            <input name="fullName" placeholder="Enter your full name" value={request.fullName} onChange={handleRequestChange} />
+          </TextInputCard>
           <FieldError name="fullName" />
 
-          <label><span>Phone Number</span><input className={errors.phoneNumber ? "error-input" : ""} name="phoneNumber" placeholder="Phone Number" value={request.phoneNumber} onChange={handleRequestChange} /></label>
+          <TextInputCard icon="☎" label="PHONE NUMBER" error={errors.phoneNumber}>
+            <div className="inline-prefix"><span>+20</span><input name="phoneNumber" placeholder="Enter your phone number" value={request.phoneNumber} onChange={handleRequestChange} /></div>
+          </TextInputCard>
           <FieldError name="phoneNumber" />
 
-          <label><span>Email</span><input className={errors.email ? "error-input" : ""} name="email" placeholder="Email" value={request.email} onChange={handleRequestChange} /></label>
+          <TextInputCard icon="✉" label="EMAIL ADDRESS" error={errors.email}>
+            <input name="email" placeholder="Enter your email address" value={request.email} onChange={handleRequestChange} />
+          </TextInputCard>
           <FieldError name="email" />
 
-          <label>
-            <span>School / Origin Prom</span>
+          <TextInputCard icon="⌂" label="SCHOOL / ORIGIN PROM" error={errors.schoolOrOriginProm}>
             <input
-              className={errors.schoolOrOriginProm ? "error-input" : ""}
               name="schoolOrOriginProm"
-              placeholder="Which school/prom are you coming from? Example: MIU, BUE, AAST, GUC, Helwan, etc."
+              placeholder="Which school/prom are you coming from?"
               value={request.schoolOrOriginProm}
               onChange={handleRequestChange}
             />
-          </label>
+          </TextInputCard>
           <FieldError name="schoolOrOriginProm" />
 
-          <label><span>Age</span><input className={errors.age ? "error-input" : ""} name="age" placeholder="Age" value={request.age} onChange={handleRequestChange} /></label>
+          <TextInputCard icon="▣" label="AGE" error={errors.age}>
+            <input name="age" placeholder="Enter your age" value={request.age} onChange={handleRequestChange} />
+          </TextInputCard>
           <FieldError name="age" />
 
-          <label><span>Instagram Username</span><input className={errors.instagramUsername ? "error-input" : ""} name="instagramUsername" placeholder="Instagram Username" value={request.instagramUsername} onChange={handleRequestChange} /></label>
+          <TextInputCard icon="◎" label="INSTAGRAM USERNAME" error={errors.instagramUsername}>
+            <div className="inline-prefix"><span>@</span><input name="instagramUsername" placeholder="Enter your Instagram username" value={request.instagramUsername} onChange={handleRequestChange} /></div>
+          </TextInputCard>
           <FieldError name="instagramUsername" />
         </div>
 
-        <button className="purple-btn" onClick={goToPayment}>
-          CONTINUE TO PAYMENT
-        </button>
-      </Shell>
+        <div className="eternum-divider small" aria-hidden="true"><i></i></div>
+        <p className="review-note">SELECTION IS SUBJECT TO COMMITTEE REVIEW.</p>
+        <PrimaryButton onClick={goToPayment}>SUBMIT APPLICATION</PrimaryButton>
+      </PublicShell>
     );
   }
 
   if (page === "payment") {
     return (
-      <Shell tone="purple" className="reference-flow form-reference">
-        <button className="back-icon" onClick={() => setPage("register")} aria-label="Back">
-          &larr;
-        </button>
-        <h2 className="page-title">ACCESS REQUEST</h2>
-        <motion.div className="success-icon" {...softPop}>
-          OK
-        </motion.div>
-        <p className="muted">One final step remains before entry is granted.</p>
-
-        <motion.div className="fee-box" {...softPop}>
-          <span>REGISTRATION FEE</span>
-          <h1>{selectedEvent.fee}</h1>
-        </motion.div>
-
-        <button className="purple-btn" onClick={() => setPage("instapay")}>
-          PROCEED TO PAYMENT
-        </button>
-      </Shell>
+      <PublicShell backTo="register" className="payment-public-page" onNavigate={setPage}>
+        <EternumHeader eyebrow="APPLICATION RECEIVED" title="ETERNITY" subtitle="" compact />
+        <div className="success-orb">✓</div>
+        <section className="eternum-copy-block">
+          <h2>Your application has been created successfully.</h2>
+          <p>To enter the review process, please complete the entry fees.</p>
+        </section>
+        <div className="eternum-card fee-panel">
+          <span>ENTRY FEES</span>
+          <strong>{String(selectedEvent.fee).replace(/EGP/i, "").trim()}</strong>
+          <small>EGP</small>
+        </div>
+        <section className="eternum-card payment-method-card">
+          <h3>PAYMENT METHOD</h3>
+          <strong className="instapay-wordmark">INSTAPAY</strong>
+          <p>The secure and instant way to pay.</p>
+          <PrimaryButton onClick={() => setPage("instapay")}>GO TO INSTAPAY</PrimaryButton>
+        </section>
+        <p className="secure-note">APPLICATIONS ARE REVIEWED ONLY AFTER PAYMENT CONFIRMATION.</p>
+        <PrimaryButton onClick={() => setPage("upload")}>I HAVE COMPLETED PAYMENT</PrimaryButton>
+      </PublicShell>
     );
   }
 
   if (page === "instapay") {
     return (
-      <Shell tone="purple" className="reference-flow form-reference">
-        <button className="back-icon" onClick={() => setPage("payment")} aria-label="Back">
-          &larr;
-        </button>
-        <h1 className="insta">instaPay</h1>
-        <motion.div className="phone-pay" {...softPop}>
-          <p>PAY</p>
-          <h1>{selectedEvent.fee}</h1>
-          <span>ALSHAYEB ETERNUM</span>
-        </motion.div>
-
-        <p className="muted">Payment link will be added later.</p>
-
-        <button className="purple-btn" onClick={() => setPage("upload")}>
-          I PAID - UPLOAD PROOF
-        </button>
-      </Shell>
+      <PublicShell backTo="payment" className="payment-public-page" onNavigate={setPage}>
+        <EternumHeader title="ETERNITY" subtitle="PAYMENT METHOD" compact />
+        <section className="eternum-card payment-method-card">
+          <h3>PAY</h3>
+          <strong className="fee-mini">{selectedEvent.fee}</strong>
+          <p>ALSHAYEB ETERNUM</p>
+          <strong className="instapay-wordmark">INSTAPAY</strong>
+        </section>
+        <p className="secure-note">Open InstaPay, complete your payment, then upload your receipt.</p>
+        <PrimaryButton onClick={() => setPage("upload")}>I PAID - UPLOAD PROOF</PrimaryButton>
+      </PublicShell>
     );
   }
 
   if (page === "upload") {
     return (
-      <Shell tone="purple" className="reference-flow form-reference">
-        <button className="back-icon" onClick={() => setPage("instapay")} aria-label="Back">
-          &larr;
-        </button>
-        <h2 className="page-title">PAYMENT VERIFICATION</h2>
-        <p className="muted">Please upload a screenshot of your completed payment.</p>
+      <PublicShell backTo="payment" className="upload-public-page" onNavigate={setPage}>
+        <EternumHeader title="ETERNITY" subtitle="PAYMENT VERIFICATION" compact />
+        <section className="eternum-copy-block">
+          <p>Please upload a clear screenshot of your payment transaction.</p>
+        </section>
 
-        <motion.label
-          className={`upload-box ${errors.screenshot ? "upload-error" : ""} ${request.screenshot ? "upload-selected" : ""}`}
-          whileHover={{ y: -3, scale: 1.01 }}
-          transition={{ duration: 0.2 }}
-        >
-          <span>UPLOAD</span>
-          <p>{request.screenshot ? "SCREENSHOT SELECTED" : "UPLOAD SCREENSHOT"}</p>
-          <small>{request.screenshot || "PNG / JPG / JPEG"}</small>
+        <label className={`eternum-card upload-receipt-card ${errors.screenshot ? "upload-error" : ""} ${request.screenshot ? "upload-selected" : ""}`}>
+          <span>UPLOAD PAYMENT SCREENSHOT</span>
+          <div className="upload-dropzone">
+            <b aria-hidden="true">⇧</b>
+            <p>{request.screenshot ? "SCREENSHOT SELECTED" : "Tap to upload"}</p>
+            <small>{request.screenshot || "PNG, JPG or JPEG (max. 5MB)"}</small>
+          </div>
           <input type="file" hidden accept="image/png,image/jpeg,image/jpg" onChange={handleScreenshotUpload} />
-        </motion.label>
+        </label>
 
         <FieldError name="screenshot" />
 
-        <button className="purple-btn" onClick={submitRequest}>
-          SUBMIT FOR REVIEW
-        </button>
-      </Shell>
+        <div className="eternum-status-card info-card">
+          <span className="status-icon" aria-hidden="true">✓</span>
+          <p>Applications are reviewed only after payment confirmation.</p>
+        </div>
+        <PrimaryButton onClick={submitRequest}>SUBMIT RECEIPT</PrimaryButton>
+      </PublicShell>
     );
   }
 
   if (page === "submitted") {
     return (
-      <Shell tone="purple" className="reference-flow form-reference">
-        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
-          &larr;
-        </button>
-        <motion.div className="success-icon" {...softPop}>
-          OK
-        </motion.div>
-        <h2 className="page-title">REQUEST SUBMITTED</h2>
-        <p className="muted">Your application has been submitted successfully.</p>
-
-        <div className="identity-card">
-          <div><span>EVENT</span><p>{selectedEvent.name}</p></div>
-          <div><span>REQUEST ID</span><p>{safeValue(request.requestId, "Unknown")}</p></div>
-          <div><span>APPLICATION STATUS</span><p><span className="status-badge pending">PENDING REVIEW</span></p></div>
-          <div><span>PAYMENT STATUS</span><p><span className="status-badge pending">UNDER VERIFICATION</span></p></div>
+      <PublicShell className="submitted-public-page" onNavigate={setPage}>
+        <EternumHeader title="ETERNITY" subtitle="" compact />
+        <div className="success-orb">✓</div>
+        <section className="eternum-copy-block">
+          <h2>APPLICATION SUBMITTED</h2>
+          <p>Your application has been submitted successfully.</p>
+        </section>
+        <StatusRow icon="▤" label="PAYMENT STATUS" value="UNDER VERIFICATION" />
+        <StatusRow icon="▧" label="APPLICATION STATUS" value="UNDER REVIEW" />
+        <div className="eternum-card team-review-card">
+          <h3>ALSHAYEB'S TEAM</h3>
+          <p>is currently reviewing your application.</p>
         </div>
-
-        <button className="purple-btn" onClick={() => setPage("track")}>
-          TRACK REQUEST
-        </button>
-      </Shell>
+        <h3 className="section-line-title">OUTCOMERS COMMUNITY</h3>
+        <SelectionStats selection={outcomerSelection} />
+        <PrimaryButton onClick={() => setPage("track")}>TRACK APPLICATION</PrimaryButton>
+      </PublicShell>
     );
   }
 
@@ -936,24 +1108,19 @@ function PublicWebsite() {
         : "PENDING";
 
     return (
-      <Shell tone="purple" className="reference-flow form-reference">
-        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
-          &larr;
-        </button>
-        <div className="ring small-ring"></div>
-        <h2 className="page-title">{phaseLabel}</h2>
-        <p className="muted">Your application current phase is {phaseLabel.toLowerCase()}.</p>
-
-        <div className="identity-card">
-          <div><span>EVENT</span><p>{safeValue(saved.event, selectedEvent.name)}</p></div>
-          <div><span>REQUEST ID</span><p>{safeValue(saved.requestId, "OUT-0000")}</p></div>
-          <div><span>APPLICATION STATUS</span><p><span className={`status-badge ${statusClass(phaseLabel)}`}>{phaseLabel}</span></p></div>
-          <div><span>PAYMENT STATUS</span><p><span className="status-badge pending">UNDER VERIFICATION</span></p></div>
-        </div>
-
-        <p className="muted">This usually takes 24-48 hours.</p>
-        <button className="ghost-btn" onClick={() => setPage("home")}>BACK HOME</button>
-      </Shell>
+      <PublicShell backTo="outcomerLanding" className="status-public-page" onNavigate={setPage}>
+        <EternumHeader compact />
+        <section className="eternum-copy-block">
+          <h2>{phaseLabel}</h2>
+          <p>Your application current phase is {phaseLabel.toLowerCase()}.</p>
+        </section>
+        <StatusRow icon="◇" label="EVENT" value={safeValue(saved.event, selectedEvent.name)} />
+        <StatusRow icon="#" label="REQUEST ID" value={safeValue(saved.requestId, "OUT-0000")} />
+        <StatusRow icon="✓" label="APPLICATION STATUS" value={phaseLabel} />
+        <StatusRow icon="◷" label="PAYMENT STATUS" value="UNDER VERIFICATION" />
+        <p className="secure-note">This usually takes 24-48 hours.</p>
+        <PrimaryButton onClick={() => setPage("home")}>BACK HOME</PrimaryButton>
+      </PublicShell>
     );
   }
 
@@ -961,23 +1128,18 @@ function PublicWebsite() {
     const saved = trackedRegistration || request || {};
 
     return (
-      <Shell tone="purple" className="reference-flow form-reference">
-        <button className="back-icon" onClick={() => setPage("outcomerLanding")} aria-label="Back">
-          &larr;
-        </button>
-        <div className="ring small-ring"></div>
-        <h2 className="page-title">APPLICATION DECLINED</h2>
-        <p className="muted">Your application was declined.</p>
-
-        <div className="identity-card">
-          <div><span>EVENT</span><p>{safeValue(saved.event, selectedEvent.name)}</p></div>
-          <div><span>REQUEST ID</span><p>{safeValue(saved.requestId, "OUT-0000")}</p></div>
-          <div><span>APPLICATION STATUS</span><p><span className="status-badge used">REJECTED</span></p></div>
-          <div><span>PHONE</span><p>{safeValue(saved.phoneNumber || saved.phone, "Not available")}</p></div>
-        </div>
-
-        <button className="ghost-btn" onClick={() => setPage("home")}>BACK HOME</button>
-      </Shell>
+      <PublicShell backTo="outcomerLanding" className="status-public-page" onNavigate={setPage}>
+        <EternumHeader compact />
+        <section className="eternum-copy-block">
+          <h2>APPLICATION DECLINED</h2>
+          <p>Your application was declined.</p>
+        </section>
+        <StatusRow icon="◇" label="EVENT" value={safeValue(saved.event, selectedEvent.name)} />
+        <StatusRow icon="#" label="REQUEST ID" value={safeValue(saved.requestId, "OUT-0000")} />
+        <StatusRow icon="!" label="APPLICATION STATUS" value="REJECTED" />
+        <StatusRow icon="☎" label="PHONE" value={safeValue(saved.phoneNumber || saved.phone, "Not available")} />
+        <PrimaryButton onClick={() => setPage("home")}>BACK HOME</PrimaryButton>
+      </PublicShell>
     );
   }
 
@@ -1009,79 +1171,60 @@ function PublicWebsite() {
         : "blue";
 
     return (
-      <div className={`ticket-page tone-${ticketTone}`}>
-        <AnimatedBackground />
-        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
-          &larr;
-        </button>
-        <motion.div className="ticket-pass tone-card" {...pageMotion}>
-          <div className="ticket-hero">
-            <div className="ring"></div>
-            <h3>ALSHAYEB</h3>
-            <h1>ETERNUM</h1>
-            <p>NO BEGINNING. NO END.</p>
-          </div>
-
+      <PublicShell className={`ticket-public-page ticket-${ticketTone}`} onNavigate={setPage}>
+        <EternumHeader compact />
+        <section className="eternum-card ticket-qr-card">
+          <h3>SCAN TO ENTER</h3>
+          <h2>THE ETERNAL LIST</h2>
           {ticketQrLocked ? (
-            <motion.div className="locked-qr-card" {...softPop}>
+            <>
               <span className="qr-lock-icon" aria-hidden="true">&#128274;</span>
-              <span className="status-badge active">ACCESS CONFIRMED</span>
-              <h2>QR UNLOCKS SOON</h2>
+              <p className="muted">QR unlocks at {new Date(safeTicketRevealDate).toLocaleString()}</p>
               <div className="countdown-grid">
                 <div><strong>{formatCountdownUnit(ticketCountdown.days)}</strong><span>DAYS</span></div>
                 <div><strong>{formatCountdownUnit(ticketCountdown.hours)}</strong><span>HRS</span></div>
                 <div><strong>{formatCountdownUnit(ticketCountdown.minutes)}</strong><span>MIN</span></div>
                 <div><strong>{formatCountdownUnit(ticketCountdown.seconds)}</strong><span>SEC</span></div>
               </div>
-              <p className="muted">Unlocks at {new Date(safeTicketRevealDate).toLocaleString()}</p>
-            </motion.div>
-          ) : (
-            <motion.div className="qr-card" {...softPop}>
+            </>
+          ) : qrValue ? (
+            <>
               <span className="qr-lock-icon unlocked" aria-hidden="true">&#128275;</span>
-              <h2>{qrValue ? "SCAN TO ENTER" : "QR NOT AVAILABLE YET"}</h2>
-              {qrValue ? (
-                <>
-                  <motion.div className="qr-white" initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.45 }}>
-                    <QRCode value={qrValue} size={230} />
-                  </motion.div>
-                  <p>{qrValue}</p>
-                </>
-              ) : (
-                <p className="muted">QR not available yet.</p>
-              )}
-            </motion.div>
+              <div className="qr-white">
+                <QRCode value={qrValue} size={210} />
+              </div>
+            </>
+          ) : (
+            <p className="muted">QR not available yet.</p>
           )}
+        </section>
 
-          <motion.div className="identity-card" {...softPop}>
-            <h2>ACCESS IDENTITY</h2>
-            <div><span>NAME</span><p>{guestName}</p></div>
-            <div><span>PHONE</span><p>{guestPhone}</p></div>
-            <div><span>ID / QR ID</span><p>{qrId}</p></div>
-            <div><span>ACCESS TYPE</span><p>{accessType}</p></div>
-            <div><span>STATUS</span><p><span className={`status-badge ${status === "used" ? "used" : "active"}`}>{status === "used" ? "USED BEFORE" : rawStatus.toUpperCase()}</span></p></div>
-            <div><span>VENUE</span><p>{venue}</p></div>
-          </motion.div>
+        <section className="eternum-card ticket-identity-card">
+          <h2>ACCESS IDENTITY</h2>
+          <div><span>NAME</span><p>{guestName}</p></div>
+          <div><span>PROM NAME</span><p>{venue}</p></div>
+          <div><span>PHONE NUMBER</span><p>{guestPhone}</p></div>
+          <div><span>ID</span><p>{qrId}</p></div>
+          <div><span>ACCESS TYPE</span><p>{accessType}</p></div>
+          <div><span>STATUS</span><p><span className={`status-badge ${status === "used" ? "used" : "active"}`}>{status === "used" ? "USED BEFORE" : rawStatus.toUpperCase()}</span></p></div>
+          <div><span>DATE</span><p>{ticketPromEvent?.date || "DATE TBA"}</p></div>
+          <div><span>VENUE</span><p>ALSHAYEB ETERNUM</p></div>
+        </section>
 
-          <div className="venue-about">
-            <h2>ABOUT THE VENUE</h2>
-            <p>
-              ALSHAYEB ETERNUM is our iconic destination for music, art and connection.
-              Designed as a circular island where energy flows endlessly.
-            </p>
-          </div>
+        <section className="eternum-card venue-about-card">
+          <h2>ABOUT THE VENUE</h2>
+          <p>ALSHAYEB ETERNUM is our iconic destination for music, art and connection. Designed as a circular island, it creates unforgettable experiences in a space where energy flows endlessly.</p>
+        </section>
 
-          <div className="feature-grid">
-            <div>360 DEGREE EXPERIENCE</div>
-            <div>WORLD CLASS SOUND</div>
-            <div>SAFETY FIRST</div>
-            <div>PREMIUM EXPERIENCE</div>
-          </div>
+        <div className="ticket-feature-grid">
+          <div>CAPACITY<span>Limited capacity experience</span></div>
+          <div>360° EXPERIENCE<span>Immersive sound and light</span></div>
+          <div>SAFETY FIRST<span>Advanced security</span></div>
+          <div>PREMIUM EXPERIENCE<span>VIP access zones</span></div>
+        </div>
 
-          <button className="purple-btn" onClick={() => setPage("home")}>
-            BACK
-          </button>
-        </motion.div>
-      </div>
+        <footer className="eternum-footer">ALSHAYEB EXPERIENCE</footer>
+      </PublicShell>
     );
   }
 
@@ -1089,24 +1232,12 @@ function PublicWebsite() {
     const isIncomer = page === "incomer";
 
     return (
-      <Shell tone={isIncomer ? "blue" : "gold"} className="reference-flow incomer-reference">
-        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
-          &larr;
-        </button>
-        <div className="ring small-ring"></div>
-        <h1 className="brand-title">{isIncomer ? "THE ETERNAL LIST" : "THE INVITED"}</h1>
-        <p className="tagline">{isIncomer ? "INCOMER" : "GUEST LIST"}</p>
-        <div className="reference-gate" aria-hidden="true">
-          <span className="gate-orb"></span>
-          <span className="gate-door"></span>
-          <span className="gate-floor"></span>
-        </div>
-
-        <div className="welcome-block">
-          <p>{isIncomer ? "Your place has already been secured." : "Feeling lucky?"}</p>
-          {isIncomer && <div className="incomer-divider" aria-hidden="true"><span></span></div>}
-          <h2>{isIncomer ? "Enter your phone number to access your pass." : "Check if your name made it onto the Eternal List."}</h2>
-        </div>
+      <PublicShell className="lookup-public-page" onNavigate={setPage}>
+        <EternumHeader title={isIncomer ? "THE ETERNAL LIST" : "THE INVITED"} subtitle={isIncomer ? "INCOMER" : "GUEST LIST"} />
+        <section className="eternum-copy-block">
+          <h2>{isIncomer ? "Your place has already been secured." : "Feeling lucky?"}</h2>
+          <p>{isIncomer ? "Enter your phone number to access your pass." : "Check if your name made it onto the Eternal List."}</p>
+        </section>
 
         {loading && <p className="loading-message">Loading guest list...</p>}
         {errors.home && (
@@ -1118,13 +1249,11 @@ function PublicWebsite() {
           </div>
         )}
 
-        <div className="phone-field">
-          <span>+20</span>
-          <input
-            className={errors.phoneSearch ? "error-input" : ""}
-            type="text"
-            placeholder="Phone Number"
+        <div className="eternum-field-group">
+          <label>PHONE NUMBER</label>
+          <PhoneInput
             value={phone}
+            error={errors.phoneSearch}
             onChange={(e) => {
               setPhone(e.target.value);
               setErrors((prev) => ({ ...prev, phoneSearch: "" }));
@@ -1133,17 +1262,17 @@ function PublicWebsite() {
         </div>
         <FieldError name="phoneSearch" />
 
-        <button className="purple-btn" onClick={handleSearch} disabled={loading}>
+        <PrimaryButton onClick={handleSearch} disabled={loading}>
           {loading ? "LOADING" : isIncomer ? "ACCESS THE GATE" : "CHECK NOW"}
-        </button>
+        </PrimaryButton>
 
-        <p className="secure">{isIncomer && <span aria-hidden="true">◇</span>}Your information is secure and encrypted.</p>
-      </Shell>
+        <p className="secure-note">Your information is secure and encrypted.</p>
+      </PublicShell>
     );
   }
 
   return (
-    <motion.main className="eternum-home" {...pageMotion}>
+    <main className="eternum-home">
       <AnimatedBackground />
       <div className="eternum-frame" aria-hidden="true"></div>
       <div className="eternum-axis" aria-hidden="true"></div>
@@ -1217,7 +1346,7 @@ function PublicWebsite() {
           <span>ALSHAYEB ETERNUM</span>
         </footer>
       </section>
-    </motion.main>
+    </main>
   );
 }
 

@@ -79,13 +79,13 @@ body::after {
     radial-gradient(circle, rgba(127, 157, 255, 0.58) 1px, transparent 1.5px),
     radial-gradient(circle, rgba(212, 169, 63, 0.38) 1px, transparent 1.5px);
   background-size: 120px 120px, 190px 190px, 280px 280px;
-  animation: driftStars 32s linear infinite;
+  animation: none;
   opacity: 0.65;
 }
 
 .stars-layer.second {
   background-size: 220px 220px;
-  animation-duration: 48s;
+  animation-duration: 0s;
   opacity: 0.38;
 }
 
@@ -109,7 +109,9 @@ body::after {
     transparent
   );
   box-shadow: 0 0 38px rgba(247, 251, 255, 0.78), 0 0 82px rgba(127, 157, 255, 0.72);
-  animation: beamPulse 4s ease-in-out infinite;
+  animation: none;
+  opacity: 0.72;
+  transform: translateX(-50%);
 }
 
 @keyframes beamPulse {
@@ -131,7 +133,8 @@ body::after {
   border-radius: 50%;
   background: rgba(127, 157, 255, 0.9);
   box-shadow: 0 0 18px rgba(127, 157, 255, 0.9);
-  animation: floatParticle linear infinite;
+  animation: none;
+  opacity: 0.38;
 }
 
 @keyframes floatParticle {
@@ -551,12 +554,12 @@ body::after {
     0 0 30px color-mix(in srgb, var(--path-accent) 20%, transparent);
   text-align: left;
   overflow: hidden;
-  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
 .path-card:hover,
 .path-card:focus-visible {
-  transform: translateY(-3px);
+  transform: none;
   border-color: color-mix(in srgb, var(--path-accent) 88%, white 12%);
   box-shadow:
     inset 0 0 46px rgba(255, 255, 255, 0.045),
@@ -678,12 +681,12 @@ body::after {
   text-align: center;
   position: relative;
   z-index: 2;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: box-shadow 0.25s ease;
 }
 
 .cosmic-card:hover,
 .ticket-pass:hover {
-  transform: perspective(1000px) rotateX(1.5deg) rotateY(-1.5deg);
+  transform: none;
   box-shadow: 0 0 70px rgba(127, 157, 255, 0.24), 0 0 48px rgba(160,102,255,0.18);
 }
 
@@ -696,7 +699,7 @@ body::after {
   border-radius: 50%;
   box-shadow: 0 0 24px rgba(247, 251, 255, 0.75), 0 0 52px rgba(127, 157, 255, 0.58);
   margin: 0 auto 20px;
-  animation: pulseRing 3s infinite ease-in-out;
+  animation: none;
 }
 
 .small-ring {
@@ -829,7 +832,7 @@ button:disabled,
   inset: 0;
   background: linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
   transform: translateX(-120%);
-  animation: buttonShine 3s infinite;
+  animation: none;
 }
 
 @keyframes buttonShine {
@@ -926,7 +929,7 @@ button:disabled,
     radial-gradient(circle at 50% 0%, rgba(127, 157, 255, 0.07), transparent 44%),
     rgba(3, 8, 15, 0.72);
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
   color: white;
   width: 100%;
   letter-spacing: 0;
@@ -938,7 +941,7 @@ button:disabled,
 .qr-card:hover,
 .identity-card:hover,
 .venue-about:hover {
-  transform: translateY(-4px) scale(1.01);
+  transform: none;
   border-color: rgba(213, 226, 255, 0.62);
   box-shadow: 0 0 26px rgba(127, 157, 255, 0.26);
 }
@@ -1024,7 +1027,7 @@ button:disabled,
   letter-spacing: 2px;
   font-size: 12px;
   text-transform: uppercase;
-  animation: loadingPulse 1.6s ease-in-out infinite;
+  animation: none;
 }
 
 @keyframes loadingPulse {
@@ -1058,7 +1061,7 @@ button:disabled,
   margin-top: 16px;
   background: var(--eternum-glass);
   box-shadow: inset 0 0 30px rgba(127, 157, 255, 0.055);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .fee-box span,
@@ -1097,7 +1100,7 @@ button:disabled,
   margin: 20px 0;
   background: rgba(255,255,255,0.035);
   cursor: pointer;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
 .upload-box span {
@@ -1502,11 +1505,11 @@ button:disabled,
   background: rgba(255,255,255,0.035);
   text-decoration: none;
   letter-spacing: 1px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .admin-sidebar a:hover {
-  transform: translateY(-2px);
+  transform: none;
   border-color: rgba(213, 226, 255, 0.62);
   box-shadow: 0 0 22px rgba(127, 157, 255, 0.22);
 }
@@ -1646,7 +1649,7 @@ button:disabled,
   text-decoration: none;
   text-align: center;
   letter-spacing: 1px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .quick-action,
@@ -1663,7 +1666,7 @@ button:disabled,
 .table-actions button:hover,
 .filter-pill:hover,
 .active-filter {
-  transform: translateY(-2px);
+  transform: none;
   border-color: rgba(213, 226, 255, 0.62);
   box-shadow: 0 0 22px rgba(127, 157, 255, 0.2);
 }
@@ -2825,7 +2828,7 @@ body::after {
 .table-actions button:hover,
 .filter-pill:hover,
 .active-filter {
-  transform: translateY(-1px);
+  transform: none;
   box-shadow: inset 0 0 28px rgba(54, 120, 221, 0.07), 0 0 18px rgba(54, 120, 221, 0.2);
 }
 
@@ -4114,7 +4117,7 @@ body::after {
 
 .brand-lockup {
   margin-top: 0;
-  transform: translateY(-2svh);
+  transform: none;
 }
 
 .brand-lockup p {
@@ -5008,7 +5011,7 @@ body:has(.eternum-home)::after {
   border-radius: 6px;
   color: rgba(236, 242, 255, 0.42);
   font-size: 10px;
-  transform: translateY(-1px);
+  transform: none;
 }
 
 @media (min-aspect-ratio: 592 / 1280) {
@@ -5113,14 +5116,14 @@ body:has(.eternum-home)::after {
 
 .outcomer-reference .selection-display strong {
   font-family: var(--eternum-body-font) !important;
-   transform: translateY(-20px) !important;
+  transform: none !important;
   font-size: 22px !important;
   font-weight: 300 !important;
 }
 
 .outcomer-reference .selection-display span {
   margin-top: 2px !important;
-  transform: translateY(-20px) !important;
+  transform: none !important;
   font-size: 8px !important;
   letter-spacing: 1px !important;
 }
@@ -5287,4 +5290,815 @@ body:has(.eternum-home)::after {
   letter-spacing: 5px !important;
   color: rgba(115, 185, 255, 0.9) !important;
   z-index: 10 !important;
+}
+
+/* Public flow reset: real React/CSS Eternum system. Homepage intentionally stays on its existing mockup layer. */
+:root {
+  --bg-main: #02040b;
+  --bg-panel: rgba(4, 10, 24, 0.72);
+  --border-blue: rgba(105, 180, 255, 0.52);
+  --border-blue-bright: rgba(165, 215, 255, 0.85);
+  --text-main: #f7fbff;
+  --text-muted: rgba(220, 232, 255, 0.68);
+  --neon-blue: #6fc1ff;
+  --neon-blue-soft: rgba(111, 193, 255, 0.35);
+}
+
+.app-shell.eternum-public-flow {
+  min-height: 100dvh !important;
+  width: 100% !important;
+  padding: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: stretch !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background:
+    radial-gradient(circle at 50% 13%, rgba(65, 144, 255, 0.18), transparent 20%),
+    radial-gradient(circle at 50% 93%, rgba(40, 130, 255, 0.16), transparent 22%),
+    linear-gradient(180deg, #030814 0%, var(--bg-main) 42%, #01030a 100%) !important;
+  color: var(--text-main) !important;
+}
+
+.app-shell.eternum-public-flow::before,
+.app-shell.eternum-public-flow::after,
+.eternum-public-flow .animated-bg {
+  display: none !important;
+}
+
+.eternum-public-flow .cosmic-card {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 430px !important;
+  min-height: 100dvh !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  padding: 34px 20px 48px !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(69, 153, 255, 0.24) 50%, transparent calc(50% + 0.5px)),
+    radial-gradient(circle at 50% 9%, rgba(111, 193, 255, 0.18), transparent 21%),
+    transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  text-align: center !important;
+}
+
+.eternum-public-flow .cosmic-card *,
+.eternum-public-flow .cosmic-card *::before,
+.eternum-public-flow .cosmic-card *::after {
+  box-sizing: border-box;
+}
+
+.eternum-public-flow .back-icon {
+  top: 22px !important;
+  left: 18px !important;
+}
+
+.eternum-header {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 28px auto 34px;
+  padding-top: 58px;
+  color: var(--text-main);
+  text-align: center;
+}
+
+.eternum-header.compact {
+  margin-bottom: 28px;
+  padding-top: 46px;
+}
+
+.eternum-sigil {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 54px;
+  height: 70px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 9px rgba(111, 193, 255, 0.9));
+}
+
+.eternum-sigil::before {
+  content: "♠";
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  -webkit-text-stroke: 1.4px var(--text-main);
+  font-size: 54px;
+  line-height: 1;
+  text-shadow: 0 0 14px rgba(111, 193, 255, 0.95);
+}
+
+.eternum-sigil::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -78px;
+  width: 1px;
+  height: 150px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, rgba(111, 193, 255, 0.95), transparent);
+  box-shadow: 0 0 12px rgba(111, 193, 255, 0.85);
+}
+
+.eternum-header p,
+.eternum-header h1,
+.eternum-header span,
+.eternum-copy-block h2,
+.eternum-card h2,
+.eternum-card h3,
+.eternum-input-card small,
+.eternum-button,
+.section-line-title,
+.review-note,
+.secure-note,
+.eternum-footer {
+  font-family: var(--eternum-font);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.eternum-header p {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 8px;
+  color: rgba(247, 251, 255, 0.82);
+}
+
+.eternum-header h1 {
+  margin: 0;
+  max-width: 100%;
+  font-size: clamp(31px, 10vw, 48px);
+  line-height: 1;
+  letter-spacing: clamp(10px, 4.6vw, 20px);
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.eternum-header span {
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: rgba(169, 205, 255, 0.9);
+}
+
+.eternum-divider {
+  position: relative;
+  width: min(230px, 60vw);
+  height: 18px;
+  margin-top: 12px;
+}
+
+.eternum-divider::before,
+.eternum-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 24px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(111, 193, 255, 0.7));
+}
+
+.eternum-divider::before { left: 0; }
+.eternum-divider::after { right: 0; transform: scaleX(-1); }
+.eternum-divider i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 1px solid var(--border-blue-bright);
+  box-shadow: 0 0 10px var(--neon-blue-soft);
+}
+
+.eternum-divider.small {
+  margin: 18px auto 14px;
+}
+
+.eternum-copy-block {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto 28px;
+  max-width: 340px;
+}
+
+.eternum-copy-block h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: clamp(18px, 5.4vw, 26px);
+  letter-spacing: 8px;
+  line-height: 1.32;
+}
+
+.eternum-copy-block p,
+.eternum-public-flow .muted,
+.secure-note,
+.review-note,
+.eternum-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.eternum-card,
+.eternum-input-card,
+.eternum-status-card,
+.eternum-event-card {
+  width: 100%;
+  border: 1px solid var(--border-blue);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(11, 25, 54, 0.52), rgba(2, 7, 18, 0.72)),
+    var(--bg-panel);
+  box-shadow:
+    0 0 22px rgba(42, 132, 255, 0.12),
+    inset 0 0 28px rgba(111, 193, 255, 0.045);
+  backdrop-filter: blur(12px);
+}
+
+.eternum-button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 28px;
+  align-items: center;
+  width: 100%;
+  min-height: 62px;
+  margin: 24px 0 0;
+  padding: 0 28px;
+  border: 1px solid var(--border-blue-bright);
+  border-radius: 10px;
+  color: var(--text-main);
+  background: rgba(3, 11, 26, 0.78);
+  box-shadow: 0 0 22px var(--neon-blue-soft), inset 0 0 24px rgba(111, 193, 255, 0.08);
+  font-size: 15px;
+  letter-spacing: 8px;
+  cursor: pointer;
+}
+
+.eternum-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.eternum-button b {
+  color: var(--border-blue-bright);
+  font-size: 30px;
+  font-weight: 200;
+  text-shadow: 0 0 12px var(--neon-blue-soft);
+}
+
+.eternum-field-group {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+  text-align: left;
+}
+
+.eternum-field-group > label {
+  padding-left: 4px;
+  color: rgba(143, 194, 255, 0.95);
+  font-family: var(--eternum-font);
+  font-size: 12px;
+  letter-spacing: 7px;
+}
+
+.eternum-phone {
+  position: relative;
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  min-height: 64px;
+  border: 1px solid rgba(105, 180, 255, 0.34);
+  border-radius: 10px;
+  background: rgba(2, 6, 15, 0.76);
+}
+
+.eternum-phone span {
+  border-right: 1px solid rgba(165, 215, 255, 0.2);
+  color: var(--text-main);
+  text-align: center;
+  font-size: 18px;
+}
+
+.eternum-phone input,
+.eternum-input-card input {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-main);
+  font: 400 16px/1.2 var(--eternum-body-font);
+  pointer-events: auto;
+  user-select: text;
+}
+
+.eternum-phone input::placeholder,
+.eternum-input-card input::placeholder {
+  color: rgba(220, 232, 255, 0.36);
+}
+
+.eternum-form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.eternum-input-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  min-height: 74px;
+  padding: 0;
+  text-align: left;
+}
+
+.input-icon {
+  display: grid;
+  place-items: center;
+  min-height: 74px;
+  border-right: 1px solid rgba(165, 215, 255, 0.2);
+  color: var(--text-main);
+  font-size: 26px;
+}
+
+.input-copy {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+}
+
+.eternum-input-card small {
+  color: var(--text-main);
+  font-size: 11px;
+  letter-spacing: 6px;
+}
+
+.inline-prefix {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.inline-prefix span {
+  color: var(--text-main);
+}
+
+.field-error {
+  margin: -4px 0 4px;
+  color: #ff9fb4;
+  font-size: 12px;
+  text-align: left;
+}
+
+.has-error,
+.upload-error,
+.error-input {
+  border-color: rgba(255, 132, 160, 0.62) !important;
+}
+
+.eternum-event-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.eternum-event-card {
+  appearance: none;
+  font: inherit;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 92px;
+  padding: 16px 18px;
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+}
+
+.eternum-event-card > span {
+  color: rgba(169, 205, 255, 0.95);
+  font-family: var(--eternum-font);
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+.eternum-event-card h3 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  letter-spacing: 9px;
+}
+
+.eternum-event-card p,
+.eternum-event-card small {
+  display: block;
+  margin: 0;
+  color: rgba(169, 205, 255, 0.9);
+  font-family: var(--eternum-font);
+  font-size: 11px;
+  letter-spacing: 5px;
+}
+
+.eternum-event-card b {
+  grid-column: 2;
+  justify-self: start;
+  max-width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-blue);
+  border-radius: 7px;
+  color: rgba(169, 205, 255, 0.95);
+  font-family: var(--eternum-font);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.active-event {
+  border-color: var(--border-blue-bright) !important;
+  box-shadow: 0 0 24px var(--neon-blue-soft), inset 0 0 34px rgba(111, 193, 255, 0.075) !important;
+}
+
+.success-orb {
+  display: grid;
+  place-items: center;
+  width: 114px;
+  height: 114px;
+  margin: 0 auto 28px;
+  border: 1px solid var(--border-blue-bright);
+  border-radius: 50%;
+  color: var(--neon-blue);
+  font-size: 56px;
+  font-weight: 200;
+  box-shadow: 0 0 34px var(--neon-blue-soft), inset 0 0 24px rgba(111, 193, 255, 0.08);
+}
+
+.fee-panel {
+  display: grid;
+  gap: 8px;
+  padding: 28px 20px;
+}
+
+.fee-panel span,
+.fee-panel small,
+.payment-method-card h3,
+.selection-card h3 {
+  color: rgba(220, 232, 255, 0.82);
+  font-family: var(--eternum-font);
+  font-weight: 400;
+  letter-spacing: 7px;
+}
+
+.fee-panel strong {
+  color: var(--border-blue-bright);
+  font: 300 58px/1 var(--eternum-body-font);
+  letter-spacing: 14px;
+  text-shadow: 0 0 18px var(--neon-blue-soft);
+}
+
+.payment-method-card,
+.upload-receipt-card,
+.team-review-card,
+.venue-about-card {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 24px 18px;
+}
+
+.instapay-wordmark {
+  color: var(--text-main);
+  font-family: var(--eternum-body-font);
+  font-size: 30px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -1px;
+}
+
+.fee-mini {
+  color: var(--border-blue-bright);
+  font: 300 42px/1 var(--eternum-body-font);
+}
+
+.secure-note,
+.review-note {
+  margin: 24px auto 0;
+  max-width: 330px;
+  letter-spacing: 4px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.upload-receipt-card {
+  cursor: pointer;
+}
+
+.upload-receipt-card > span {
+  color: var(--neon-blue);
+  font-family: var(--eternum-font);
+  letter-spacing: 7px;
+}
+
+.upload-dropzone {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 210px;
+  border: 1px dashed rgba(220, 232, 255, 0.54);
+  border-radius: 10px;
+}
+
+.upload-dropzone b {
+  color: var(--neon-blue);
+  font-size: 48px;
+  font-weight: 200;
+  text-shadow: 0 0 18px var(--neon-blue-soft);
+}
+
+.upload-dropzone small {
+  color: rgba(220, 232, 255, 0.52);
+}
+
+.eternum-status-card {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  align-items: center;
+  min-height: 86px;
+  margin-top: 12px;
+  padding: 16px 18px;
+  text-align: left;
+}
+
+.status-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border-blue);
+  border-radius: 50%;
+  color: var(--neon-blue);
+  font-size: 22px;
+  text-shadow: 0 0 12px var(--neon-blue-soft);
+}
+
+.eternum-status-card small,
+.ticket-identity-card span {
+  display: block;
+  color: rgba(185, 214, 255, 0.8);
+  font-family: var(--eternum-font);
+  font-size: 10px;
+  letter-spacing: 4px;
+}
+
+.eternum-status-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--neon-blue);
+  font-family: var(--eternum-font);
+  font-weight: 400;
+  letter-spacing: 6px;
+}
+
+.info-card {
+  grid-template-columns: 72px 1fr;
+}
+
+.section-line-title {
+  margin: 28px 0 18px;
+  color: rgba(220, 232, 255, 0.82);
+  font-size: 14px;
+  letter-spacing: 8px;
+}
+
+.selection-card {
+  padding: 22px 10px 24px;
+}
+
+.selection-card h3 {
+  margin: 0 0 20px;
+  font-size: 13px;
+}
+
+.selection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.selection-grid div + div {
+  border-left: 1px solid rgba(165, 215, 255, 0.32);
+}
+
+.selection-grid strong {
+  display: block;
+  color: var(--text-main);
+  font: 300 30px/1 var(--eternum-body-font);
+}
+
+.selection-grid span {
+  display: block;
+  margin-top: 12px;
+  color: rgba(220, 232, 255, 0.84);
+  font-family: var(--eternum-font);
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+
+.not-found-card {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 12px;
+  padding: 22px;
+  text-align: left;
+}
+
+.eternum-text-link {
+  margin-top: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--border-blue-bright);
+  font-family: var(--eternum-font);
+  font-size: 13px;
+  letter-spacing: 6px;
+}
+
+.ticket-public-page .eternum-header {
+  margin-bottom: 18px;
+}
+
+.ticket-qr-card {
+  max-width: 310px;
+  margin: 0 auto 18px;
+  padding: 18px;
+}
+
+.ticket-qr-card h3,
+.ticket-qr-card h2 {
+  margin: 0;
+  letter-spacing: 7px;
+}
+
+.ticket-qr-card h3 {
+  color: rgba(220, 232, 255, 0.8);
+  font-size: 11px;
+}
+
+.ticket-qr-card h2 {
+  margin-bottom: 14px;
+  color: var(--text-main);
+  font-size: 15px;
+}
+
+.qr-white {
+  display: inline-grid;
+  place-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 0 24px var(--neon-blue-soft);
+}
+
+.qr-lock-icon {
+  display: inline-grid;
+  place-items: center;
+  margin: 6px auto 12px;
+  color: var(--neon-blue);
+  font-size: 24px;
+}
+
+.countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.countdown-grid div {
+  padding: 10px 4px;
+  border: 1px solid rgba(105, 180, 255, 0.28);
+  border-radius: 8px;
+}
+
+.countdown-grid strong,
+.countdown-grid span {
+  display: block;
+}
+
+.countdown-grid strong {
+  color: var(--text-main);
+  font-size: 19px;
+}
+
+.countdown-grid span {
+  color: var(--text-muted);
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+
+.ticket-identity-card {
+  padding: 18px;
+  text-align: left;
+}
+
+.ticket-identity-card h2,
+.venue-about-card h2 {
+  margin: 0 0 12px;
+  color: rgba(169, 205, 255, 0.95);
+  font-size: 13px;
+  letter-spacing: 6px;
+}
+
+.ticket-identity-card > div {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(165, 215, 255, 0.12);
+}
+
+.ticket-identity-card p {
+  margin: 0;
+  color: var(--text-main);
+  text-align: right;
+  font-family: var(--eternum-font);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.venue-about-card {
+  text-align: left;
+}
+
+.ticket-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ticket-feature-grid div {
+  padding: 16px 8px;
+  border: 1px solid rgba(105, 180, 255, 0.28);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--eternum-font);
+  font-size: 10px;
+  letter-spacing: 2px;
+  background: rgba(4, 10, 24, 0.58);
+}
+
+.ticket-feature-grid span {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-family: var(--eternum-body-font);
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.eternum-footer {
+  margin: 28px 0 0;
+  color: rgba(143, 194, 255, 0.95);
+  font-size: 11px;
+  letter-spacing: 7px;
+}
+
+@media (max-width: 390px) {
+  .eternum-public-flow .cosmic-card {
+    padding-inline: 16px !important;
+  }
+
+  .eternum-header h1 {
+    letter-spacing: 9px;
+  }
+
+  .eternum-event-card {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .eternum-event-card b {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .eternum-button {
+    padding: 0 20px;
+    letter-spacing: 5px;
+  }
 }

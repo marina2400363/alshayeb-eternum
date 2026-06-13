@@ -255,13 +255,63 @@ router.patch(
       throw apiError("Attendee was not found.", 404);
     }
 
-    attendee.paymentStatus = String(req.body.paymentStatus || req.body.status || attendee.paymentStatus).trim().toLowerCase();
+    const previousStatus = attendee.status;
+    const paymentStatus = String(req.body.paymentStatus || req.body.status || attendee.paymentStatus).trim().toLowerCase();
+    attendee.paymentStatus = paymentStatus;
 
-    if (req.body.status === "verified" || req.body.paymentStatus === "verified") {
+    if (paymentStatus === "verified") {
+      attendee.status = "approved";
+      attendee.reviewedAt = new Date();
+
+      if (!attendee.qrId) {
+        attendee.qrId = await generateUniqueQrId(Attendee);
+      }
+
+      if (!attendee.qrToken) {
+        attendee.qrToken = generateQrToken();
+        attendee.qrIssuedAt = new Date();
+      }
+    }
+
+    if (paymentStatus === "rejected") {
+      attendee.status = "rejected";
+      attendee.rejectionReason = req.body.reason || attendee.rejectionReason || "Payment proof rejected by admin.";
       attendee.reviewedAt = new Date();
     }
 
     await attendee.save();
+
+    if (paymentStatus === "verified" && previousStatus !== "approved" && !attendee.emailNotifications?.approvedAt) {
+      const emailSent = await sendStatusEmail(
+        attendee,
+        "ALSHAYEB ETERNUM application approved",
+        "Application approved and QR pass available."
+      );
+
+      if (emailSent) {
+        attendee.emailNotifications = {
+          ...attendee.emailNotifications,
+          approvedAt: new Date()
+        };
+        await attendee.save();
+      }
+    }
+
+    if (paymentStatus === "rejected" && previousStatus !== "rejected" && !attendee.emailNotifications?.rejectedAt) {
+      const emailSent = await sendStatusEmail(
+        attendee,
+        "ALSHAYEB ETERNUM application declined",
+        "Application declined."
+      );
+
+      if (emailSent) {
+        attendee.emailNotifications = {
+          ...attendee.emailNotifications,
+          rejectedAt: new Date()
+        };
+        await attendee.save();
+      }
+    }
 
     res.json({
       success: true,
