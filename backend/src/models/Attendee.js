@@ -31,6 +31,11 @@ const attendeeSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    gender: {
+      type: String,
+      enum: ["male", "female"],
+      lowercase: true
+    },
     notes: {
       type: String,
       trim: true

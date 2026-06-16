@@ -51,6 +51,7 @@ function validateRegistration(body) {
   const university = String(body.schoolOrOriginProm || body.university || body.school || "").trim();
   const age = String(body.age || "").trim();
   const instagram = String(body.instagramUsername || body.instagram || "").trim();
+  const gender = String(body.gender || "").trim().toLowerCase();
 
   if (!fullName) {
     errors.fullName = "Full name is required.";
@@ -70,6 +71,12 @@ function validateRegistration(body) {
     errors.email = "Email is required.";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = "Enter a valid email address.";
+  }
+
+  if (!gender) {
+    errors.gender = "Gender is required.";
+  } else if (gender !== "male" && gender !== "female") {
+    errors.gender = "Gender must be male or female.";
   }
 
   if (!university) {
@@ -94,6 +101,7 @@ function validateRegistration(body) {
       fullName,
       phone,
       email,
+      gender,
       university,
       age: Number(age),
       instagram

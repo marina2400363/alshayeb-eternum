@@ -21,6 +21,11 @@ const siteSettingsSchema = new mongoose.Schema(
         type: Number,
         default: 46
       }
+    },
+    guestListDisplayCount: {
+      type: Number,
+      default: 137,
+      min: 0
     }
   },
   { timestamps: true }

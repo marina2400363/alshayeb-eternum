@@ -27,15 +27,16 @@ const events = [
 ];
 
 const DEFAULT_OUTCOMER_SELECTION = {
-  approved: 129,
-  pending: 73,
-  declined: 46
+  approved: 2847,
+  pending: 1024,
+  declined: 376
 };
 
 const EXPORT_COLUMNS = [
   "Full Name",
   "Phone Number",
   "Email",
+  "Gender",
   "School / Origin Prom",
   "Age",
   "Instagram Username",
@@ -100,6 +101,7 @@ function toAdminAttendee(attendee) {
     name: attendeeName(attendee),
     phone: attendeePhone(attendee),
     email: attendee.email || "",
+    gender: attendee.gender || "",
     schoolOrOriginProm: attendee.schoolOrOriginProm || attendee.university || "",
     age: attendee.age || "",
     instagramUsername: attendee.instagramUsername || attendee.instagram || "",
@@ -160,6 +162,7 @@ function buildRegistrationExportRows(attendees = []) {
       "Full Name": row.name,
       "Phone Number": row.phone,
       Email: row.email || "",
+      Gender: row.gender || "",
       "School / Origin Prom": row.schoolOrOriginProm || "",
       Age: row.age || "",
       "Instagram Username": row.instagramUsername || "",
@@ -318,13 +321,16 @@ function PublicWebsite() {
   const [selectedEvent, setSelectedEvent] = useState(events[0]);
   const [liveEvents, setLiveEvents] = useState(events);
   const [outcomerSelection, setOutcomerSelection] = useState(DEFAULT_OUTCOMER_SELECTION);
+  const [guestListCount, setGuestListCount] = useState(137);
   const [now, setNow] = useState(Date.now());
   const [trackedRegistration, setTrackedRegistration] = useState(null);
+  const [lookupFailed, setLookupFailed] = useState(false);
 
   const [request, setRequest] = useState({
     fullName: "",
     phoneNumber: "",
     email: "",
+    gender: "",
     schoolOrOriginProm: "",
     age: "",
     instagramUsername: "",
@@ -415,19 +421,14 @@ function PublicWebsite() {
 
   const loadGuests = useCallback(() => {
     setLoading(true);
-    setErrors((prev) => ({ ...prev, home: "" }));
 
     apiRequest("/api/attendees?status=approved")
       .then(() => {
         setLoading(false);
       })
       .catch((error) => {
-        console.log("Error:", error);
+        console.log("Attendee connectivity check failed:", error);
         setLoading(false);
-        setErrors((prev) => ({
-          ...prev,
-          home: "We could not connect to MongoDB records. Please check the backend API and try again."
-        }));
       });
   }, []);
 
@@ -466,6 +467,18 @@ function PublicWebsite() {
       .catch((error) => {
         console.log("Site settings load failed:", error);
       });
+
+    apiRequest("/api/settings/public")
+      .then((result) => {
+        const displayCount = Number(result.guestListDisplayCount);
+        if (Number.isFinite(displayCount) && displayCount >= 0) {
+          setGuestListCount(Math.floor(displayCount));
+        }
+      })
+      .catch((error) => {
+        console.log("Public settings load failed:", error);
+        setGuestListCount(137);
+      });
   }, []);
 
   useEffect(() => {
@@ -494,13 +507,15 @@ function PublicWebsite() {
     if (!validatePhoneSearch()) return;
 
     setLoading(true);
-    const existing = await lookupBackendRegistration(phone);
+    setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+    const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch" });
     setLoading(false);
 
+    if (existing?.failed) return;
     if (existing && routeExistingRegistration(existing)) return;
 
     setFoundClient(null);
-    setErrors({});
+    setErrors((prev) => ({ ...prev, phoneSearch: "" }));
     setPage("notfound");
   };
 
@@ -509,8 +524,11 @@ function PublicWebsite() {
     if (!validatePhoneSearch()) return;
 
     setLoading(true);
-    const existing = await lookupBackendRegistration(phone);
+    setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+    const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch" });
     setLoading(false);
+
+    if (existing?.failed) return;
 
     if (!existing) {
       setTrackedRegistration(null);
@@ -539,6 +557,7 @@ function PublicWebsite() {
     const fullName = request.fullName.trim();
     const phoneNumber = cleanValue(request.phoneNumber);
     const email = request.email.trim();
+    const gender = request.gender;
     const schoolOrOriginProm = request.schoolOrOriginProm.trim();
     const age = request.age.trim();
     const instagramUsername = request.instagramUsername.trim();
@@ -561,6 +580,10 @@ function PublicWebsite() {
       newErrors.email = "Email is required.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = "Enter a valid email address.";
+    }
+
+    if (!gender) {
+      newErrors.gender = "Gender is required.";
     }
 
     if (!schoolOrOriginProm) {
@@ -600,7 +623,7 @@ function PublicWebsite() {
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const handleScreenshotUpload = (e) => {
+  const handleScreenshotUpload = async (e) => {
     const file = e.target.files?.[0];
 
     if (!file) {
@@ -619,14 +642,48 @@ function PublicWebsite() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
       setRequest((prev) => ({ ...prev, screenshot: null, screenshotFile: null }));
-      setErrors((prev) => ({ ...prev, screenshot: "Payment screenshot must be 5MB or smaller." }));
+      setErrors((prev) => ({ ...prev, screenshot: "Payment screenshot must be 10MB or smaller." }));
       return;
     }
 
-    setRequest((prev) => ({ ...prev, screenshot: file.name, screenshotFile: file }));
-    setErrors((prev) => ({ ...prev, screenshot: "" }));
+    // --- Client-side compression ---
+    try {
+      const compressedBlob = await new Promise((resolve, reject) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          const MAX_W = 1000;
+          let { width, height } = img;
+          if (width > MAX_W) {
+            height = Math.round((height * MAX_W) / width);
+            width = MAX_W;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => (blob ? resolve(blob) : reject(new Error("Compression failed"))),
+            "image/jpeg",
+            0.6
+          );
+        };
+        img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Image load failed")); };
+        img.src = objectUrl;
+      });
+
+      const compressedFile = new File([compressedBlob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+      setRequest((prev) => ({ ...prev, screenshot: file.name, screenshotFile: compressedFile }));
+      setErrors((prev) => ({ ...prev, screenshot: "" }));
+    } catch {
+      // Fallback: use original file if compression fails
+      setRequest((prev) => ({ ...prev, screenshot: file.name, screenshotFile: file }));
+      setErrors((prev) => ({ ...prev, screenshot: "" }));
+    }
   };
 
   const findExistingRegistration = (phoneNumber) => lookupBackendRegistration(phoneNumber);
@@ -660,7 +717,9 @@ function PublicWebsite() {
     return false;
   };
 
-  const lookupBackendRegistration = async (phoneNumber) => {
+  const lookupBackendRegistration = async (phoneNumber, options = {}) => {
+    const { errorField = "home", quiet = false } = options;
+
     try {
       const result = await apiRequest(`/api/attendees/lookup?phone=${encodeURIComponent(cleanValue(phoneNumber))}`);
       if (!result?.found || !result.attendee) return null;
@@ -671,7 +730,13 @@ function PublicWebsite() {
       };
     } catch (error) {
       console.log("Backend lookup failed:", error);
-      setErrors((prev) => ({ ...prev, home: "MongoDB lookup failed. Please check the backend API." }));
+      if (!quiet) {
+        setErrors((prev) => ({
+          ...prev,
+          [errorField]: "Could not reach the server. Please try again."
+        }));
+        return { failed: true };
+      }
       return null;
     }
   };
@@ -691,7 +756,7 @@ function PublicWebsite() {
     let cancelled = false;
 
     const refreshTrackingStatus = async () => {
-      const existing = await lookupBackendRegistration(phoneForLookup);
+      const existing = await lookupBackendRegistration(phoneForLookup, { quiet: true });
       if (cancelled || !existing?.data) return;
 
       const normalizedStatus = String(existing.status || existing.data.status || existing.data.applicationStatus || "").toLowerCase();
@@ -780,6 +845,7 @@ function PublicWebsite() {
     formData.append("fullName", request.fullName);
     formData.append("phoneNumber", request.phoneNumber);
     formData.append("email", request.email);
+    formData.append("gender", request.gender);
     formData.append("schoolOrOriginProm", request.schoolOrOriginProm);
     formData.append("age", request.age);
     formData.append("instagramUsername", request.instagramUsername);
@@ -843,191 +909,809 @@ function PublicWebsite() {
 
   if (page === "outcomerLanding") {
     return (
-      <Shell tone="purple" className="reference-flow outcomer-reference">
-        <button className="back-icon" onClick={() => setPage("home")} aria-label="Back">
-          &larr;
-        </button>
-        <div className="mini-brand-lockup">
-          <div className="ring small-ring"></div>
-          <span>ALSHAYEB</span>
-          <strong>ETERNUM</strong>
-          <em>NO BEGINNING. NO END.</em>
-        </div>
-        <div className="reference-gate" aria-hidden="true">
-          <span className="gate-orb"></span>
-          <span className="gate-door"></span>
-          <span className="gate-floor"></span>
+      <div className="outcomer-landing-container">
+        {/* BACK ARROW */}
+        <div className="outcomer-back-wrapper">
+          <button
+            onClick={() => setPage('home')}
+            aria-label="Go back"
+            className="outcomer-back-btn"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
         </div>
 
-        <section className="outcomer-selection-panel">
-          <h2>THE SEEKERS</h2>
-          <p>Not everyone is chosen.<br />Request access to join the experience.</p>
-          <div className="selection-display">
-            <div><strong>{outcomerSelection.approved}</strong><span>APPROVED</span></div>
-            <div><strong>{outcomerSelection.pending}</strong><span>PENDING</span></div>
-            <div><strong>{outcomerSelection.declined}</strong><span>DECLINED</span></div>
+        {/* ELEGANT SPADE LOGO (Matching outcomer- event selection.jpeg) */}
+        <div className="outcomer-logo-container">
+          <svg width="70" height="100" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="outcomer-spade-svg">
+            <defs>
+              <filter id="spade-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="blur1" />
+                <feGaussianBlur stdDeviation="6" result="blur2" />
+                <feGaussianBlur stdDeviation="12" result="blur3" />
+                <feMerge>
+                  <feMergeNode in="blur3" />
+                  <feMergeNode in="blur2" />
+                  <feMergeNode in="blur1" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient id="beam-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)" />
+                <stop offset="35%" stopColor="rgba(0,178,255,0.8)" />
+                <stop offset="50%" stopColor="#ffffff" />
+                <stop offset="65%" stopColor="rgba(0,178,255,0.8)" />
+                <stop offset="100%" stopColor="rgba(0,178,255,0)" />
+              </linearGradient>
+            </defs>
+            
+            {/* The vertical beam */}
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#beam-grad)" />
+            <rect x="48.5" y="60" width="3" height="30" fill="#ffffff" filter="blur(2px)" />
+
+            {/* Spade outline - sharp and elegant */}
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z" stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
+          </svg>
+        </div>
+
+        {/* BRAND TYPOGRAPHY */}
+        <div className="outcomer-brand-typography">
+          <p className="outcomer-brand-alshayeb">ALSHAYEB</p>
+          <div className="outcomer-brand-eternum">
+            <span className="outcomer-brand-e">
+              <span className="outcomer-brand-e-bar-top" />
+              <span className="outcomer-brand-e-bar-mid" />
+              <span className="outcomer-brand-e-bar-bot" />
+            </span>
+            TERNUM
           </div>
-        </section>
+          <p className="outcomer-brand-subtitle">NO BEGINNING. NO END.</p>
+        </div>
 
+        {/* DIAMOND DIVIDER UPPER */}
+        <div className="outcomer-diamond-divider">
+          <div className="outcomer-diamond-line-left" />
+          <svg width="7" height="7" viewBox="0 0 9 9" fill="none">
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.65)" strokeWidth="1" fill="none" />
+          </svg>
+          <div className="outcomer-diamond-line-right" />
+        </div>
+
+        {/* THE SEEKERS HEADING */}
+        <div className="outcomer-welcome-box">
+          <h2>THE SEEKERS</h2>
+          <p>Not everyone is chosen.<br />Request access to earn the experience.</p>
+        </div>
+
+        {/* THE SELECTION CARD */}
+        <div className="outcomer-selection-card">
+          <div className="outcomer-selection-title">THE SELECTION</div>
+          <div className="outcomer-selection-grid">
+            <div className="outcomer-stat-col">
+              <span className="outcomer-stat-number">{outcomerSelection.approved}</span>
+              <svg width="5" height="5" viewBox="0 0 9 9" fill="none" className="outcomer-tiny-diamond"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.8)" strokeWidth="1" fill="none" /></svg>
+              <span className="outcomer-stat-label">APPROVED</span>
+            </div>
+            <div className="outcomer-stat-divider" />
+            <div className="outcomer-stat-col">
+              <span className="outcomer-stat-number">{outcomerSelection.pending}</span>
+              <svg width="5" height="5" viewBox="0 0 9 9" fill="none" className="outcomer-tiny-diamond"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.8)" strokeWidth="1" fill="none" /></svg>
+              <span className="outcomer-stat-label">PENDING</span>
+            </div>
+            <div className="outcomer-stat-divider" />
+            <div className="outcomer-stat-col">
+              <span className="outcomer-stat-number">{outcomerSelection.declined}</span>
+              <svg width="5" height="5" viewBox="0 0 9 9" fill="none" className="outcomer-tiny-diamond"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.8)" strokeWidth="1" fill="none" /></svg>
+              <span className="outcomer-stat-label">DECLINED</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ACTION CARDS */}
         <div className="outcomer-action-list">
           <button type="button" className="outcomer-action-card" onClick={() => setPage("chooseEvent")}>
-            <span className="action-icon">01</span>
-            <span><strong>REGISTER</strong><em>Begin your application to join Eternum.</em></span>
-            <b>&rarr;</b>
+            <div className="outcomer-action-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div className="outcomer-action-text">
+              <h3>REGISTER</h3>
+              <p>Begin your application to join Eternum.</p>
+            </div>
+            <div className="outcomer-action-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
           </button>
+
           <button type="button" className="outcomer-action-card" onClick={() => setPage("alreadyRegistered")}>
-            <span className="action-icon">02</span>
-            <span><strong>ALREADY REGISTERED</strong><em>Get your QR Code and access your pass.</em></span>
-            <b>&rarr;</b>
+            <div className="outcomer-action-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <polyline points="16 11 18 13 22 9"></polyline>
+              </svg>
+            </div>
+            <div className="outcomer-action-text">
+              <h3>ALREADY REGISTERED</h3>
+              <p>Get your QR Code and access your pass.</p>
+            </div>
+            <div className="outcomer-action-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
           </button>
+
           <button type="button" className="outcomer-action-card" onClick={() => setPage("trackLookup")}>
-            <span className="action-icon">03</span>
-            <span><strong>TRACK YOUR REQUEST</strong><em>Check your application status and committee updates.</em></span>
-            <b>&rarr;</b>
+            <div className="outcomer-action-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+            <div className="outcomer-action-text">
+              <h3>TRACK YOUR REQUEST</h3>
+              <p>Check your application status and committee updates.</p>
+            </div>
+            <div className="outcomer-action-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
           </button>
         </div>
 
-        <footer className="reference-footer">ALSHAYEB EXPERIENCE</footer>
-      </Shell>
+        {/* FOOTER */}
+        <footer className="outcomer-footer">
+          <div className="outcomer-footer-line">
+            <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.6)" strokeWidth="1" fill="none" /></svg>
+            <span>YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</span>
+            <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.6)" strokeWidth="1" fill="none" /></svg>
+          </div>
+          <div className="outcomer-footer-brand">ALSHAYEB ETERNUM</div>
+        </footer>
+      </div>
     );
   }
 
   if (page === "alreadyRegistered" || page === "trackLookup") {
     const isTrackLookup = page === "trackLookup";
 
+    const handleLookupSubmit = async () => {
+      if (loading) return;
+      if (!validatePhoneSearch()) return;
+
+      setLoading(true);
+      setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+      const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch" });
+      setLoading(false);
+
+      if (existing?.failed) return;
+
+      if (isTrackLookup) {
+        if (!existing) {
+          setLookupFailed(true);
+          return;
+        }
+        const normalizedStatus = String(existing.status || "").toLowerCase();
+        if (normalizedStatus.includes("approved") || normalizedStatus.includes("confirmed") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
+          setFoundClient(toTicketClient(existing.data));
+          setErrors({});
+          setPage("ticket");
+          return;
+        }
+        setTrackedRegistration(existing.data);
+        setRequest((prev) => ({ ...prev, ...existing.data }));
+        setErrors({});
+        setPage(normalizedStatus.includes("reject") || normalizedStatus.includes("declined") ? "rejected" : "track");
+      } else {
+        if (existing && routeExistingRegistration(existing)) return;
+        setLookupFailed(true);
+      }
+    };
+
     return (
-      <PublicShell backTo="outcomerLanding" className="lookup-public-page" onNavigate={setPage}>
-        <EternumHeader />
-        <section className="eternum-copy-block">
-          <h2>{isTrackLookup ? "ACCESS YOUR APPLICATION" : "ACCESS YOUR PASS"}</h2>
-          <p>{isTrackLookup ? "Enter your phone number to access your application and track its status." : "Enter your phone number to open your universal ticket."}</p>
-        </section>
-        <div className="eternum-field-group">
-          <label>PHONE NUMBER</label>
-          <PhoneInput
-            value={phone}
-            error={errors.phoneSearch}
-            onChange={(e) => {
-              setPhone(e.target.value);
-              setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-            }}
-          />
+      <div className="arp-page">
+        {/* Back arrow */}
+        <button className="pay-back-btn" onClick={() => { setLookupFailed(false); setPage("outcomerLanding"); }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </button>
+
+        {/* Spade + Brand */}
+        <div className="arp-brand">
+          <svg className="pay-spade-svg" width="60" height="88" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="arp-glow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="3" result="b1"/>
+                <feGaussianBlur stdDeviation="8" result="b2"/>
+                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="arp-beam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
+                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="50%" stopColor="#ffffff"/>
+                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#arp-beam)"/>
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none"
+              filter="url(#arp-glow)" strokeOpacity="0.95"/>
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none"
+              filter="url(#arp-glow)" strokeOpacity="0.95"/>
+          </svg>
+
+          <p className="arp-brand-alshayeb">ALSHAYEB</p>
+          <h1 className="arp-brand-eternum">ETERNUM</h1>
+          <p className="arp-brand-tagline">NO BEGINNING. NO END.</p>
         </div>
-        <FieldError name="phoneSearch" />
-        <PrimaryButton onClick={isTrackLookup ? handleTrackLookup : handleSearch} disabled={loading}>
-          {loading ? "LOADING" : "CONTINUE"}
-        </PrimaryButton>
-      </PublicShell>
+
+        {/* Diamond divider */}
+        <div className="pay-divider-row" style={{maxWidth:'320px', margin:'0 auto 18px'}}>
+          <div className="pay-divider-line"/>
+          <svg width="8" height="8" viewBox="0 0 9 9" fill="none">
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.6)" strokeWidth="1" fill="none"/>
+          </svg>
+          <div className="pay-divider-line"/>
+        </div>
+
+        {/* Title + subtitle */}
+        <div className="arp-copy">
+          <h2 className="arp-title">{isTrackLookup ? "ACCESS YOUR APPLICATION" : "ACCESS YOUR PASS"}</h2>
+          <p className="arp-subtitle">
+            {isTrackLookup
+              ? <>Enter your phone number<br/>to access your application and track its status.</>
+              : <>Enter your phone number<br/>to open your universal ticket.</>
+            }
+          </p>
+        </div>
+
+        {/* Phone input */}
+        <div className="arp-field">
+          <label className="arp-label">PHONE NUMBER</label>
+          <div className={`arp-input-card ${errors.phoneSearch ? 'arp-input-error' : ''}`}>
+            <div className="arp-country">
+              <span className="arp-country-code">+20</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div className="arp-input-div"/>
+            <input
+              className="arp-phone-input"
+              type="tel"
+              placeholder="Enter your phone number"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+                setLookupFailed(false);
+              }}
+            />
+          </div>
+          {errors.phoneSearch && <p className="arp-error">{errors.phoneSearch}</p>}
+        </div>
+
+        {/* Continue button */}
+        <button className="arp-continue-btn" onClick={handleLookupSubmit} disabled={loading}>
+          <span>{loading ? "LOADING" : "CONTINUE"}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+
+        {/* APPLICATION NOT FOUND — only after failed lookup */}
+        {lookupFailed && (
+          <>
+            <div className="pay-divider-row" style={{maxWidth:'320px', margin:'22px auto 14px'}}>
+              <div className="pay-divider-line"/>
+              <svg width="7" height="7" viewBox="0 0 9 9" fill="none">
+                <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/>
+              </svg>
+              <div className="pay-divider-line"/>
+            </div>
+            <div className="arp-notfound-card">
+              <div className="arp-notfound-icon">
+                <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+                  <rect x="8" y="4" width="24" height="36" rx="3" stroke="rgba(0,178,255,0.5)" strokeWidth="1.2" fill="none"/>
+                  <line x1="8" y1="8" x2="14" y2="8" stroke="rgba(0,178,255,0.3)" strokeWidth="1"/>
+                  <line x1="8" y1="34" x2="14" y2="34" stroke="rgba(0,178,255,0.3)" strokeWidth="1"/>
+                  <circle cx="20" cy="22" r="5" stroke="rgba(0,178,255,0.6)" strokeWidth="1.2" fill="none"/>
+                  <line x1="20" y1="19.5" x2="20" y2="23" stroke="rgba(0,178,255,0.6)" strokeWidth="1.2" strokeLinecap="round"/>
+                  <circle cx="20" cy="25" r="0.6" fill="rgba(0,178,255,0.6)"/>
+                </svg>
+              </div>
+              <div className="arp-notfound-body">
+                <p className="arp-notfound-title">APPLICATION NOT FOUND</p>
+                <p className="arp-notfound-desc">No application was found<br/>with this phone number.</p>
+                <button className="arp-register-link" onClick={() => { setLookupFailed(false); setPage("chooseEvent"); }}>
+                  REGISTER NOW <span>→</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     );
   }
 
   if (page === "chooseEvent") {
     return (
-      <PublicShell backTo="outcomerLanding" className="event-public-page" onNavigate={setPage}>
-        <EternumHeader />
-        <section className="eternum-copy-block">
-          <h2>SELECT YOUR DESTINATION</h2>
-          <p>Choose the experience you wish to request access to.</p>
-        </section>
-
-        <div className="eternum-event-list">
-          {displayEvents.map((event, index) => (
-            <button
-              type="button"
-              key={event.id}
-              className={`eternum-event-card ${selectedEvent.id === event.id ? "active-event" : ""}`}
-              onClick={() => setSelectedEvent(event)}
-            >
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <h3>{event.name}</h3>
-                <p>{event.date}</p>
-                <small>{event.venue || "ALSHAYEB ETERNUM"}</small>
-              </div>
-              <b>{selectedEvent.id === event.id ? "SELECTED" : "REQUEST ACCESS"}</b>
-            </button>
-          ))}
+      <div className="outcomer-landing-container outcomer-destinations-container">
+        {/* BACK ARROW */}
+        <div className="outcomer-back-wrapper">
+          <button
+            onClick={() => setPage('outcomerLanding')}
+            aria-label="Go back"
+            className="outcomer-back-btn"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
         </div>
 
-        <PrimaryButton onClick={() => setPage("register")}>
-          CONTINUE
-        </PrimaryButton>
-      </PublicShell>
+        {/* ELEGANT SPADE LOGO */}
+        <div className="outcomer-logo-container">
+          <svg width="70" height="100" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="outcomer-spade-svg">
+            <defs>
+              <filter id="spade-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="blur1" />
+                <feGaussianBlur stdDeviation="6" result="blur2" />
+                <feGaussianBlur stdDeviation="12" result="blur3" />
+                <feMerge>
+                  <feMergeNode in="blur3" />
+                  <feMergeNode in="blur2" />
+                  <feMergeNode in="blur1" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient id="beam-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)" />
+                <stop offset="35%" stopColor="rgba(0,178,255,0.8)" />
+                <stop offset="50%" stopColor="#ffffff" />
+                <stop offset="65%" stopColor="rgba(0,178,255,0.8)" />
+                <stop offset="100%" stopColor="rgba(0,178,255,0)" />
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#beam-grad)" />
+            <rect x="48.5" y="60" width="3" height="30" fill="#ffffff" filter="blur(2px)" />
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z" stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
+          </svg>
+        </div>
+
+        {/* BRAND TYPOGRAPHY */}
+        <div className="outcomer-brand-typography">
+          <p className="outcomer-brand-alshayeb">ALSHAYEB</p>
+          <div className="outcomer-brand-eternum">
+            <span className="outcomer-brand-e">
+              <span className="outcomer-brand-e-bar-top" />
+              <span className="outcomer-brand-e-bar-mid" />
+              <span className="outcomer-brand-e-bar-bot" />
+            </span>
+            TERNUM
+          </div>
+          <p className="outcomer-brand-subtitle">NO BEGINNING. NO END.</p>
+        </div>
+
+        <div className="outcomer-destination-header">
+          <h2>SELECT YOUR DESTINATION</h2>
+          <div className="outcomer-diamond-divider small">
+            <svg width="7" height="7" viewBox="0 0 9 9" fill="none">
+              <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.65)" strokeWidth="1" fill="none" />
+            </svg>
+          </div>
+          <p>Choose the experience<br/>you wish to request access to.</p>
+        </div>
+
+        <div className="outcomer-destination-list">
+          {displayEvents.map((event, index) => {
+            const rawStatus = (event.status || "AVAILABLE").toUpperCase();
+            const isSoldOut = rawStatus === "SOLD_OUT" || rawStatus === "SOLD OUT";
+            const isUnavailable = rawStatus === "CLOSED" || rawStatus === "UNAVAILABLE" || rawStatus === "NOT AVAILABLE";
+            const isAvailable = !isSoldOut && !isUnavailable;
+
+            return (
+              <div key={event.id} className={`outcomer-dest-card ${!isAvailable ? 'disabled' : ''}`}>
+                <div className="outcomer-dest-number">{String(index + 1).padStart(2, "0")}</div>
+                <div className="outcomer-dest-divider" />
+                <div className="outcomer-dest-info">
+                  <h3>{event.name}</h3>
+                  <span className="outcomer-dest-date">{event.date}</span>
+                  <span className="outcomer-dest-venue">{event.venue || "ALSHAYEB ETERNUM"}</span>
+                </div>
+                <button
+                  type="button"
+                  className="outcomer-dest-btn"
+                  disabled={!isAvailable}
+                  onClick={() => {
+                    if (isAvailable) {
+                      setSelectedEvent(event);
+                      setPage("register");
+                    }
+                  }}
+                >
+                  {isSoldOut ? "SOLD OUT" : isUnavailable ? "NOT AVAILABLE" : "REQUEST ACCESS"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     );
   }
 
   if (page === "register") {
     return (
-      <PublicShell backTo="chooseEvent" className="register-public-page" onNavigate={setPage}>
-        <EternumHeader eyebrow="REQUEST ACCESS" title="ETERNITY" subtitle={`${selectedEvent.date} • ${selectedEvent.venue || "ALSHAYEB ETERNUM"}`} />
-
-        <div className="eternum-form-grid">
-          <TextInputCard icon="♙" label="FULL NAME" error={errors.fullName}>
-            <input name="fullName" placeholder="Enter your full name" value={request.fullName} onChange={handleRequestChange} />
-          </TextInputCard>
-          <FieldError name="fullName" />
-
-          <TextInputCard icon="☎" label="PHONE NUMBER" error={errors.phoneNumber}>
-            <div className="inline-prefix"><span>+20</span><input name="phoneNumber" placeholder="Enter your phone number" value={request.phoneNumber} onChange={handleRequestChange} /></div>
-          </TextInputCard>
-          <FieldError name="phoneNumber" />
-
-          <TextInputCard icon="✉" label="EMAIL ADDRESS" error={errors.email}>
-            <input name="email" placeholder="Enter your email address" value={request.email} onChange={handleRequestChange} />
-          </TextInputCard>
-          <FieldError name="email" />
-
-          <TextInputCard icon="⌂" label="SCHOOL / ORIGIN PROM" error={errors.schoolOrOriginProm}>
-            <input
-              name="schoolOrOriginProm"
-              placeholder="Which school/prom are you coming from?"
-              value={request.schoolOrOriginProm}
-              onChange={handleRequestChange}
-            />
-          </TextInputCard>
-          <FieldError name="schoolOrOriginProm" />
-
-          <TextInputCard icon="▣" label="AGE" error={errors.age}>
-            <input name="age" placeholder="Enter your age" value={request.age} onChange={handleRequestChange} />
-          </TextInputCard>
-          <FieldError name="age" />
-
-          <TextInputCard icon="◎" label="INSTAGRAM USERNAME" error={errors.instagramUsername}>
-            <div className="inline-prefix"><span>@</span><input name="instagramUsername" placeholder="Enter your Instagram username" value={request.instagramUsername} onChange={handleRequestChange} /></div>
-          </TextInputCard>
-          <FieldError name="instagramUsername" />
+      <div className="outcomer-landing-container outcomer-register-container">
+        {/* BACK ARROW */}
+        <div className="outcomer-back-wrapper">
+          <button
+            onClick={() => setPage('chooseEvent')}
+            aria-label="Go back"
+            className="outcomer-back-btn"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
         </div>
 
-        <div className="eternum-divider small" aria-hidden="true"><i></i></div>
-        <p className="review-note">SELECTION IS SUBJECT TO COMMITTEE REVIEW.</p>
-        <PrimaryButton onClick={goToPayment}>SUBMIT APPLICATION</PrimaryButton>
-      </PublicShell>
+        {/* ELEGANT SPADE LOGO */}
+        <div className="outcomer-logo-container outcomer-reg-logo">
+          <svg width="70" height="100" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="outcomer-spade-svg">
+            <defs>
+              <filter id="spade-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="blur1" />
+                <feGaussianBlur stdDeviation="6" result="blur2" />
+                <feGaussianBlur stdDeviation="12" result="blur3" />
+                <feMerge>
+                  <feMergeNode in="blur3" />
+                  <feMergeNode in="blur2" />
+                  <feMergeNode in="blur1" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient id="beam-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)" />
+                <stop offset="35%" stopColor="rgba(0,178,255,0.8)" />
+                <stop offset="50%" stopColor="#ffffff" />
+                <stop offset="65%" stopColor="rgba(0,178,255,0.8)" />
+                <stop offset="100%" stopColor="rgba(0,178,255,0)" />
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#beam-grad)" />
+            <rect x="48.5" y="60" width="3" height="30" fill="#ffffff" filter="blur(2px)" />
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z" stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
+          </svg>
+        </div>
+
+        {/* HEADER */}
+        <div className="outcomer-reg-header">
+          <p className="outcomer-reg-eyebrow">REQUEST ACCESS</p>
+          <h2 className="outcomer-reg-title">{selectedEvent.name || "ETERNITY"}</h2>
+          <p className="outcomer-reg-subtitle">
+            {selectedEvent.date} <span className="outcomer-reg-dot">•</span> {selectedEvent.venue || "ALSHAYEB ETERNUM"}
+          </p>
+        </div>
+
+        {/* FORM CARDS */}
+        <div className="outcomer-reg-form">
+          {/* FULL NAME */}
+          <div className={`outcomer-reg-card ${errors.fullName ? "error" : ""}`}>
+            <div className="outcomer-reg-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group">
+              <label>FULL NAME</label>
+              <input name="fullName" placeholder="Enter your full name" value={request.fullName} onChange={handleRequestChange} />
+            </div>
+          </div>
+          {errors.fullName && <div className="outcomer-reg-error">{errors.fullName}</div>}
+
+          {/* PHONE NUMBER */}
+          <div className={`outcomer-reg-card ${errors.phoneNumber ? "error" : ""}`}>
+            <div className="outcomer-reg-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group outcomer-reg-phone-group">
+              <label>PHONE NUMBER</label>
+              <div className="outcomer-reg-phone-wrapper">
+                <span className="outcomer-reg-phone-prefix">+20 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                <div className="outcomer-reg-phone-div" />
+                <input name="phoneNumber" placeholder="Enter your phone number" value={request.phoneNumber} onChange={handleRequestChange} />
+              </div>
+            </div>
+          </div>
+          {errors.phoneNumber && <div className="outcomer-reg-error">{errors.phoneNumber}</div>}
+
+          {/* EMAIL ADDRESS */}
+          <div className={`outcomer-reg-card ${errors.email ? "error" : ""}`}>
+            <div className="outcomer-reg-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group">
+              <label>EMAIL ADDRESS</label>
+              <input name="email" placeholder="Enter your email address" value={request.email} onChange={handleRequestChange} />
+            </div>
+          </div>
+          {errors.email && <div className="outcomer-reg-error">{errors.email}</div>}
+
+          {/* GENDER */}
+          <div className={`outcomer-reg-card ${errors.gender ? "error" : ""}`}>
+            <div className="outcomer-reg-icon">
+              {/* gender/mars+venus icon */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="4"/>
+                <line x1="11" y1="7" x2="11" y2="2"/>
+                <polyline points="14 2 11 2 11 5"/>
+                <line x1="15" y1="15" x2="19" y2="19"/>
+                <line x1="17" y1="17" x2="20" y2="17"/>
+                <line x1="20" y1="15" x2="20" y2="19"/>
+              </svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group">
+              <label>GENDER</label>
+              <div className="outcomer-gender-toggles">
+                <button
+                  type="button"
+                  className={`outcomer-gender-btn ${request.gender === 'male' ? 'active' : ''}`}
+                  onClick={() => {
+                    setRequest(prev => ({ ...prev, gender: 'male' }));
+                    setErrors(prev => ({ ...prev, gender: "" }));
+                  }}
+                >
+                  <span className="outcomer-gender-radio">{request.gender === 'male' ? '●' : '○'}</span>
+                  MALE
+                </button>
+                <button
+                  type="button"
+                  className={`outcomer-gender-btn ${request.gender === 'female' ? 'active' : ''}`}
+                  onClick={() => {
+                    setRequest(prev => ({ ...prev, gender: 'female' }));
+                    setErrors(prev => ({ ...prev, gender: "" }));
+                  }}
+                >
+                  <span className="outcomer-gender-radio">{request.gender === 'female' ? '●' : '○'}</span>
+                  FEMALE
+                </button>
+              </div>
+            </div>
+          </div>
+          {errors.gender && <div className="outcomer-reg-error">{errors.gender}</div>}
+
+          {/* SCHOOL / ORIGIN PROM */}
+          <div className={`outcomer-reg-card ${errors.schoolOrOriginProm ? "error" : ""}`}>
+            <div className="outcomer-reg-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group">
+              <label>SCHOOL YOU'RE COMING WITH</label>
+              <input
+                name="schoolOrOriginProm"
+                placeholder="Select"
+                value={request.schoolOrOriginProm}
+                onChange={handleRequestChange}
+              />
+            </div>
+          </div>
+          {errors.schoolOrOriginProm && <div className="outcomer-reg-error">{errors.schoolOrOriginProm}</div>}
+
+          {/* AGE */}
+          <div className={`outcomer-reg-card ${errors.age ? "error" : ""}`}>
+            <div className="outcomer-reg-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group">
+              <label>AGE</label>
+              <input name="age" placeholder="Enter your age" value={request.age} onChange={handleRequestChange} />
+            </div>
+          </div>
+          {errors.age && <div className="outcomer-reg-error">{errors.age}</div>}
+
+          {/* INSTAGRAM USERNAME */}
+          <div className={`outcomer-reg-card ${errors.instagramUsername ? "error" : ""}`}>
+            <div className="outcomer-reg-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group outcomer-reg-insta-group">
+              <label>INSTAGRAM USERNAME</label>
+              <div className="outcomer-reg-insta-wrapper">
+                <span className="outcomer-reg-insta-prefix">@</span>
+                <input name="instagramUsername" placeholder="Enter your Instagram username" value={request.instagramUsername} onChange={handleRequestChange} />
+              </div>
+            </div>
+          </div>
+          {errors.instagramUsername && <div className="outcomer-reg-error">{errors.instagramUsername}</div>}
+
+          {/* UPLOAD IMAGE */}
+          <label className="outcomer-reg-card outcomer-reg-upload-card" htmlFor="reg-image-upload">
+            <div className="outcomer-reg-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div className="outcomer-reg-divider" />
+            <div className="outcomer-reg-input-group">
+              <span className="outcomer-reg-upload-label">UPLOAD AN IMAGE FOR YOU</span>
+              <span className={`outcomer-reg-upload-hint ${request.screenshot ? 'uploaded' : ''}`}>
+                {request.screenshot ? request.screenshot : 'Tap to upload'}
+              </span>
+            </div>
+            <svg className="outcomer-reg-upload-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <input id="reg-image-upload" type="file" hidden accept="image/png,image/jpeg,image/jpg" onChange={handleScreenshotUpload} />
+          </label>
+          {errors.screenshot && <div className="outcomer-reg-error">{errors.screenshot}</div>}
+        </div>
+
+        {/* BOTTOM SECTION */}
+        <div className="outcomer-reg-footer">
+          <div className="outcomer-diamond-divider small">
+            <svg width="7" height="7" viewBox="0 0 9 9" fill="none">
+              <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.65)" strokeWidth="1" fill="none" />
+            </svg>
+          </div>
+          <p className="outcomer-reg-footer-copy">ALL APPLICATIONS ARE REVIEWED<br/>BY ALSHAYEB'S TEAM</p>
+          <button className="outcomer-reg-submit" onClick={goToPayment}>
+            SUBMIT APPLICATION <span className="outcomer-reg-submit-arrow">→</span>
+          </button>
+        </div>
+      </div>
     );
   }
 
   if (page === "payment") {
+    const rawFee = String(selectedEvent?.fee || "1800").replace(/EGP/i, "").trim() || "1800";
+    const instapayLink = selectedEvent?.instapayLink || null;
+
     return (
-      <PublicShell backTo="register" className="payment-public-page" onNavigate={setPage}>
-        <EternumHeader eyebrow="APPLICATION RECEIVED" title="ETERNITY" subtitle="" compact />
-        <div className="success-orb">✓</div>
-        <section className="eternum-copy-block">
-          <h2>Your application has been created successfully.</h2>
-          <p>To enter the review process, please complete the entry fees.</p>
-        </section>
-        <div className="eternum-card fee-panel">
-          <span>ENTRY FEES</span>
-          <strong>{String(selectedEvent.fee).replace(/EGP/i, "").trim()}</strong>
-          <small>EGP</small>
+      <div className="pay-page">
+        {/* Back arrow */}
+        <button className="pay-back-btn" onClick={() => setPage("register")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </button>
+
+        {/* Spade + APPLICATION RECEIVED */}
+        <div className="pay-header">
+          <svg className="pay-spade-svg" width="60" height="88" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="pay-spade-glow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="3" result="b1"/>
+                <feGaussianBlur stdDeviation="8" result="b2"/>
+                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="pay-beam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
+                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="50%" stopColor="#ffffff"/>
+                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#pay-beam)"/>
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none"
+              filter="url(#pay-spade-glow)" strokeOpacity="0.95"/>
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none"
+              filter="url(#pay-spade-glow)" strokeOpacity="0.95"/>
+          </svg>
+          <p className="pay-eyebrow">APPLICATION RECEIVED</p>
         </div>
-        <section className="eternum-card payment-method-card">
-          <h3>PAYMENT METHOD</h3>
-          <strong className="instapay-wordmark">INSTAPAY</strong>
-          <p>The secure and instant way to pay.</p>
-          <PrimaryButton onClick={() => setPage("instapay")}>GO TO INSTAPAY</PrimaryButton>
-        </section>
-        <p className="secure-note">APPLICATIONS ARE REVIEWED ONLY AFTER PAYMENT CONFIRMATION.</p>
-        <PrimaryButton onClick={() => setPage("upload")}>I HAVE COMPLETED PAYMENT</PrimaryButton>
-      </PublicShell>
+
+        {/* Glowing check circle */}
+        <div className="pay-check-circle">
+          <svg width="110" height="110" viewBox="0 0 110 110" fill="none">
+            <defs>
+              <filter id="circle-glow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <circle cx="55" cy="55" r="48" stroke="#00b2ff" strokeWidth="1.5" fill="none" filter="url(#circle-glow)" strokeOpacity="0.9"/>
+            <circle cx="55" cy="55" r="50" stroke="rgba(0,178,255,0.15)" strokeWidth="2" fill="none"/>
+            <polyline points="36,55 50,69 74,41" stroke="#00b2ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" filter="url(#circle-glow)"/>
+          </svg>
+        </div>
+
+        {/* Main message */}
+        <div className="pay-message">
+          <p className="pay-main-text">Your application has been<br/>created successfully.</p>
+          <p className="pay-sub-text">
+            To enter the review process,<br/>
+            please complete the <span className="pay-blue">entry fees</span>.
+          </p>
+        </div>
+
+        {/* Diamond divider */}
+        <div className="pay-divider-row">
+          <div className="pay-divider-line"/>
+          <svg width="8" height="8" viewBox="0 0 9 9" fill="none">
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.7)" strokeWidth="1" fill="none"/>
+          </svg>
+          <div className="pay-divider-line"/>
+        </div>
+
+        {/* Entry fees card */}
+        <div className="pay-card pay-fee-card">
+          <p className="pay-card-label">ENTRY FEES</p>
+          <p className="pay-fee-amount">{rawFee}</p>
+          <p className="pay-fee-currency">EGP</p>
+        </div>
+
+        {/* Payment method card */}
+        <div className="pay-card pay-method-card">
+          <p className="pay-card-label">PAYMENT METHOD</p>
+          <div className="pay-instapay-logo">
+            <span className="pay-insta-white">INSTA</span><span className="pay-insta-arrows">»</span><span className="pay-insta-pay">PAY</span>
+          </div>
+          <p className="pay-method-sub">The secure and instant way to pay</p>
+          <button
+            className="pay-goto-btn"
+            onClick={() => { if (instapayLink) window.open(instapayLink, "_blank"); else setPage("instapay"); }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            <span>GO TO INSTAPAY</span>
+            <svg className="pay-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Lock notice */}
+        <div className="pay-notice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <p className="pay-notice-text">APPLICATIONS ARE REVIEWED<br/>ONLY AFTER PAYMENT CONFIRMATION.</p>
+        </div>
+
+        {/* Completed payment button */}
+        <button className="pay-completed-btn" onClick={() => setPage("upload")}>
+          I HAVE COMPLETED PAYMENT
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+        <p className="pay-receipt-sub">PROCEED TO UPLOAD RECEIPT</p>
+      </div>
     );
   }
 
@@ -1049,225 +1733,958 @@ function PublicWebsite() {
 
   if (page === "upload") {
     return (
-      <PublicShell backTo="payment" className="upload-public-page" onNavigate={setPage}>
-        <EternumHeader title="ETERNITY" subtitle="PAYMENT VERIFICATION" compact />
-        <section className="eternum-copy-block">
-          <p>Please upload a clear screenshot of your payment transaction.</p>
-        </section>
+      <div className="upv-page">
+        {/* Back arrow */}
+        <button className="pay-back-btn" onClick={() => setPage("payment")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </button>
 
-        <label className={`eternum-card upload-receipt-card ${errors.screenshot ? "upload-error" : ""} ${request.screenshot ? "upload-selected" : ""}`}>
-          <span>UPLOAD PAYMENT SCREENSHOT</span>
-          <div className="upload-dropzone">
-            <b aria-hidden="true">⇧</b>
-            <p>{request.screenshot ? "SCREENSHOT SELECTED" : "Tap to upload"}</p>
-            <small>{request.screenshot || "PNG, JPG or JPEG (max. 5MB)"}</small>
+        {/* Spade header */}
+        <div className="upv-header">
+          <svg className="pay-spade-svg" width="58" height="84" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="upv-spade-glow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="3" result="b1"/>
+                <feGaussianBlur stdDeviation="8" result="b2"/>
+                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="upv-beam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
+                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="50%" stopColor="#ffffff"/>
+                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#upv-beam)"/>
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none"
+              filter="url(#upv-spade-glow)" strokeOpacity="0.95"/>
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none"
+              filter="url(#upv-spade-glow)" strokeOpacity="0.95"/>
+          </svg>
+          <h1 className="upv-title">ETERNITY</h1>
+          <div className="upv-subtitle-row">
+            <p className="upv-subtitle">PAYMENT VERIFICATION</p>
+            <svg width="7" height="7" viewBox="0 0 9 9" fill="none" style={{display:'block',margin:'6px auto 0'}}>
+              <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.65)" strokeWidth="1" fill="none"/>
+            </svg>
           </div>
-          <input type="file" hidden accept="image/png,image/jpeg,image/jpg" onChange={handleScreenshotUpload} />
-        </label>
-
-        <FieldError name="screenshot" />
-
-        <div className="eternum-status-card info-card">
-          <span className="status-icon" aria-hidden="true">✓</span>
-          <p>Applications are reviewed only after payment confirmation.</p>
         </div>
-        <PrimaryButton onClick={submitRequest}>SUBMIT RECEIPT</PrimaryButton>
-      </PublicShell>
+
+        {/* Instruction */}
+        <p className="upv-instruction">
+          Please upload a clear screenshot<br/>of your payment transaction.
+        </p>
+
+        {/* Upload card */}
+        <label className={`upv-card upv-upload-card ${errors.screenshot ? "upv-card-error" : ""}`} htmlFor="upv-file-input">
+          <p className="upv-card-heading">UPLOAD PAYMENT SCREENSHOT</p>
+          <div className="upv-dropzone">
+            <svg width="52" height="52" viewBox="0 0 56 56" fill="none">
+              <rect x="2" y="2" width="52" height="52" rx="10" stroke="rgba(0,178,255,0.6)" strokeWidth="1.5" fill="rgba(0,178,255,0.06)"/>
+              <path d="M28 36V20M28 20L21 27M28 20L35 27" stroke="#00b2ff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="upv-tap-label">
+              {request.screenshot ? (
+                <span className="upv-tap-selected">{request.screenshot}</span>
+              ) : (
+                <span className="upv-tap-blue">Tap to upload</span>
+              )}
+            </p>
+            <p className="upv-format-hint">PNG, JPG or JPEG (max. 10MB)</p>
+          </div>
+          <input id="upv-file-input" type="file" hidden accept="image/png,image/jpeg,image/jpg" onChange={handleScreenshotUpload} />
+        </label>
+        {errors.screenshot && <p className="upv-error">{errors.screenshot}</p>}
+
+        {/* Notice card */}
+        <div className="upv-card upv-notice-card">
+          <div className="upv-notice-left"/>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.7)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+          <p className="upv-notice-text">Applications are reviewed<br/>only after payment confirmation.</p>
+        </div>
+
+        {/* Submit button */}
+        <button className="upv-submit-btn" onClick={submitRequest}>
+          <span>SUBMIT RECEIPT</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+
+        {/* Bottom diamond */}
+        <svg width="8" height="8" viewBox="0 0 9 9" fill="none" style={{marginTop: '28px'}}>
+          <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/>
+        </svg>
+      </div>
     );
   }
+
 
   if (page === "submitted") {
+    const sel = outcomerSelection || DEFAULT_OUTCOMER_SELECTION;
+    const fmtNum = (n) => Number(n).toLocaleString();
+
     return (
-      <PublicShell className="submitted-public-page" onNavigate={setPage}>
-        <EternumHeader title="ETERNITY" subtitle="" compact />
-        <div className="success-orb">✓</div>
-        <section className="eternum-copy-block">
-          <h2>APPLICATION SUBMITTED</h2>
-          <p>Your application has been submitted successfully.</p>
-        </section>
-        <StatusRow icon="▤" label="PAYMENT STATUS" value="UNDER VERIFICATION" />
-        <StatusRow icon="▧" label="APPLICATION STATUS" value="UNDER REVIEW" />
-        <div className="eternum-card team-review-card">
-          <h3>ALSHAYEB'S TEAM</h3>
-          <p>is currently reviewing your application.</p>
+      <div className="sub-page">
+        {/* Back arrow */}
+        <button className="pay-back-btn" onClick={() => setPage("outcomerLanding")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </button>
+
+        {/* Spade + ETERNITY */}
+        <div className="sub-header">
+          <svg className="pay-spade-svg" width="58" height="84" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="sub-glow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="3" result="b1"/>
+                <feGaussianBlur stdDeviation="8" result="b2"/>
+                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="sub-beam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
+                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="50%" stopColor="#ffffff"/>
+                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#sub-beam)"/>
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none"
+              filter="url(#sub-glow)" strokeOpacity="0.95"/>
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none"
+              filter="url(#sub-glow)" strokeOpacity="0.95"/>
+          </svg>
+          <h1 className="upv-title">ETERNITY</h1>
+          <svg width="8" height="8" viewBox="0 0 9 9" fill="none" style={{marginTop:'4px'}}>
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.6)" strokeWidth="1" fill="none"/>
+          </svg>
         </div>
-        <h3 className="section-line-title">OUTCOMERS COMMUNITY</h3>
-        <SelectionStats selection={outcomerSelection} />
-        <PrimaryButton onClick={() => setPage("track")}>TRACK APPLICATION</PrimaryButton>
-      </PublicShell>
+
+        {/* Glowing check */}
+        <div className="pay-check-circle" style={{margin:'16px 0 14px'}}>
+          <svg width="100" height="100" viewBox="0 0 110 110" fill="none">
+            <defs>
+              <filter id="sub-ck" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <circle cx="55" cy="55" r="48" stroke="#00b2ff" strokeWidth="1.5" fill="none" filter="url(#sub-ck)" strokeOpacity="0.9"/>
+            <circle cx="55" cy="55" r="50" stroke="rgba(0,178,255,0.15)" strokeWidth="2" fill="none"/>
+            <polyline points="36,55 50,69 74,41" stroke="#00b2ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" filter="url(#sub-ck)"/>
+          </svg>
+        </div>
+
+        {/* Title */}
+        <p className="sub-main-title">APPLICATION SUBMITTED</p>
+        <p className="sub-main-desc">Your application has been submitted successfully.</p>
+
+        {/* Status cards */}
+        <div className="sub-status-card">
+          <div className="sub-status-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.55)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+          </div>
+          <div className="sub-status-text">
+            <span className="sub-status-label">PAYMENT STATUS</span>
+            <span className="sub-status-value">UNDER VERIFICATION</span>
+          </div>
+          <div className="sub-status-clock">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.35)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              <circle cx="4" cy="4" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+              <circle cx="20" cy="4" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+              <circle cx="4" cy="20" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+              <circle cx="20" cy="20" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+            </svg>
+          </div>
+        </div>
+
+        <div className="sub-status-card">
+          <div className="sub-status-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.55)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>
+            </svg>
+          </div>
+          <div className="sub-status-text">
+            <span className="sub-status-label">APPLICATION STATUS</span>
+            <span className="sub-status-value">UNDER REVIEW</span>
+          </div>
+          <div className="sub-status-clock">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.35)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              <circle cx="4" cy="4" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+              <circle cx="20" cy="4" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+              <circle cx="4" cy="20" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+              <circle cx="20" cy="20" r="1" fill="rgba(0,178,255,0.2)" stroke="none"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* Team review card */}
+        <div className="sub-team-card">
+          <p className="sub-team-title">ALSHAYEB'S TEAM</p>
+          <div className="sub-team-divider-row">
+            <div className="pay-divider-line" style={{maxWidth:'60px'}}/>
+            <svg width="6" height="6" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/></svg>
+            <div className="pay-divider-line" style={{maxWidth:'60px'}}/>
+          </div>
+          <div className="sub-team-body">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="rgba(0,178,255,0.55)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="16" cy="10" r="4"/><path d="M8 26c0-4.4 3.6-8 8-8s8 3.6 8 8"/><circle cx="8" cy="14" r="2.5"/><circle cx="24" cy="14" r="2.5"/><path d="M4 26c0-2.2 1.8-4 4-4"/><path d="M28 26c0-2.2-1.8-4-4-4"/>
+            </svg>
+            <p className="sub-team-desc">is currently reviewing<br/>your application.</p>
+          </div>
+        </div>
+
+        {/* OUTCOMERS COMMUNITY divider */}
+        <div className="sub-community-divider">
+          <div className="pay-divider-line"/>
+          <span className="sub-community-text">OUTCOMERS COMMUNITY</span>
+          <div className="pay-divider-line"/>
+        </div>
+
+        {/* THE SELECTION counter card */}
+        <div className="sub-selection-card">
+          <p className="sub-selection-title">THE SELECTION</p>
+          <svg width="6" height="6" viewBox="0 0 9 9" fill="none" style={{margin:'4px auto 10px', display:'block'}}>
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/>
+          </svg>
+          <div className="sub-selection-row">
+            <div className="sub-selection-col">
+              <span className="sub-selection-num">{fmtNum(sel.approved)}</span>
+              <svg width="5" height="5" viewBox="0 0 9 9" fill="none" style={{margin:'3px auto', display:'block'}}><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.3)" strokeWidth="1" fill="none"/></svg>
+              <span className="sub-selection-lab">APPROVED</span>
+            </div>
+            <div className="sub-selection-div"/>
+            <div className="sub-selection-col">
+              <span className="sub-selection-num">{fmtNum(sel.pending)}</span>
+              <svg width="5" height="5" viewBox="0 0 9 9" fill="none" style={{margin:'3px auto', display:'block'}}><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.3)" strokeWidth="1" fill="none"/></svg>
+              <span className="sub-selection-lab">PENDING</span>
+            </div>
+            <div className="sub-selection-div"/>
+            <div className="sub-selection-col">
+              <span className="sub-selection-num">{fmtNum(sel.declined)}</span>
+              <svg width="5" height="5" viewBox="0 0 9 9" fill="none" style={{margin:'3px auto', display:'block'}}><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.3)" strokeWidth="1" fill="none"/></svg>
+              <span className="sub-selection-lab">DECLINED</span>
+            </div>
+          </div>
+        </div>
+
+        {/* TRACK APPLICATION button */}
+        <button className="sub-track-btn" onClick={() => setPage("trackLookup")}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>TRACK APPLICATION</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      </div>
     );
   }
 
-  if (page === "track") {
+  if (page === "track" || page === "rejected") {
     const saved = trackedRegistration || request || {};
-    const normalizedPhase = String(saved.status || saved.applicationStatus || "pending").toLowerCase();
-    const phaseLabel = normalizedPhase.includes("approved") || normalizedPhase.includes("confirmed")
-      ? "CONFIRMED"
-      : normalizedPhase.includes("reject") || normalizedPhase.includes("declined")
-        ? "DECLINED"
-        : "PENDING";
+    const rawStatus = String(saved.status || saved.applicationStatus || "pending").toLowerCase();
+
+    // Determine state
+    const isConfirmed = rawStatus.includes("approved") || rawStatus.includes("confirmed") || rawStatus.includes("payment_confirmed");
+    const isDeclined  = rawStatus.includes("reject") || rawStatus.includes("declined");
+    const isPending   = !isConfirmed && !isDeclined;
+
+    // Dynamic event data
+    const eventName     = saved.eventName || saved.event || selectedEvent?.name || "ALSHAYEB ETERNUM";
+    const trackedEvent  = findPromEvent(eventName);
+    const rawDate       = trackedEvent?.date || trackedEvent?.dateTime || saved.eventDate || null;
+    const eventDateStr  = rawDate
+      ? new Date(rawDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase()
+      : "TBA";
+    const locationStr   = trackedEvent?.location || trackedEvent?.venue || saved.location || "TBA";
+    const accessTypeStr = (saved.accessType || saved.type || saved.attendeeType || "OUTCOMER").toUpperCase();
+
+    // State-specific content
+    const badgeLabel    = isConfirmed ? "PAYMENT CONFIRMED" : isDeclined ? "DECLINED" : "PENDING";
+    const badgeColor    = isConfirmed ? "#00d97e" : isDeclined ? "#ff3366" : "#00b2ff";
+    const statusDesc    = isConfirmed
+      ? <>Your payment has been successfully verified.<br/>We're excited to see you at the event!</>
+      : isDeclined
+      ? <>Your application could not be approved at this stage.<br/>Please reach out to your assigned committee member for more information.</>
+      : <>Your application is under review.<br/>You will be notified once a decision is made.</>;
+
+    const infoCardTitle = isConfirmed ? "GET READY!" : isDeclined ? "STATUS CLOSED" : "STAY UPDATED";
+    const infoCardDesc  = isConfirmed
+      ? "Your ticket is ready.\nWe can't wait to welcome you."
+      : isDeclined
+      ? "The review process has been completed."
+      : "We'll notify you as soon as there's an update on your application.";
+
+    const btnLabel      = isConfirmed ? "VIEW YOUR TICKET" : isDeclined ? "RETURN TO HOME" : "TRACK ANOTHER APPLICATION";
+    const handleBtn     = () => {
+      if (isConfirmed) {
+        // Attempt to route to ticket if foundClient available
+        if (foundClient) { setPage("ticket"); }
+        else { setPage("trackLookup"); }
+      } else if (isDeclined) {
+        setPage("home");
+      } else {
+        setPage("trackLookup");
+      }
+    };
+
+    // SVG icons for status badge
+    const BadgeIcon = () => {
+      if (isConfirmed) return (
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <circle cx="13" cy="13" r="11" stroke={badgeColor} strokeWidth="1.4" fill="none"/>
+          <polyline points="8,13 11.5,17 18,9" stroke={badgeColor} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="3" cy="3" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+          <circle cx="23" cy="3" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+          <circle cx="3" cy="23" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+          <circle cx="23" cy="23" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+        </svg>
+      );
+      if (isDeclined) return (
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <circle cx="13" cy="13" r="11" stroke={badgeColor} strokeWidth="1.4" fill="none"/>
+          <line x1="9" y1="9" x2="17" y2="17" stroke={badgeColor} strokeWidth="1.4" strokeLinecap="round"/>
+          <line x1="17" y1="9" x2="9" y2="17" stroke={badgeColor} strokeWidth="1.4" strokeLinecap="round"/>
+          <circle cx="3" cy="3" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+          <circle cx="23" cy="3" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+          <circle cx="3" cy="23" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+          <circle cx="23" cy="23" r="1.5" fill={badgeColor} fillOpacity="0.3"/>
+        </svg>
+      );
+      return (
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <circle cx="13" cy="13" r="11" stroke={badgeColor} strokeWidth="1.4" fill="none" strokeDasharray="3 2"/>
+          <polyline points="13 7 13 13 17 15" stroke={badgeColor} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+    };
+
+    // Info card icon
+    const InfoIcon = () => {
+      if (isConfirmed) return (
+        <svg width="26" height="26" viewBox="0 0 30 30" fill="none" stroke={badgeColor} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="7" width="24" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="9"/><line x1="21" y1="3" x2="21" y2="9"/>
+          <polyline points="10,16 13,19 20,12"/>
+        </svg>
+      );
+      if (isDeclined) return (
+        <svg width="26" height="26" viewBox="0 0 30 30" fill="none" stroke="rgba(0,178,255,0.6)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v22a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V12z"/><polyline points="14 2 14 12 24 12"/>
+          <polyline points="12,19 15,22 20,16"/>
+        </svg>
+      );
+      return (
+        <svg width="26" height="26" viewBox="0 0 30 30" fill="none" stroke="rgba(0,178,255,0.6)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+          <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+        </svg>
+      );
+    };
 
     return (
-      <PublicShell backTo="outcomerLanding" className="status-public-page" onNavigate={setPage}>
-        <EternumHeader compact />
-        <section className="eternum-copy-block">
-          <h2>{phaseLabel}</h2>
-          <p>Your application current phase is {phaseLabel.toLowerCase()}.</p>
-        </section>
-        <StatusRow icon="◇" label="EVENT" value={safeValue(saved.event, selectedEvent.name)} />
-        <StatusRow icon="#" label="REQUEST ID" value={safeValue(saved.requestId, "OUT-0000")} />
-        <StatusRow icon="✓" label="APPLICATION STATUS" value={phaseLabel} />
-        <StatusRow icon="◷" label="PAYMENT STATUS" value="UNDER VERIFICATION" />
-        <p className="secure-note">This usually takes 24-48 hours.</p>
-        <PrimaryButton onClick={() => setPage("home")}>BACK HOME</PrimaryButton>
-      </PublicShell>
-    );
-  }
+      <div className="trk-page">
+        {/* Back */}
+        <button className="pay-back-btn" onClick={() => setPage("outcomerLanding")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </button>
 
-  if (page === "rejected") {
-    const saved = trackedRegistration || request || {};
+        {/* Brand lockup */}
+        <div className="trk-brand">
+          <svg width="56" height="82" viewBox="0 0 100 150" fill="none">
+            <defs>
+              <filter id="trk-glow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="3" result="b1"/>
+                <feGaussianBlur stdDeviation="8" result="b2"/>
+                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="trk-beam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
+                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="50%" stopColor="#ffffff"/>
+                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
+                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#trk-beam)"/>
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#trk-glow)" strokeOpacity="0.95"/>
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#trk-glow)" strokeOpacity="0.95"/>
+          </svg>
+          <p className="trk-alshayeb">ALSHAYEB</p>
+          <h1 className="trk-eternum">ETERNUM</h1>
+          <p className="trk-tagline">NO BEGINNING. NO END.</p>
+        </div>
 
-    return (
-      <PublicShell backTo="outcomerLanding" className="status-public-page" onNavigate={setPage}>
-        <EternumHeader compact />
-        <section className="eternum-copy-block">
-          <h2>APPLICATION DECLINED</h2>
-          <p>Your application was declined.</p>
-        </section>
-        <StatusRow icon="◇" label="EVENT" value={safeValue(saved.event, selectedEvent.name)} />
-        <StatusRow icon="#" label="REQUEST ID" value={safeValue(saved.requestId, "OUT-0000")} />
-        <StatusRow icon="!" label="APPLICATION STATUS" value="REJECTED" />
-        <StatusRow icon="☎" label="PHONE" value={safeValue(saved.phoneNumber || saved.phone, "Not available")} />
-        <PrimaryButton onClick={() => setPage("home")}>BACK HOME</PrimaryButton>
-      </PublicShell>
+        {/* Diamond divider */}
+        <div className="trk-divider-row">
+          <div className="pay-divider-line"/>
+          <svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.55)" strokeWidth="1" fill="none"/></svg>
+          <div className="pay-divider-line"/>
+        </div>
+
+        {/* Your Application Details */}
+        <div className="trk-copy">
+          <p className="trk-copy-top">YOUR APPLICATION</p>
+          <p className="trk-copy-sub">DETAILS</p>
+        </div>
+
+        {/* Main application card */}
+        <div className="trk-main-card">
+          {/* Event label + name */}
+          <p className="trk-event-label">EVENT</p>
+          <h2 className="trk-event-name">{eventName.toUpperCase()}</h2>
+
+          {/* Diamond */}
+          <svg width="6" height="6" viewBox="0 0 9 9" fill="none" style={{margin:'10px auto', display:'block'}}>
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.45)" strokeWidth="1" fill="none"/>
+          </svg>
+
+          {/* APPLICATION STATUS */}
+          <p className="trk-status-label">APPLICATION STATUS</p>
+
+          {/* Status badge */}
+          <div className="trk-badge" style={{borderColor: badgeColor, boxShadow: `0 0 14px ${badgeColor}22`}}>
+            <BadgeIcon/>
+            <span className="trk-badge-text" style={{color: badgeColor}}>{badgeLabel}</span>
+          </div>
+
+          {/* Description */}
+          <p className="trk-status-desc">{statusDesc}</p>
+
+          {/* Event details row */}
+          <div className="trk-details-row">
+            <div className="trk-detail-col">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.4)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span className="trk-detail-label">EVENT DATE</span>
+              <span className="trk-detail-val">{eventDateStr}</span>
+            </div>
+            <div className="trk-detail-sep"/>
+            <div className="trk-detail-col">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.4)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span className="trk-detail-label">LOCATION</span>
+              <span className="trk-detail-val">{locationStr}</span>
+            </div>
+            <div className="trk-detail-sep"/>
+            <div className="trk-detail-col">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.4)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="trk-detail-label">ACCESS TYPE</span>
+              <span className="trk-detail-val">{accessTypeStr}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Info card */}
+        <div className="trk-info-card">
+          <div className="trk-info-icon-wrap">
+            <InfoIcon/>
+          </div>
+          <div className="trk-info-body">
+            <p className="trk-info-title" style={{color: isConfirmed ? badgeColor : '#00b2ff'}}>{infoCardTitle}</p>
+            {infoCardDesc.split("\n").map((line, i) => (
+              <p key={i} className="trk-info-desc">{line}</p>
+            ))}
+            
+          </div>
+        </div>
+
+        {/* Action button */}
+        <button className="trk-action-btn" onClick={handleBtn} style={{borderColor: isConfirmed ? badgeColor+'88' : undefined}}>
+          {isConfirmed && (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+            </svg>
+          )}
+          {!isConfirmed && (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          )}
+          <span>{btnLabel}</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+
+        {/* Footer */}
+        <div className="trk-footer">
+          <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
+          <span className="trk-footer-text">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</span>
+          <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
+        </div>
+        <p className="trk-footer-brand">ALSHAYEB ETERNUM</p>
+      </div>
     );
   }
 
   if (page === "ticket" && foundClient) {
-    const guestName = safeValue(foundClient.name || foundClient.Name, "Guest");
-    const guestPhone = safeValue(foundClient.phone || foundClient.Phone);
-    const qrId = safeValue(foundClient.qr || foundClient.QR || foundClient.id || foundClient.ID, "Not available");
-    const qrValue = String(foundClient.qr || foundClient.QR || "").trim();
-    const accessType = safeValue(foundClient.accessType || foundClient["Access Type"] || foundClient.type, "Unknown");
-    const rawStatus = safeValue(foundClient.status || foundClient.Status, "Active");
-    const status = rawStatus.toLowerCase();
-    const venue = safeValue(foundClient.venue || foundClient.Venue, "ALSHAYEB ETERNUM");
-    const ticketPromEvent = findPromEvent(venue);
-    const ticketRevealDate = new Date(foundClient.PromDateTime || eventDateTimeValue(ticketPromEvent)).getTime();
-    const safeTicketRevealDate = Number.isFinite(ticketRevealDate) ? ticketRevealDate : new Date(QR_REVEAL_TIME).getTime();
-    const ticketQrLocked = now < safeTicketRevealDate;
-    const ticketDistance = Math.max(safeTicketRevealDate - now, 0);
-    const ticketCountdown = {
-      days: Math.floor(ticketDistance / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((ticketDistance / (1000 * 60 * 60)) % 24),
-      minutes: Math.floor((ticketDistance / (1000 * 60)) % 60),
-      seconds: Math.floor((ticketDistance / 1000) % 60)
-    };
-    const normalizedAccessType = accessType.toLowerCase();
-    const ticketTone = normalizedAccessType.includes("guest") || normalizedAccessType.includes("invited")
-      ? "gold"
-      : normalizedAccessType.includes("outcomer")
-        ? "purple"
-        : "blue";
+    const guestName      = safeValue(foundClient.name || foundClient.Name, "Guest");
+    const guestPhone     = safeValue(foundClient.phone || foundClient.Phone, "—");
+    const qrId           = safeValue(foundClient.qr || foundClient.QR || foundClient.id || foundClient.ID, "N/A");
+    const qrValue        = String(foundClient.qr || foundClient.QR || "").trim();
+    const accessType     = safeValue(foundClient.accessType || foundClient["Access Type"] || foundClient.type, "OUTCOMER");
+    const rawStatus      = safeValue(foundClient.status || foundClient.Status, "Active");
+    const isUsed         = rawStatus.toLowerCase() === "used";
+    const venue          = "ALSHAYEB ETERNUM";
+    const school         = safeValue(foundClient.schoolOrOriginProm || foundClient.school || foundClient.School, "—");
+    const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname, "—");
+
+    const ticketPromEvent   = findPromEvent(foundClient.eventName || foundClient.Venue || foundClient.event);
+    const ticketRevealDate  = new Date(foundClient.PromDateTime || eventDateTimeValue(ticketPromEvent)).getTime();
+    const safeRevealDate    = Number.isFinite(ticketRevealDate) ? ticketRevealDate : new Date(QR_REVEAL_TIME).getTime();
+    const ticketQrLocked    = now < safeRevealDate;
+    const ticketDistance    = Math.max(safeRevealDate - now, 0);
+    const tHours   = Math.floor(ticketDistance / (1000 * 60 * 60));
+    const tMins    = Math.floor((ticketDistance / (1000 * 60)) % 60);
+    const tSecs    = Math.floor((ticketDistance / 1000) % 60);
+
+    // Format event date and entry time from event data
+    const rawDateTime   = ticketPromEvent?.dateTime || foundClient.PromDateTime || null;
+    const eventDateDisp = ticketPromEvent?.date || (rawDateTime ? new Date(rawDateTime).toLocaleDateString("en-GB", {day:"numeric", month:"long", year:"numeric"}).toUpperCase() : "TBA");
+    const entryTimeDisp = rawDateTime
+      ? new Date(rawDateTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      : "TBA";
 
     return (
-      <PublicShell className={`ticket-public-page ticket-${ticketTone}`} onNavigate={setPage}>
-        <EternumHeader compact />
-        <section className="eternum-card ticket-qr-card">
-          <h3>SCAN TO ENTER</h3>
-          <h2>THE ETERNAL LIST</h2>
-          {ticketQrLocked ? (
-            <>
-              <span className="qr-lock-icon" aria-hidden="true">&#128274;</span>
-              <p className="muted">QR unlocks at {new Date(safeTicketRevealDate).toLocaleString()}</p>
-              <div className="countdown-grid">
-                <div><strong>{formatCountdownUnit(ticketCountdown.days)}</strong><span>DAYS</span></div>
-                <div><strong>{formatCountdownUnit(ticketCountdown.hours)}</strong><span>HRS</span></div>
-                <div><strong>{formatCountdownUnit(ticketCountdown.minutes)}</strong><span>MIN</span></div>
-                <div><strong>{formatCountdownUnit(ticketCountdown.seconds)}</strong><span>SEC</span></div>
-              </div>
-            </>
-          ) : qrValue ? (
-            <>
-              <span className="qr-lock-icon unlocked" aria-hidden="true">&#128275;</span>
-              <div className="qr-white">
-                <QRCode value={qrValue} size={210} />
-              </div>
-            </>
-          ) : (
-            <p className="muted">QR not available yet.</p>
-          )}
-        </section>
+      <div className="tkt-page">
+        {/* Back */}
+        <button className="pay-back-btn" onClick={() => setPage("home")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </button>
 
-        <section className="eternum-card ticket-identity-card">
-          <h2>ACCESS IDENTITY</h2>
-          <div><span>NAME</span><p>{guestName}</p></div>
-          <div><span>PROM NAME</span><p>{venue}</p></div>
-          <div><span>PHONE NUMBER</span><p>{guestPhone}</p></div>
-          <div><span>ID</span><p>{qrId}</p></div>
-          <div><span>ACCESS TYPE</span><p>{accessType}</p></div>
-          <div><span>STATUS</span><p><span className={`status-badge ${status === "used" ? "used" : "active"}`}>{status === "used" ? "USED BEFORE" : rawStatus.toUpperCase()}</span></p></div>
-          <div><span>DATE</span><p>{ticketPromEvent?.date || "DATE TBA"}</p></div>
-          <div><span>VENUE</span><p>ALSHAYEB ETERNUM</p></div>
-        </section>
-
-        <section className="eternum-card venue-about-card">
-          <h2>ABOUT THE VENUE</h2>
-          <p>ALSHAYEB ETERNUM is our iconic destination for music, art and connection. Designed as a circular island, it creates unforgettable experiences in a space where energy flows endlessly.</p>
-        </section>
-
-        <div className="ticket-feature-grid">
-          <div>CAPACITY<span>Limited capacity experience</span></div>
-          <div>360° EXPERIENCE<span>Immersive sound and light</span></div>
-          <div>SAFETY FIRST<span>Advanced security</span></div>
-          <div>PREMIUM EXPERIENCE<span>VIP access zones</span></div>
+        {/* Brand header */}
+        <div className="tkt-brand">
+          <svg width="52" height="78" viewBox="0 0 100 150" fill="none">
+            <defs>
+              <filter id="tkt-glow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="3" result="b1"/>
+                <feGaussianBlur stdDeviation="9" result="b2"/>
+                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="tkt-beam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
+                <stop offset="40%" stopColor="rgba(0,178,255,0.85)"/>
+                <stop offset="50%" stopColor="#ffffff"/>
+                <stop offset="60%" stopColor="rgba(0,178,255,0.85)"/>
+                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
+              </linearGradient>
+            </defs>
+            <rect x="49.5" y="0" width="1" height="150" fill="url(#tkt-beam)"/>
+            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#tkt-glow)" strokeOpacity="0.95"/>
+            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
+              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#tkt-glow)" strokeOpacity="0.95"/>
+          </svg>
+          <p className="tkt-alshayeb">ALSHAYEB</p>
+          <h1 className="tkt-eternum">ETERNUM</h1>
+          <p className="tkt-tagline">NO BEGINNING. NO END.</p>
         </div>
 
-        <footer className="eternum-footer">ALSHAYEB EXPERIENCE</footer>
+        {/* QR Card */}
+        <div className="tkt-qr-card">
+          <p className="tkt-scan-label">SCAN TO ENTER</p>
+          <h2 className="tkt-eternal-list">THE ETERNAL LIST</h2>
+
+          <div className="tkt-qr-wrap">
+            {qrValue && <div className="tkt-qr-inner"><QRCode value={qrValue} size={200} /></div>}
+            {ticketQrLocked && (
+              <div className="tkt-qr-lock-overlay">
+                <div className="tkt-lock-icon-wrap">
+                  <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
+                    <rect x="10" y="22" width="28" height="20" rx="4" stroke="#00b2ff" strokeWidth="1.5" fill="rgba(4,12,35,0.9)"/>
+                    <path d="M16 22V16a8 8 0 0 1 16 0v6" stroke="#00b2ff" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                    <circle cx="24" cy="33" r="3" fill="#00b2ff" fillOpacity="0.8"/>
+                    <line x1="24" y1="33" x2="24" y2="38" stroke="#00b2ff" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+              </div>
+            )}
+            {!qrValue && !ticketQrLocked && (
+              <div className="tkt-qr-lock-overlay"><p className="tkt-qr-na">QR not available yet.</p></div>
+            )}
+          </div>
+
+          {ticketQrLocked && (
+            <div className="tkt-countdown-row">
+              <p className="tkt-unlocking-label">UNLOCKING IN</p>
+              <div className="tkt-countdown">
+                <span className="tkt-cd-num">{String(tHours).padStart(2,"0")}</span>
+                <span className="tkt-cd-sep">:</span>
+                <span className="tkt-cd-num">{String(tMins).padStart(2,"0")}</span>
+                <span className="tkt-cd-sep">:</span>
+                <span className="tkt-cd-num">{String(tSecs).padStart(2,"0")}</span>
+              </div>
+              <div className="tkt-cd-labels">
+                <span>HOURS</span><span>MINUTES</span><span>SECONDS</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Access Identity Card */}
+        <div className="tkt-identity-card">
+          <p className="tkt-identity-title">ACCESS IDENTITY</p>
+          {[
+            { icon: "user",   label: "NAME",          val: guestName.toUpperCase() },
+            { icon: "star",   label: "PREFERRED NAME", val: preferredName.toUpperCase() },
+            { icon: "school", label: "SCHOOL",         val: school.toUpperCase() },
+            { icon: "phone",  label: "PHONE NUMBER",   val: guestPhone },
+            { icon: "id",     label: "ID",             val: qrId.toUpperCase() },
+            { icon: "crown",  label: "ACCESS TYPE",    val: accessType.toUpperCase(), color: "#00b2ff" },
+            { icon: "shield", label: "STATUS",         val: isUsed ? "USED BEFORE" : "ACTIVE", color: isUsed ? "#ff3366" : "#00b2ff", dot: true },
+            { icon: "cal",    label: "DATE",           val: eventDateDisp },
+            { icon: "clock",  label: "ENTRY TIME",     val: entryTimeDisp },
+            { icon: "venue",  label: "VENUE",          val: venue },
+          ].map(({ icon, label, val, color, dot }) => (
+            <div key={label} className="tkt-id-row">
+              <div className="tkt-id-icon">
+                {icon === "user"   && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
+                {icon === "star"   && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><circle cx="17" cy="7" r="2" fill="rgba(0,178,255,0.3)"/></svg>}
+                {icon === "school" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>}
+                {icon === "phone"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
+                {icon === "id"     && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 10h4M14 14h2"/></svg>}
+                {icon === "crown"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M2 4l4 8 6-4 6 4 4-8"/><path d="M4 17h16"/><path d="M4 20h16"/></svg>}
+                {icon === "shield" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                {icon === "cal"    && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
+                {icon === "clock"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+                {icon === "venue"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><circle cx="18" cy="7" r="2" fill="rgba(0,178,255,0.2)"/><circle cx="6" cy="7" r="2" fill="rgba(0,178,255,0.2)"/></svg>}
+              </div>
+              <span className="tkt-id-label">{label}</span>
+              <span className="tkt-id-val" style={color ? {color} : {}}>
+                {dot && <span className="tkt-status-dot" style={{background: color}}/>}
+                {val}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* About The Venue Card */}
+        <div className="tkt-venue-card">
+          <p className="tkt-venue-title">ABOUT THE VENUE</p>
+          <div className="tkt-venue-body">
+            <div className="tkt-venue-text">
+              <p>ALSHAYEB ETERNUM is a secret dimension for music, art and connection.</p>
+              <p>Designed as a circular island, it creates unforgettable experiences in a space where energy flows endlessly.</p>
+            </div>
+            <div className="tkt-venue-glow-art" aria-hidden="true"/>
+          </div>
+        </div>
+
+        {/* Feature icons row */}
+        <div className="tkt-features-row">
+          {[
+            { icon: "capacity", label: "CAPACITY", desc: "Limited capacity experience" },
+            { icon: "360", label: "360° EXPERIENCE", desc: "Immersive around & beyond from every angle" },
+            { icon: "sound", label: "WORLD CLASS SOUND", desc: "Next level audio curation by top industry leaders" },
+            { icon: "safety", label: "SAFETY FIRST", desc: "Advanced security & seamless movement" },
+            { icon: "premium", label: "PREMIUM EXPERIENCE", desc: "VIP areas, bars exclusive service" },
+          ].map(({ icon, label, desc }) => (
+            <div key={label} className="tkt-feat-col">
+              <div className="tkt-feat-icon">
+                {icon === "capacity" && <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.6)" strokeWidth="1.2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+                {icon === "360" && <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.6)" strokeWidth="1.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><text x="6" y="16" fill="rgba(0,178,255,0.6)" fontSize="7" fontFamily="sans-serif">360°</text></svg>}
+                {icon === "sound" && <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.6)" strokeWidth="1.2" strokeLinecap="round"><line x1="9" y1="18" x2="9" y2="6"/><line x1="5" y1="15" x2="5" y2="9"/><line x1="13" y1="21" x2="13" y2="3"/><line x1="17" y1="16" x2="17" y2="8"/><line x1="21" y1="14" x2="21" y2="10"/></svg>}
+                {icon === "safety" && <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.6)" strokeWidth="1.2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                {icon === "premium" && <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.6)" strokeWidth="1.2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+              </div>
+              <span className="tkt-feat-label">{label}</span>
+              <span className="tkt-feat-desc">{desc}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Stay Connected card */}
+        <div className="tkt-connected-card">
+          <div className="tkt-connected-left">
+            <img src="/instagram-qr.jpeg" alt="Instagram QR @ALSHAYEB.EG" className="tkt-ig-qr"/>
+          </div>
+          <div className="tkt-connected-mid">
+            <p className="tkt-connected-title">STAY CONNECTED</p>
+            <p className="tkt-connected-desc">Scan to follow our Instagram for updates, stories and more</p>
+          </div>
+          <div className="tkt-connected-right">
+            <div className="tkt-info-link">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span className="tkt-link-label">LOCATION</span>
+              <span className="tkt-link-val">Isletum</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div className="tkt-info-sep"/>
+            <div className="tkt-info-link">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              <span className="tkt-link-label">INSTAGRAM</span>
+              <span className="tkt-link-val">Follow us on Instagram</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div className="tkt-info-sep"/>
+            <div className="tkt-info-link">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span className="tkt-link-label">VENUE INFO</span>
+              <span className="tkt-link-val">Find & locate area</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="tkt-footer">
+          <svg width="6" height="6" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/></svg>
+          <span className="tkt-footer-text">ALSHAYEB ETERNUM</span>
+          <svg width="6" height="6" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/></svg>
+        </div>
+      </div>
+    );
+  }
+
+  if (page === "guestList") {
+    return (
+      <PublicShell className="guest-list-reference" onNavigate={setPage}>
+        <div className="guest-list-body">
+          <section className="guest-list-hero" aria-label="ALSHAYEB ETERNUM Guest List">
+            <div className="guest-list-sigil-wrap" aria-hidden="true">
+              <div className="eternum-sigil guest-list-sigil"></div>
+            </div>
+            <p>ALSHAYEB</p>
+            <h1>ETERNUM</h1>
+            <span>NO BEGINNING. NO END.</span>
+          </section>
+
+          <section className="guest-list-title-block">
+            <h2>GUEST LIST</h2>
+            <p>Check if your name<br />made it onto the Eternal List.</p>
+          </section>
+
+          <section className={`guest-phone-card ${errors.phoneSearch ? "error-input" : ""}`}>
+            <div className="guest-phone-row">
+              <span className="guest-phone-icon" aria-hidden="true">☎</span>
+              <input
+                type="text"
+                inputMode="tel"
+                placeholder="Enter your phone number"
+                value={phone}
+                onChange={(event) => {
+                  setPhone(event.target.value);
+                  setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
+              />
+              <button type="button" onClick={handleSearch} disabled={loading} aria-label="Check guest list">
+                &rarr;
+              </button>
+            </div>
+            <p>We&rsquo;ll check the Eternal List for you.</p>
+          </section>
+          <FieldError name="phoneSearch" />
+
+          <section className="guest-count-card" aria-label="Current guest list count">
+            <h3>CURRENT GUEST LIST</h3>
+            <strong>{guestListCount}</strong>
+            <span>INVITED</span>
+          </section>
+
+          <section className="guest-notice-card">
+            <div className="guest-shield" aria-hidden="true">!</div>
+            <h3>SELECTION NOTICE</h3>
+            <p>
+              A name appearing on the Guest List<br />
+              does not guarantee admission.
+            </p>
+            <i aria-hidden="true"></i>
+            <p>
+              Final entry decisions remain at the<br />
+              discretion of the <span className="guest-notice-highlight">ALSHAYEB&rsquo;s</span> team.
+            </p>
+          </section>
+        </div>
+
+        <footer className="guest-list-footer">
+          <span>&bull; ALSHAYEB EXPERIENCE &bull;</span>
+        </footer>
       </PublicShell>
     );
   }
 
-  if (page === "incomer" || page === "guestList") {
-    const isIncomer = page === "incomer";
-
+  if (page === "incomer") {
     return (
-      <PublicShell className="lookup-public-page" onNavigate={setPage}>
-        <EternumHeader title={isIncomer ? "THE ETERNAL LIST" : "THE INVITED"} subtitle={isIncomer ? "INCOMER" : "GUEST LIST"} />
-        <section className="eternum-copy-block">
-          <h2>{isIncomer ? "Your place has already been secured." : "Feeling lucky?"}</h2>
-          <p>{isIncomer ? "Enter your phone number to access your pass." : "Check if your name made it onto the Eternal List."}</p>
-        </section>
+      <div className="incomer-page-container">
+        {/* BACK ARROW */}
+        <div className="incomer-back-wrapper">
+          <button
+            onClick={() => setPage('home')}
+            aria-label="Go back"
+            className="incomer-back-btn"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+        </div>
 
-        {loading && <p className="loading-message">Loading guest list...</p>}
+        {/* SPADE LOGO */}
+        <div className="incomer-logo-container">
+          <div className="incomer-beam-top" />
+          <svg width="116" height="118" viewBox="0 0 116 118" fill="none" xmlns="http://www.w3.org/2000/svg" className="incomer-spade-svg">
+            <circle cx="58" cy="54" r="52" stroke="rgba(30,80,180,0.18)" strokeWidth="0.8" fill="none" />
+            <circle cx="58" cy="54" r="42" stroke="rgba(30,80,180,0.13)" strokeWidth="0.7" fill="none" />
+            <path d="M 58 12 C 58 12, 14 28, 14 56 C 14 74, 34 82, 58 76 C 82 82, 102 74, 102 56 C 102 28, 58 12, 58 12 Z" stroke="#00b2ff" strokeWidth="2.2" strokeLinejoin="round" fill="none" />
+            <path d="M 58 18 C 58 18, 22 33, 22 57 C 22 70, 38 77, 58 72 C 78 77, 94 70, 94 57 C 94 33, 58 18, 58 18 Z" stroke="rgba(0,178,255,0.25)" strokeWidth="1" fill="none" />
+            <path d="M 36 76 Q 58 58 80 76" stroke="#00b2ff" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <line x1="58" y1="76" x2="58" y2="96" stroke="#00b2ff" strokeWidth="2" strokeLinecap="round" />
+            <path d="M 40 110 C 44 96, 58 96, 58 96 C 58 96, 72 96, 76 110" stroke="#00b2ff" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </svg>
+          <div className="incomer-beam-bottom" />
+        </div>
+
+        {/* BRAND TYPOGRAPHY */}
+        <div className="incomer-brand-typography">
+          <p className="incomer-brand-alshayeb">ALSHAYEB</p>
+          <div className="incomer-brand-eternum">
+            <span className="incomer-brand-e">
+              <span className="incomer-brand-e-bar-top" />
+              <span className="incomer-brand-e-bar-mid" />
+              <span className="incomer-brand-e-bar-bot" />
+            </span>
+            TERNUM
+          </div>
+          <p className="incomer-brand-subtitle">NO BEGINNING. NO END.</p>
+        </div>
+
+        {/* DIAMOND DIVIDER UPPER */}
+        <div className="incomer-diamond-divider">
+          <div className="incomer-diamond-line-left" />
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.65)" strokeWidth="1" fill="none" />
+          </svg>
+          <div className="incomer-diamond-line-right" />
+        </div>
+
+        {/* WELCOME HEADING */}
+        <div className="incomer-welcome-box">
+          <h2>WELCOME INCOMER</h2>
+          <p>Enter your phone number to access<br />all incoming guest information.</p>
+        </div>
+
+        {/* ERROR MESSAGES */}
+        {loading && <p className="incomer-loading">Verifying access...</p>}
         {errors.home && (
-          <div className="home-error">
-            <p className="field-error center-error">{errors.home}</p>
-            <button className="retry-btn" onClick={loadGuests} disabled={loading}>
-              RETRY
-            </button>
+          <div className="incomer-error-box">
+            <p>{errors.home}</p>
+            <button type="button" onClick={loadGuests} disabled={loading}>RETRY</button>
           </div>
         )}
 
-        <div className="eternum-field-group">
+        {/* PHONE FORM */}
+        <form className="incomer-phone-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
           <label>PHONE NUMBER</label>
-          <PhoneInput
-            value={phone}
-            error={errors.phoneSearch}
-            onChange={(e) => {
-              setPhone(e.target.value);
-              setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-            }}
-          />
+          <div className="incomer-phone-row">
+            <div className="incomer-country-code">
+              +20
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <input
+              type="tel"
+              placeholder="Enter your phone number"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+              }}
+              disabled={loading}
+              required
+              autoComplete="tel"
+            />
+          </div>
+          
+          {errors.phoneSearch && (
+            <p className="incomer-error-text">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px', verticalAlign: 'middle'}}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              {errors.phoneSearch}
+            </p>
+          )}
+
+          <button type="submit" className="incomer-continue-btn" disabled={loading}>
+            <div style={{ width: '18px', flexShrink: 0 }} />
+            <span>{loading ? 'VERIFYING...' : 'CONTINUE'}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
+        </form>
+
+        {/* DIAMOND DIVIDER LOWER */}
+        <div className="incomer-diamond-divider incomer-diamond-lower">
+          <div className="incomer-diamond-line-left-subtle" />
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.58)" strokeWidth="1" fill="none" />
+          </svg>
+          <div className="incomer-diamond-line-right-subtle" />
         </div>
-        <FieldError name="phoneSearch" />
 
-        <PrimaryButton onClick={handleSearch} disabled={loading}>
-          {loading ? "LOADING" : isIncomer ? "ACCESS THE GATE" : "CHECK NOW"}
-        </PrimaryButton>
-
-        <p className="secure-note">Your information is secure and encrypted.</p>
-      </PublicShell>
+        {/* ACCESS RESTRICTED CARD */}
+        <div className="incomer-restricted-card">
+          <div className="incomer-restricted-icon">
+            <svg width="50" height="68" viewBox="0 0 50 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="7" y="2" width="36" height="56" rx="5" stroke="rgba(0,178,255,0.65)" strokeWidth="1.8" fill="none" />
+              <line x1="19" y1="7.5" x2="31" y2="7.5" stroke="rgba(0,178,255,0.45)" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="25" cy="35" r="9" stroke="rgba(0,178,255,0.65)" strokeWidth="1.6" fill="none" />
+              <line x1="25" y1="30.5" x2="25" y2="36.5" stroke="rgba(0,178,255,0.9)" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="25" cy="39.5" r="1.3" fill="rgba(0,178,255,0.9)" />
+              <line x1="21" y1="52" x2="29" y2="52" stroke="rgba(0,178,255,0.45)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <h3>ACCESS RESTRICTED</h3>
+            <p>This access is for incoming<br />guests only.</p>
+            <button onClick={() => setPage('home')}>
+              GO BACK
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -2134,13 +3551,14 @@ function ExportPage() {
 
 function SettingsPage() {
   const { data, loading, error, setData } = useBackendData("/api/admin/site-settings", {
-    settings: { outcomerSelection: DEFAULT_OUTCOMER_SELECTION }
+    settings: { outcomerSelection: DEFAULT_OUTCOMER_SELECTION, guestListDisplayCount: 137 }
   });
   const [message, setMessage] = useState("");
   const selection = {
     ...DEFAULT_OUTCOMER_SELECTION,
     ...(data.settings?.outcomerSelection || {})
   };
+  const guestListDisplayCount = data.settings?.guestListDisplayCount ?? 137;
 
   const updateSelectionField = (field, value) => {
     setMessage("");
@@ -2156,16 +3574,36 @@ function SettingsPage() {
     }));
   };
 
+  const updateGuestListDisplayCount = (value) => {
+    setMessage("");
+    setData((prev) => ({
+      ...prev,
+      settings: {
+        ...(prev.settings || {}),
+        guestListDisplayCount: value
+      }
+    }));
+  };
+
   const saveSelectionNumbers = async () => {
     setMessage("");
+    const guestCountNumber = Number(guestListDisplayCount);
+
+    if (!Number.isFinite(guestCountNumber) || guestCountNumber < 0) {
+      setMessage("Guest List Display Count must be 0 or higher.");
+      return;
+    }
 
     try {
-      const result = await apiRequest("/api/admin/site-settings", {
-        method: "PATCH",
-        body: JSON.stringify({ outcomerSelection: selection })
+      const result = await apiRequest("/api/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify({
+          outcomerSelection: selection,
+          guestListDisplayCount: Math.floor(guestCountNumber)
+        })
       });
       setData(result);
-      setMessage("Outcomer display numbers updated.");
+      setMessage("Display numbers updated.");
     } catch (requestError) {
       setMessage(requestError.message || "Could not update display numbers.");
     }
@@ -2186,6 +3624,7 @@ function SettingsPage() {
           <label><span>Approved Display Number</span><input type="number" min="0" value={selection.approved} onChange={(event) => updateSelectionField("approved", event.target.value)} /></label>
           <label><span>Pending Display Number</span><input type="number" min="0" value={selection.pending} onChange={(event) => updateSelectionField("pending", event.target.value)} /></label>
           <label><span>Declined Display Number</span><input type="number" min="0" value={selection.declined} onChange={(event) => updateSelectionField("declined", event.target.value)} /></label>
+          <label><span>Guest List Display Count</span><input type="number" min="0" value={guestListDisplayCount} onChange={(event) => updateGuestListDisplayCount(event.target.value)} /></label>
         </div>
         <button className="purple-btn settings-save" type="button" onClick={saveSelectionNumbers} disabled={loading}>SAVE DISPLAY NUMBERS</button>
         {message && <div className="admin-empty-state">{message}</div>}

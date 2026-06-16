@@ -9,6 +9,7 @@ const eventRoutes = require("./routes/eventRoutes");
 const exportRoutes = require("./routes/exportRoutes");
 const outcomerRoutes = require("./routes/outcomerRoutes");
 const scannerRoutes = require("./routes/scannerRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const notFound = require("./middleware/notFound");
 
@@ -69,6 +70,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/export", exportRoutes);
 app.use("/api/outcomers", outcomerRoutes);
 app.use("/api/scanner", scannerRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -15,7 +15,8 @@ const DEFAULT_SITE_SETTINGS = {
     approved: 129,
     pending: 73,
     declined: 46
-  }
+  },
+  guestListDisplayCount: 137
 };
 
 async function getSiteSettings() {
@@ -28,6 +29,30 @@ async function getSiteSettings() {
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function toDisplayNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? Math.floor(number) : fallback;
+}
+
+function buildSettingsUpdate(body, currentSettings) {
+  const incomingSelection = body.outcomerSelection || body;
+  const nextSelection = {
+    approved: toDisplayNumber(incomingSelection.approved, currentSettings.outcomerSelection.approved),
+    pending: toDisplayNumber(incomingSelection.pending, currentSettings.outcomerSelection.pending),
+    declined: toDisplayNumber(incomingSelection.declined, currentSettings.outcomerSelection.declined)
+  };
+
+  const nextGuestCount = toDisplayNumber(
+    body.guestListDisplayCount,
+    currentSettings.guestListDisplayCount ?? DEFAULT_SITE_SETTINGS.guestListDisplayCount
+  );
+
+  return {
+    outcomerSelection: nextSelection,
+    guestListDisplayCount: nextGuestCount
+  };
 }
 
 function buildAttendeeQuery(query) {
@@ -116,22 +141,32 @@ router.get(
 router.patch(
   "/site-settings",
   asyncHandler(async (req, res) => {
-    const toDisplayNumber = (value, fallback) => {
-      const number = Number(value);
-      return Number.isFinite(number) && number >= 0 ? Math.floor(number) : fallback;
-    };
-
     const currentSettings = await getSiteSettings();
-    const incoming = req.body.outcomerSelection || req.body;
-    const nextSelection = {
-      approved: toDisplayNumber(incoming.approved, currentSettings.outcomerSelection.approved),
-      pending: toDisplayNumber(incoming.pending, currentSettings.outcomerSelection.pending),
-      declined: toDisplayNumber(incoming.declined, currentSettings.outcomerSelection.declined)
-    };
+    const nextSettings = buildSettingsUpdate(req.body, currentSettings);
 
     const settings = await SiteSettings.findOneAndUpdate(
       { key: "default" },
-      { $set: { outcomerSelection: nextSelection } },
+      { $set: nextSettings },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Site display settings updated.",
+      settings
+    });
+  })
+);
+
+router.put(
+  "/settings",
+  asyncHandler(async (req, res) => {
+    const currentSettings = await getSiteSettings();
+    const nextSettings = buildSettingsUpdate(req.body, currentSettings);
+
+    const settings = await SiteSettings.findOneAndUpdate(
+      { key: "default" },
+      { $set: nextSettings },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
