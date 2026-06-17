@@ -46,15 +46,13 @@ const EXPORT_COLUMNS = [
 
 async function apiRequest(path, options = {}) {
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
-  const hasBody = options.body !== undefined && options.body !== null;
-  const isJsonRequest = hasBody && !isFormData;
   let response;
 
   try {
     response = await fetch(`${BACKEND_API_URL}${path}`, {
       ...options,
       headers: {
-        ...(isJsonRequest ? { "Content-Type": "application/json" } : {}),
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(options.headers || {})
       }
     });
@@ -248,7 +246,7 @@ const BackButton = ({ to = "home", onNavigate }) => (
 
 const EternumHeader = ({ eyebrow = "ALSHAYEB", title = "ETERNUM", subtitle = "NO BEGINNING. NO END.", compact = false }) => (
   <header className={`eternum-header ${compact ? "compact" : ""}`}>
-      <div className="eternum-sigil" aria-hidden="true"></div>
+    <div className="eternum-sigil" aria-hidden="true"></div>
     <p>{eyebrow}</p>
     <h1>{title}</h1>
     {subtitle && <span>{subtitle}</span>}
@@ -309,295 +307,15 @@ const TextInputCard = ({ icon, label, error, children }) => (
   </div>
 );
 
-/* ---- Starfield data: fixed so it doesn't re-randomize on every render ---- */
-const ELS_STARS = Array.from({ length: 55 }, (_, i) => ({
-  id: i,
-  top:  `${(i * 37 + 11) % 100}%`,
-  left: `${(i * 61 + 7)  % 100}%`,
-  size: (i % 3 === 0) ? 2 : (i % 3 === 1) ? 1.5 : 1,
-  dur:  `${2.5 + (i % 7) * 0.6}s`,
-  delay: `${(i % 5) * 0.4}s`,
-}));
-
-function EternumLoadingScreen({ visible }) {
-  const [pct, setPct] = useState(5);
-  const [exiting, setExiting] = useState(false);
-  const pctRef = useRef(5);
-  const timerRef = useRef(null);
-
-  /* Fake progress ticker */
-  useEffect(() => {
-    timerRef.current = window.setInterval(() => {
-      setPct(prev => {
-        const ceiling = visible ? 92 : 100;
-        if (prev >= ceiling) {
-          window.clearInterval(timerRef.current);
-          return ceiling;
-        }
-        /* Slow down as it approaches the ceiling */
-        const step = Math.max(0.4, (ceiling - prev) * 0.035);
-        const next = Math.min(prev + step, ceiling);
-        pctRef.current = next;
-        return next;
-      });
-    }, 80);
-
-    return () => window.clearInterval(timerRef.current);
-  }, [visible]);
-
-  /* When real load finishes, sprint to 100 then trigger exit fade */
-  useEffect(() => {
-    if (!visible) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = window.setInterval(() => {
-        setPct(prev => {
-          if (prev >= 100) {
-            window.clearInterval(timerRef.current);
-            setExiting(true);
-            return 100;
-          }
-          return Math.min(prev + 3.5, 100);
-        });
-      }, 40);
-    }
-  }, [visible]);
-
-  const cx = 160, cy = 160;
-  const rings = [
-    { r: 118, stroke: 'rgba(0,178,255,0.18)', dash: '0', dots: [0, 180],         dotR: 4.5, dotColor: '#00b2ff', dotGlow: '0 0 10px #00b2ff' },
-    { r: 146, stroke: 'rgba(0,178,255,0.10)', dash: '5 8', dots: [60, 220, 310], dotR: 3,   dotColor: 'rgba(0,178,255,0.7)', dotGlow: '0 0 6px rgba(0,178,255,0.8)' },
-    { r: 90,  stroke: 'rgba(0,178,255,0.12)', dash: '3 6', dots: [100, 270],     dotR: 2.5, dotColor: 'rgba(160,220,255,0.6)', dotGlow: '0 0 4px rgba(160,220,255,0.6)' },
-  ];
-
-  return (
-    <div className={`els-overlay${exiting ? ' els-exiting' : ''}`} aria-live="polite" aria-label="Loading Eternum">
-      {/* Starfield */}
-      <div className="els-stars" aria-hidden="true">
-        {ELS_STARS.map(s => (
-          <span
-            key={s.id}
-            className="els-star"
-            style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDuration: s.dur, animationDelay: s.delay }}
-          />
-        ))}
-      </div>
-
-      {/* Brand header */}
-      <div className="els-brand">
-          <div className="els-spade-wrap" aria-hidden="true">
-            <svg width="52" height="78" viewBox="0 0 100 150" fill="none">
-              <defs>
-                <filter id="els-glow" x="-60%" y="-60%" width="220%" height="220%">
-                  <feGaussianBlur stdDeviation="3" result="b1"/>
-                  <feGaussianBlur stdDeviation="9" result="b2"/>
-                  <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
-                <linearGradient id="els-beam" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
-                  <stop offset="40%" stopColor="rgba(0,178,255,0.85)"/>
-                  <stop offset="50%" stopColor="#ffffff"/>
-                  <stop offset="60%" stopColor="rgba(0,178,255,0.85)"/>
-                  <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-                </linearGradient>
-              </defs>
-              <rect x="49.5" y="0" width="1" height="150" fill="url(#els-beam)"/>
-              <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
-                stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#els-glow)" strokeOpacity="0.95"/>
-              <path d="M 50 92 L 50 115 M 35 115 L 65 115"
-                stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#els-glow)" strokeOpacity="0.95"/>
-            </svg>
-          </div>
-        <p className="els-brand-alshayeb">ALSHAYEB</p>
-        <p className="els-brand-eternum">ETERNUM</p>
-        <p className="els-brand-tagline">NO BEGINNING. NO END.</p>
-        <div className="els-brand-divider" aria-hidden="true">
-          <div className="els-brand-divider-line"/>
-          <svg width="7" height="7" viewBox="0 0 9 9" fill="none">
-            <path d="M4.5 0.5L8.5 4.5L4.5 8.5L0.5 4.5Z" stroke="rgba(0,178,255,0.55)" strokeWidth="1" fill="none"/>
-          </svg>
-          <div className="els-brand-divider-line"/>
-        </div>
-      </div>
-
-      {/* Orbit + Planet system */}
-      <div className="els-orbit-system" aria-hidden="true">
-        <svg className="els-orbit-svg" width="320" height="320" viewBox="0 0 320 320">
-          <defs>
-            <radialGradient id="els-planet-grad" cx="42%" cy="38%" r="60%">
-              <stop offset="0%"   stopColor="#1a3a6a"/>
-              <stop offset="40%"  stopColor="#0a1e42"/>
-              <stop offset="100%" stopColor="#030c22"/>
-            </radialGradient>
-            <radialGradient id="els-planet-glow-outer-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%"   stopColor="rgba(0,100,200,0.18)"/>
-              <stop offset="100%" stopColor="rgba(0,100,200,0)"/>
-            </radialGradient>
-            <radialGradient id="els-planet-glow-inner-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%"   stopColor="rgba(0,178,255,0.12)"/>
-              <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-            </radialGradient>
-            <filter id="els-planet-shadow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="6" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          {/* Outer ambient glow */}
-          <circle className="els-planet-glow-outer" cx={cx} cy={cy} r="130" fill="url(#els-planet-glow-outer-grad)"/>
-
-          {/* Ring 1 — slow, solid */}
-          <g className="els-ring-1">
-            <ellipse cx={cx} cy={cy} rx={rings[0].r} ry={rings[0].r * 0.28}
-              stroke={rings[0].stroke} strokeWidth="1" fill="none" strokeDasharray={rings[0].dash}/>
-            {rings[0].dots.map(deg => {
-              const rad = (deg * Math.PI) / 180;
-              const dx = Math.cos(rad) * rings[0].r;
-              const dy = Math.sin(rad) * rings[0].r * 0.28;
-              return <circle key={deg} cx={cx + dx} cy={cy + dy} r={rings[0].dotR}
-                fill={rings[0].dotColor} style={{filter:`drop-shadow(${rings[0].dotGlow})`}}/>;
-            })}
-          </g>
-
-          {/* Ring 2 — mid speed, dashed */}
-          <g className="els-ring-2">
-            <ellipse cx={cx} cy={cy} rx={rings[1].r} ry={rings[1].r * 0.24}
-              stroke={rings[1].stroke} strokeWidth="0.8" fill="none" strokeDasharray={rings[1].dash}/>
-            {rings[1].dots.map(deg => {
-              const rad = (deg * Math.PI) / 180;
-              const dx = Math.cos(rad) * rings[1].r;
-              const dy = Math.sin(rad) * rings[1].r * 0.24;
-              return <circle key={deg} cx={cx + dx} cy={cy + dy} r={rings[1].dotR}
-                fill={rings[1].dotColor} style={{filter:`drop-shadow(${rings[1].dotGlow})`}}/>;
-            })}
-          </g>
-
-          {/* Ring 3 — reverse, inner */}
-          <g className="els-ring-3">
-            <ellipse cx={cx} cy={cy} rx={rings[2].r} ry={rings[2].r * 0.22}
-              stroke={rings[2].stroke} strokeWidth="0.7" fill="none" strokeDasharray={rings[2].dash}/>
-            {rings[2].dots.map(deg => {
-              const rad = (deg * Math.PI) / 180;
-              const dx = Math.cos(rad) * rings[2].r;
-              const dy = Math.sin(rad) * rings[2].r * 0.22;
-              return <circle key={deg} cx={cx + dx} cy={cy + dy} r={rings[2].dotR}
-                fill={rings[2].dotColor} style={{filter:`drop-shadow(${rings[2].dotGlow})`}}/>;
-            })}
-          </g>
-
-          {/* Planet body */}
-          <circle cx={cx} cy={cy} r="72" fill="url(#els-planet-grad)" filter="url(#els-planet-shadow)"/>
-          {/* Planet highlight */}
-          <ellipse cx={cx - 14} cy={cy - 18} rx="22" ry="14" fill="rgba(255,255,255,0.04)"/>
-          {/* Inner glow */}
-          <circle className="els-planet-glow-inner" cx={cx} cy={cy} r="80" fill="url(#els-planet-glow-inner-grad)"/>
-        </svg>
-
-        {/* LOADING label centered in planet */}
-        <p className="els-loading-label">LOADING</p>
-      </div>
-
-      {/* Progress section */}
-      <div className="els-progress-section">
-        <p className="els-preparing-label">PREPARING YOUR EXPERIENCE</p>
-        <div className="els-progress-bar-track">
-          <div className="els-progress-bar-fill" style={{ width: `${pct}%` }}/>
-        </div>
-        <p className="els-progress-pct">{Math.round(pct)}%</p>
-      </div>
-
-      {/* Feature cards */}
-      <div className="els-features">
-        {[
-          {
-            title: 'SECURE',
-            desc: 'Your data is protected',
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.75)" strokeWidth="1.3" strokeLinecap="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <polyline points="9 12 11 14 15 10"/>
-              </svg>
-            )
-          },
-          {
-            title: 'PRIVATE',
-            desc: 'Your journey stays private',
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.75)" strokeWidth="1.3" strokeLinecap="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M2 12C4 7,9 4,12 4s8 3,10 8c-2 5-7 8-10 8S4 17,2 12z"/>
-                <line x1="3" y1="3" x2="21" y2="21" strokeOpacity="0.35"/>
-              </svg>
-            )
-          },
-          {
-            title: 'SEAMLESS',
-            desc: 'Built for a smooth experience',
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.75)" strokeWidth="1.3" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10"/>
-                <circle cx="12" cy="12" r="3"/>
-                <line x1="12" y1="2" x2="12" y2="9"/>
-                <line x1="12" y1="15" x2="12" y2="22"/>
-              </svg>
-            )
-          },
-          {
-            title: 'ETERNAL',
-            desc: 'Designed to inspire',
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.75)" strokeWidth="1.3" strokeLinecap="round">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-              </svg>
-            )
-          },
-        ].map(f => (
-          <div key={f.title} className="els-feature">
-            <div className="els-feature-icon">{f.icon}</div>
-            <p className="els-feature-title">{f.title}</p>
-            <p className="els-feature-desc">{f.desc}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <footer className="els-footer">
-        <div className="els-footer-line">
-          <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5L8.5 4.5L4.5 8.5L0.5 4.5Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
-          <p className="els-footer-text">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
-          <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5L8.5 4.5L4.5 8.5L0.5 4.5Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
-        </div>
-        <p className="els-footer-brand">ALSHAYEB ETERNUM</p>
-      </footer>
-    </div>
-  );
-}
-
 function PublicWebsite() {
   const [phone, setPhone] = useState("");
   const [foundClient, setFoundClient] = useState(null);
   const [loading, setLoading] = useState(true);
-  /* showLoader stays true for at least MIN_LOAD_MS after loading starts,
-     preventing the screen from flashing away too quickly */
-  const MIN_LOAD_MS = 1800;
-  const loadStartRef = useRef(Date.now());
-  const [showLoader, setShowLoader] = useState(true);
-
-  /* When loading flips false, enforce the minimum display duration */
-  useEffect(() => {
-    if (!loading) {
-      const elapsed = Date.now() - loadStartRef.current;
-      const remaining = Math.max(0, MIN_LOAD_MS - elapsed);
-      const t = window.setTimeout(() => setShowLoader(false), remaining);
-      return () => window.clearTimeout(t);
-    }
-  }, [loading]);
-
   const [page, setPageState] = useState(() => {
     if (typeof window === "undefined") return "home";
     return window.history.state?.eternumPage || "home";
   });
   const pageRef = useRef(page);
-
   const isBrowserHistoryNavigation = useRef(false);
   const [errors, setErrors] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(events[0]);
@@ -1169,11 +887,6 @@ function PublicWebsite() {
     return <p className="field-error">{errors[name]}</p>;
   };
 
-  /* ---- Global public loading screen — blocks all public content ---- */
-  if (showLoader) {
-    return <EternumLoadingScreen visible={loading} />;
-  }
-
   if (page === "notfound") {
     return (
       <PublicShell className="status-public-page" onNavigate={setPage}>
@@ -1236,7 +949,12 @@ function PublicWebsite() {
                 <stop offset="100%" stopColor="rgba(0,178,255,0)" />
               </linearGradient>
             </defs>
+            
+            {/* The vertical beam */}
             <rect x="49.5" y="0" width="1" height="150" fill="url(#beam-grad)" />
+            <rect x="48.5" y="60" width="3" height="30" fill="#ffffff" filter="blur(2px)" />
+
+            {/* Spade outline - sharp and elegant */}
             <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z" stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
             <path d="M 50 92 L 50 115 M 35 115 L 65 115" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
           </svg>
@@ -1572,6 +1290,7 @@ function PublicWebsite() {
               </linearGradient>
             </defs>
             <rect x="49.5" y="0" width="1" height="150" fill="url(#beam-grad)" />
+            <rect x="48.5" y="60" width="3" height="30" fill="#ffffff" filter="blur(2px)" />
             <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z" stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
             <path d="M 50 92 L 50 115 M 35 115 L 65 115" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
           </svg>
@@ -1681,6 +1400,7 @@ function PublicWebsite() {
               </linearGradient>
             </defs>
             <rect x="49.5" y="0" width="1" height="150" fill="url(#beam-grad)" />
+            <rect x="48.5" y="60" width="3" height="30" fill="#ffffff" filter="blur(2px)" />
             <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z" stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
             <path d="M 50 92 L 50 115 M 35 115 L 65 115" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#spade-glow)" strokeOpacity="0.95" />
           </svg>
@@ -2526,20 +2246,19 @@ function PublicWebsite() {
   }
 
   if (page === "ticket" && foundClient) {
-    const guestName      = safeValue(foundClient.name || foundClient.Name || foundClient.fullName, "Guest");
-    const guestPhone     = safeValue(foundClient.phone || foundClient.Phone || foundClient.phoneNumber, "—");
-    const qrId           = safeValue(foundClient.qr || foundClient.QR || foundClient.qrId || foundClient.id || foundClient.ID, "N/A");
-    const qrValue        = String(foundClient.qrToken || foundClient.qr || foundClient.QR || "").trim();
-    const accessType     = safeValue(foundClient.accessType || foundClient["Access Type"] || foundClient.type || foundClient.attendeeType, "OUTCOMER");
+    const guestName      = safeValue(foundClient.name || foundClient.Name, "Guest");
+    const guestPhone     = safeValue(foundClient.phone || foundClient.Phone, "—");
+    const qrId           = safeValue(foundClient.qr || foundClient.QR || foundClient.id || foundClient.ID, "N/A");
+    const qrValue        = String(foundClient.qr || foundClient.QR || "").trim();
+    const accessType     = safeValue(foundClient.accessType || foundClient["Access Type"] || foundClient.type, "OUTCOMER");
     const rawStatus      = safeValue(foundClient.status || foundClient.Status, "Active");
     const isUsed         = rawStatus.toLowerCase() === "used";
     const venue          = "ALSHAYEB ETERNUM";
     const school         = safeValue(foundClient.schoolOrOriginProm || foundClient.school || foundClient.School, "—");
-    const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname || guestName.split(" ")[0], "—");
+    const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname, "—");
 
-    const ticketPromEvent   = findPromEvent(foundClient.eventName || foundClient.event || foundClient.Venue || venue);
-    const rawDateTime       = ticketPromEvent?.dateTime || ticketPromEvent?.date || foundClient.PromDateTime || foundClient.eventDate || null;
-    const ticketRevealDate  = rawDateTime ? new Date(rawDateTime).getTime() : new Date(QR_REVEAL_TIME).getTime();
+    const ticketPromEvent   = findPromEvent(foundClient.eventName || foundClient.Venue || foundClient.event);
+    const ticketRevealDate  = new Date(foundClient.PromDateTime || eventDateTimeValue(ticketPromEvent)).getTime();
     const safeRevealDate    = Number.isFinite(ticketRevealDate) ? ticketRevealDate : new Date(QR_REVEAL_TIME).getTime();
     const ticketQrLocked    = now < safeRevealDate;
     const ticketDistance    = Math.max(safeRevealDate - now, 0);
@@ -2548,9 +2267,8 @@ function PublicWebsite() {
     const tSecs    = Math.floor((ticketDistance / 1000) % 60);
 
     // Format event date and entry time from event data
-    const eventDateDisp = rawDateTime 
-      ? new Date(rawDateTime).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}).toUpperCase() 
-      : "TBA";
+    const rawDateTime   = ticketPromEvent?.dateTime || foundClient.PromDateTime || null;
+    const eventDateDisp = ticketPromEvent?.date || (rawDateTime ? new Date(rawDateTime).toLocaleDateString("en-GB", {day:"numeric", month:"long", year:"numeric"}).toUpperCase() : "TBA");
     const entryTimeDisp = rawDateTime
       ? new Date(rawDateTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
       : "TBA";
@@ -2637,29 +2355,29 @@ function PublicWebsite() {
         <div className="tkt-identity-card">
           <p className="tkt-identity-title">ACCESS IDENTITY</p>
           {[
-            { icon: "user-solid", label: "NAME",          val: guestName.toUpperCase() },
-            { icon: "user",       label: "PREFERRED NAME", val: preferredName.toUpperCase() },
-            { icon: "school",     label: "SCHOOL",         val: school.toUpperCase() },
-            { icon: "phone",      label: "PHONE NUMBER",   val: guestPhone },
-            { icon: "id",         label: "ID",             val: qrId.toUpperCase() },
-            { icon: "crown",      label: "ACCESS TYPE",    val: accessType.toUpperCase(), color: "#00b2ff" },
-            { icon: "shield",     label: "STATUS",         val: isUsed ? "USED BEFORE" : "ACTIVE", color: isUsed ? "#ff3366" : "#00b2ff", dot: true },
-            { icon: "cal",        label: "DATE",           val: eventDateDisp },
-            { icon: "clock",      label: "ENTRY TIME",     val: entryTimeDisp },
-            { icon: "venue",      label: "VENUE",          val: venue },
+            { icon: "user",   label: "NAME",          val: guestName.toUpperCase() },
+            { icon: "star",   label: "PREFERRED NAME", val: preferredName.toUpperCase() },
+            { icon: "school", label: "SCHOOL",         val: school.toUpperCase() },
+            { icon: "phone",  label: "PHONE NUMBER",   val: guestPhone },
+            { icon: "id",     label: "ID",             val: qrId.toUpperCase() },
+            { icon: "crown",  label: "ACCESS TYPE",    val: accessType.toUpperCase(), color: "#00b2ff" },
+            { icon: "shield", label: "STATUS",         val: isUsed ? "USED BEFORE" : "ACTIVE", color: isUsed ? "#ff3366" : "#00b2ff", dot: true },
+            { icon: "cal",    label: "DATE",           val: eventDateDisp },
+            { icon: "clock",  label: "ENTRY TIME",     val: entryTimeDisp },
+            { icon: "venue",  label: "VENUE",          val: venue },
           ].map(({ icon, label, val, color, dot }) => (
             <div key={label} className="tkt-id-row">
               <div className="tkt-id-icon">
-                {icon === "user-solid" && <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(0,178,255,0.4)" stroke="none"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>}
-                {icon === "user"       && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
-                {icon === "school"     && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>}
-                {icon === "phone"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
-                {icon === "id"         && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-12c0 1.1.9 2 2 2s2-.9 2-2-.9-2-2-2-2 .9-2 2zm-4 7c0-2.21 1.79-4 4-4s4 1.79 4 4"/></svg>}
-                {icon === "crown"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M2 4l4 8 6-4 6 4 4-8"/><path d="M4 17h16"/><path d="M4 20h16"/></svg>}
-                {icon === "shield"     && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>}
-                {icon === "cal"        && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
-                {icon === "clock"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-                {icon === "venue"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+                {icon === "user"   && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
+                {icon === "star"   && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><circle cx="17" cy="7" r="2" fill="rgba(0,178,255,0.3)"/></svg>}
+                {icon === "school" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>}
+                {icon === "phone"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
+                {icon === "id"     && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 10h4M14 14h2"/></svg>}
+                {icon === "crown"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M2 4l4 8 6-4 6 4 4-8"/><path d="M4 17h16"/><path d="M4 20h16"/></svg>}
+                {icon === "shield" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                {icon === "cal"    && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
+                {icon === "clock"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+                {icon === "venue"  && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><circle cx="18" cy="7" r="2" fill="rgba(0,178,255,0.2)"/><circle cx="6" cy="7" r="2" fill="rgba(0,178,255,0.2)"/></svg>}
               </div>
               <span className="tkt-id-label">{label}</span>
               <span className="tkt-id-val" style={color ? {color} : {}}>
@@ -2814,7 +2532,7 @@ function PublicWebsite() {
         </div>
 
         <footer className="guest-list-footer">
-          <span>&bull; ALSHAYEB ETERNUM &bull;</span>
+          <span>&bull; ALSHAYEB EXPERIENCE &bull;</span>
         </footer>
       </PublicShell>
     );
