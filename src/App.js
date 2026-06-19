@@ -2841,30 +2841,18 @@ function PublicWebsite() {
 
         {/* SPADE LOGO */}
         <div className="incomer-logo-container">
-          <div className="incomer-beam-top" />
-          <svg width="116" height="118" viewBox="0 0 116 118" fill="none" xmlns="http://www.w3.org/2000/svg" className="incomer-spade-svg">
-            <circle cx="58" cy="54" r="52" stroke="rgba(30,80,180,0.18)" strokeWidth="0.8" fill="none" />
-            <circle cx="58" cy="54" r="42" stroke="rgba(30,80,180,0.13)" strokeWidth="0.7" fill="none" />
-            <path d="M 58 12 C 58 12, 14 28, 14 56 C 14 74, 34 82, 58 76 C 82 82, 102 74, 102 56 C 102 28, 58 12, 58 12 Z" stroke="#00b2ff" strokeWidth="2.2" strokeLinejoin="round" fill="none" />
-            <path d="M 58 18 C 58 18, 22 33, 22 57 C 22 70, 38 77, 58 72 C 78 77, 94 70, 94 57 C 94 33, 58 18, 58 18 Z" stroke="rgba(0,178,255,0.25)" strokeWidth="1" fill="none" />
-            <path d="M 36 76 Q 58 58 80 76" stroke="#00b2ff" strokeWidth="2" fill="none" strokeLinecap="round" />
-            <line x1="58" y1="76" x2="58" y2="96" stroke="#00b2ff" strokeWidth="2" strokeLinecap="round" />
-            <path d="M 40 110 C 44 96, 58 96, 58 96 C 58 96, 72 96, 76 110" stroke="#00b2ff" strokeWidth="2" fill="none" strokeLinecap="round" />
-          </svg>
-          <div className="incomer-beam-bottom" />
+          <img
+            src={process.env.PUBLIC_URL + "/spade-reference.png"}
+            alt="Eternum Spade"
+            className="incomer-spade-img"
+            draggable="false"
+          />
         </div>
 
         {/* BRAND TYPOGRAPHY */}
         <div className="incomer-brand-typography">
           <p className="incomer-brand-alshayeb">ALSHAYEB</p>
-          <div className="incomer-brand-eternum">
-            <span className="incomer-brand-e">
-              <span className="incomer-brand-e-bar-top" />
-              <span className="incomer-brand-e-bar-mid" />
-              <span className="incomer-brand-e-bar-bot" />
-            </span>
-            TERNUM
-          </div>
+          <div className="incomer-brand-eternum">ETERNUM</div>
           <p className="incomer-brand-subtitle">NO BEGINNING. NO END.</p>
         </div>
 
@@ -2972,79 +2960,93 @@ function PublicWebsite() {
 
   return (
     <main className="eternum-home">
-      <AnimatedBackground />
-      <div className="eternum-frame" aria-hidden="true"></div>
-      <div className="eternum-axis" aria-hidden="true"></div>
+      {/* Spade brand asset */}
+      <img
+        src={process.env.PUBLIC_URL + "/spade-reference.png"}
+        alt=""
+        aria-hidden="true"
+        className="home-spade-asset"
+        draggable="false"
+      />
 
-      <section className="eternum-hero" aria-label="ALSHAYEB ETERNUM">
-        <div className="sigil-mark" aria-hidden="true">
-          <span></span>
+      {/* Brand header */}
+      <div className="home-brand">
+        <p className="home-brand-alshayeb">ALSHAYEB</p>
+        <h1 className="home-brand-eternum">ETERNUM</h1>
+        <span className="home-brand-tagline">NO BEGINNING. NO END.</span>
+      </div>
+
+      {/* Virtual assistant */}
+      <div className="home-assistant-wrap">
+        <img
+          src={process.env.PUBLIC_URL + "/home-assistant.png"}
+          alt="Eternum Virtual Assistant"
+          className="home-assistant-img"
+          draggable="false"
+        />
+      </div>
+
+      {/* Access protocol */}
+      <div className="home-access-section">
+        <div className="home-protocol-status">
+          <span className="home-protocol-dot"></span>
+          <span className="home-protocol-text">ACCESS PROTOCOL ACTIVE</span>
         </div>
-
-        <div className="brand-lockup">
-          <p>ALSHAYEB</p>
-          <h1>ETERNUM</h1>
-          <span>NO BEGINNING. NO END.</span>
+        <h2 className="home-choose-path">Choose your path.</h2>
+        <div className="home-diamond-divider" aria-hidden="true">
+          <div className="home-diamond-divider-line"></div>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M5 0.5L9.5 5L5 9.5L0.5 5Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/>
+          </svg>
+          <div className="home-diamond-divider-line"></div>
         </div>
+      </div>
 
-        <div className="portal-scene" aria-hidden="true">
-          <div className="portal-rings"></div>
-          <div className="portal-gate"></div>
-          <div className="portal-floor"></div>
-          <span className="obelisk obelisk-left one"></span>
-          <span className="obelisk obelisk-left two"></span>
-          <span className="obelisk obelisk-right one"></span>
-          <span className="obelisk obelisk-right two"></span>
+      {/* Path cards */}
+      <div className="home-path-list">
+        <button className="home-path-card" type="button" onClick={() => setPage("incomer")}>
+          <span className="home-path-number">01</span>
+          <span className="home-path-copy">
+            <span className="home-path-kicker">THE INVITED</span>
+            <span className="home-path-name">INCOMER</span>
+            <span className="home-path-desc">Already invited? Access your digital pass and event details.</span>
+          </span>
+          <span className="home-path-divider"></span>
+          <span className="home-path-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button className="home-path-card" type="button" onClick={() => setPage("outcomerLanding")}>
+          <span className="home-path-number">02</span>
+          <span className="home-path-copy">
+            <span className="home-path-kicker">THE SEEKERS</span>
+            <span className="home-path-name">OUTCOMER</span>
+            <span className="home-path-desc">Request access to join the experience. Applications are reviewed by the committee.</span>
+          </span>
+          <span className="home-path-divider"></span>
+          <span className="home-path-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button className="home-path-card hpc-gold" type="button" onClick={() => setPage("guestList")}>
+          <span className="home-path-number">03</span>
+          <span className="home-path-copy">
+            <span className="home-path-kicker">THE ETERNAL LIST</span>
+            <span className="home-path-name">GUEST LIST</span>
+            <span className="home-path-desc">Feeling lucky? Check if your name made it onto the Eternal List.</span>
+          </span>
+          <span className="home-path-divider"></span>
+          <span className="home-path-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
+
+      {/* Footer */}
+      <footer className="home-footer">
+        <span className="home-footer-tagline">NO BEGINNING. NO END.</span>
+        <div className="home-footer-brand">
+          <svg width="4" height="4" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5L8.5 4.5L4.5 8.5L0.5 4.5Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
+          ALSHAYEB EXPERIENCE
+          <svg width="4" height="4" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5L8.5 4.5L4.5 8.5L0.5 4.5Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
         </div>
-      </section>
-
-      <section className="path-section" aria-label="Choose your path">
-        <div className="path-title">
-          <span></span>
-          <h2>CHOOSE YOUR PATH</h2>
-          <span></span>
-        </div>
-
-        <div className="path-card-list">
-          <button className="path-card path-blue" type="button" onClick={() => setPage("incomer")}>
-            <span className="path-number">01</span>
-            <span className="path-copy">
-              <span className="path-kicker">THE ETERNAL LIST</span>
-              <strong>INCOMER</strong>
-              <span className="path-description">Already registered?<br />Access your digital pass and event details.</span>
-            </span>
-            <span className="path-divider"></span>
-            <span className="path-arrow" aria-hidden="true">&rarr;</span>
-          </button>
-
-          <button className="path-card path-purple" type="button" onClick={() => setPage("outcomerLanding")}>
-            <span className="path-number">02</span>
-            <span className="path-copy">
-              <span className="path-kicker">THE SEEKERS</span>
-              <strong>OUTCOMER</strong>
-              <span className="path-description">Request access to join the experience. Applications are reviewed by the committee.</span>
-            </span>
-            <span className="path-divider"></span>
-            <span className="path-arrow" aria-hidden="true">&rarr;</span>
-          </button>
-
-          <button className="path-card path-gold" type="button" onClick={() => setPage("guestList")}>
-            <span className="path-number">03</span>
-            <span className="path-copy">
-              <span className="path-kicker">THE INVITED</span>
-              <strong>GUEST LIST</strong>
-              <span className="path-description">Feeling lucky?<br />Check if your name made it onto the Eternal List.</span>
-            </span>
-            <span className="path-divider"></span>
-            <span className="path-arrow" aria-hidden="true">&rarr;</span>
-          </button>
-        </div>
-
-        <footer className="home-footer">
-          <p>YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
-          <span>ALSHAYEB ETERNUM</span>
-        </footer>
-      </section>
+      </footer>
     </main>
   );
 }
