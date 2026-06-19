@@ -9524,3 +9524,9 @@ body::after {
   text-indent: 0.45em;
   margin: 0;
 }
+
+@media (max-width: 600px) {
+  .incomer-brand-typography {
+    margin-top: -95px; /* بدل -90px */
+  }
+}
