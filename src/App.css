@@ -6075,7 +6075,7 @@ body::after {
 
 .incomer-brand-typography {
   text-align: center;
-  margin-top: -180px;
+  margin-top: -90px;
   line-height: 1;
   position: relative;
   z-index: 3;
@@ -6447,81 +6447,52 @@ body::after {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 20px;
-  position: relative;
+  margin-top: 12px;
 }
 
-.outcomer-beam-top {
-  display: none;
-}
-
-.outcomer-spade-svg {
-  z-index: 2;
-  position: relative;
-}
-
-.outcomer-beam-bottom {
-  display: none;
+.outcomer-spade-img {
+  display: block;
+  width: clamp(160px, 55vw, 280px);
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  transform: translateY(-35px); 
+  filter: drop-shadow(0 0 18px rgba(0, 140, 255, 0.5)) drop-shadow(0 0 40px rgba(0, 100, 255, 0.25));
 }
 
 .outcomer-brand-typography {
   text-align: center;
-  margin-top: 10px;
+  margin-top: -90px;
   line-height: 1;
+  position: relative;
+  z-index: 3;
 }
 
 .outcomer-brand-alshayeb {
-  font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: 0.68rem;
-  font-weight: 400;
-  letter-spacing: 0.62em;
-  color: rgba(255,255,255,0.72);
+  font-family: 'Michroma', 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 550;
+  letter-spacing: 0.78em;
+  color: rgba(255,255,255,0.65);
   text-transform: uppercase;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .outcomer-brand-eternum {
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: 'Michroma', 'Inter', sans-serif;
   font-weight: 300;
-  font-size: clamp(2.2rem, 8.5vw, 3.2rem);
-  letter-spacing: 0.42em;
+  font-size: clamp(1.8rem, 5.5vw, 2.7rem);
+  letter-spacing: 0.45em;
   color: #ffffff;
   text-shadow: 0 0 22px rgba(255,255,255,0.18);
   line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.outcomer-brand-e {
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 6px;
-  margin-right: 0.35em;
-  position: relative;
-  top: 1px;
-}
-
-.outcomer-brand-e span {
-  display: block;
-  height: 2px;
-  background: #fff;
-  border-radius: 1px;
-}
-
-.outcomer-brand-e-bar-top, .outcomer-brand-e-bar-bot {
-  width: 0.54em;
-}
-
-.outcomer-brand-e-bar-mid {
-  width: 0.4em;
+  text-align: center;
+  margin-bottom: 6px;
 }
 
 .outcomer-brand-subtitle {
   font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 500;
   letter-spacing: 0.36em;
   color: #00b2ff;
@@ -6919,59 +6890,6 @@ body::after {
 
 .outcomer-register-container {
   padding-bottom: 80px;
-}
-
-.outcomer-reg-logo {
-  margin-top: -20px;
-}
-
-.outcomer-reg-header {
-  text-align: center;
-  margin-top: 15px;
-  margin-bottom: 30px;
-  width: 100%;
-  max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.outcomer-reg-eyebrow {
-  font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: 0.5rem;
-  font-weight: 300;
-  letter-spacing: 0.4em;
-  color: #ffffff;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-
-.outcomer-reg-title {
-  font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: 1.3rem;
-  font-weight: 300;
-  letter-spacing: 0.35em;
-  color: #ffffff;
-  text-transform: uppercase;
-  margin-bottom: 15px;
-  text-indent: 0.35em; /* Compensate for wide tracking */
-}
-
-.outcomer-reg-subtitle {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.55rem;
-  font-weight: 500;
-  letter-spacing: 0.15em;
-  color: rgba(0, 178, 255, 0.85);
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.outcomer-reg-dot {
-  color: rgba(255,255,255,0.3);
-  font-size: 0.5rem;
 }
 
 .outcomer-reg-form {
