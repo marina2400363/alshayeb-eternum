@@ -6069,6 +6069,7 @@ body::after {
   height: auto;
   object-fit: contain;
   pointer-events: none;
+  transform: translateY(-35px); 
   filter: drop-shadow(0 0 18px rgba(0, 140, 255, 0.5)) drop-shadow(0 0 40px rgba(0, 100, 255, 0.25));
 }
 
@@ -9522,10 +9523,4 @@ body::after {
   text-transform: uppercase;
   text-indent: 0.45em;
   margin: 0;
-}
-
-@media (max-width: 600px) {
-  .incomer-brand-typography {
-    margin-top: -67px; /* بدل -90px */
-  }
 }
