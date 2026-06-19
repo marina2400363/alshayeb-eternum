@@ -2661,47 +2661,98 @@ function PublicWebsite() {
 
   if (page === "guestList") {
     return (
-      <PublicShell className="guest-list-reference" onNavigate={setPage}>
-        <div className="guest-list-body">
-          <section className="guest-list-hero" aria-label="ALSHAYEB ETERNUM Guest List">
-            <div className="guest-list-sigil-wrap" aria-hidden="true">
-              <div className="eternum-sigil guest-list-sigil"></div>
-            </div>
-            <p>ALSHAYEB</p>
-            <h1>ETERNUM</h1>
-            <span>NO BEGINNING. NO END.</span>
-          </section>
+      <div className="incomer-page-container guest-list-reference">
+        {/* BACK ARROW */}
+        <div className="incomer-back-wrapper">
+          <button
+            onClick={() => setPage('home')}
+            aria-label="Go back"
+            className="incomer-back-btn"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+        </div>
 
-          <section className="guest-list-title-block">
-            <h2>GUEST LIST</h2>
-            <p>Check if your name<br />made it onto the Eternal List.</p>
-          </section>
+        {/* ELEGANT SPADE LOGO */}
+        <div className="incomer-logo-container">
+          <img
+            src={process.env.PUBLIC_URL + "/spade-reference.png"}
+            alt="Eternum Spade"
+            className="incomer-spade-img"
+            draggable="false"
+          />
+        </div>
 
-          <section className={`guest-phone-card ${errors.phoneSearch ? "error-input" : ""}`}>
-            <div className="guest-phone-row">
-              <span className="guest-phone-icon" aria-hidden="true">☎</span>
-              <input
-                type="text"
-                inputMode="tel"
-                placeholder="Enter your phone number"
-                value={phone}
-                onChange={(event) => {
-                  setPhone(event.target.value);
-                  setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    handleSearch();
-                  }
-                }}
-              />
-              <button type="button" onClick={handleSearch} disabled={loading} aria-label="Check guest list">
-                &rarr;
-              </button>
+        {/* BRAND TYPOGRAPHY */}
+        <div className="incomer-brand-typography">
+          <p className="incomer-brand-alshayeb">ALSHAYEB</p>
+          <div className="incomer-brand-eternum">ETERNUM</div>
+          <p className="incomer-brand-subtitle">NO BEGINNING. NO END.</p>
+        </div>
+
+        {/* DIAMOND DIVIDER UPPER */}
+        <div className="incomer-diamond-divider">
+          <div className="incomer-diamond-line-left" />
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.65)" strokeWidth="1" fill="none" />
+          </svg>
+          <div className="incomer-diamond-line-right" />
+        </div>
+
+        {/* WELCOME HEADING */}
+        <div className="incomer-welcome-box">
+          <h2>GUEST LIST</h2>
+          <p>Check if your name<br />made it onto the Eternal List.</p>
+        </div>
+
+        {/* ERROR MESSAGES */}
+        {loading && <p className="incomer-loading">Checking guest list...</p>}
+
+        {/* PHONE FORM */}
+        <form className="incomer-phone-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+          <label>PHONE NUMBER</label>
+          <div className="incomer-phone-row">
+            <div className="incomer-country-code">
+              +20
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
-            <p>We&rsquo;ll check the Eternal List for you.</p>
-          </section>
-          <FieldError name="phoneSearch" />
+            <input
+              type="tel"
+              placeholder="Enter your phone number"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setErrors((prev) => ({ ...prev, phoneSearch: "" }));
+              }}
+              disabled={loading}
+              required
+              autoComplete="tel"
+            />
+          </div>
+          
+          {errors.phoneSearch && (
+            <p className="incomer-error-text">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px', verticalAlign: 'middle'}}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              {errors.phoneSearch}
+            </p>
+          )}
+
+          <button type="submit" className="incomer-continue-btn" disabled={loading}>
+            <div style={{ width: '18px', flexShrink: 0 }} />
+            <span>{loading ? 'CHECKING...' : 'CHECK STATUS'}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
+        </form>
 
           <section className="guest-count-card" aria-label="Current guest list count">
             <h3>CURRENT GUEST LIST</h3>
@@ -2722,12 +2773,10 @@ function PublicWebsite() {
               discretion of the <span className="guest-notice-highlight">ALSHAYEB&rsquo;s</span> team.
             </p>
           </section>
-        </div>
-
         <footer className="guest-list-footer">
           <span>&bull; ALSHAYEB ETERNUM &bull;</span>
         </footer>
-      </PublicShell>
+      </div>
     );
   }
 
