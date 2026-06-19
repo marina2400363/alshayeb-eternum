@@ -3,10 +3,6 @@
 }
 
 :root {
-  --homepage-reference-image: url("./assets/homepage-reference.jpeg");
-  --incomer-bg-image: url("./assets/incomer-background-clean.png");
-  --outcomer-bg-image: url("./assets/outcomer-background.png");
-  --eternum-bg-image: url("./assets/eternum-gate-bg.png");
   --eternum-black: #02040b;
   --eternum-void: #050713;
   --eternum-navy: #07152c;
@@ -3733,7 +3729,6 @@ body {
 body::before {
   background:
     linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.7)),
-    var(--eternum-bg-image) center top / min(100vw, 720px) auto no-repeat,
     #000;
   opacity: 1;
 }
@@ -3756,7 +3751,6 @@ body::after {
   padding: 0;
   background:
     linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.58)),
-    var(--eternum-bg-image) center top / cover no-repeat,
     #000;
 }
 
@@ -3773,8 +3767,7 @@ body::after {
   border: 0;
   border-radius: 0;
   background:
-    linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.08) 42%, rgba(0,0,0,0.76) 70%, rgba(0,0,0,0.98) 100%),
-    var(--eternum-bg-image) center -48px / cover no-repeat;
+    linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.08) 42%, rgba(0,0,0,0.76) 70%, rgba(0,0,0,0.98) 100%);
   box-shadow: none;
   justify-content: flex-start;
 }
@@ -3782,8 +3775,7 @@ body::after {
 .reference-flow.form-reference .cosmic-card,
 .reference-flow.lookup-reference .cosmic-card {
   background:
-    linear-gradient(180deg, rgba(0,0,0,0.36), rgba(0,0,0,0.82)),
-    var(--eternum-bg-image) center -48px / cover no-repeat;
+    linear-gradient(180deg, rgba(0,0,0,0.36), rgba(0,0,0,0.82));
 }
 
 .reference-flow .back-icon {
@@ -3966,7 +3958,6 @@ body::after {
   padding: 0;
   background:
     linear-gradient(180deg, rgba(0,0,0,0.36), #000 42%, #000 100%),
-    var(--eternum-bg-image) center -120px / min(100vw, 660px) auto no-repeat,
     #000;
 }
 
@@ -4058,7 +4049,6 @@ body::after {
   body::before {
     background:
       linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.72)),
-      var(--eternum-bg-image) center top / cover no-repeat,
       #000;
   }
 
@@ -4158,8 +4148,7 @@ body::after {
   border: 0;
   border-radius: 0;
   background:
-    linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.04) 45%, rgba(0,0,0,0.16) 68%, rgba(0,0,0,0.78) 100%),
-    var(--incomer-bg-image) center top / 100% 100% no-repeat;
+    linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.04) 45%, rgba(0,0,0,0.16) 68%, rgba(0,0,0,0.78) 100%);
   box-shadow: none;
 }
 
@@ -4502,9 +4491,6 @@ body::after {
   border: none !important;
   border-radius: 0 !important;
   overflow: hidden !important;
-  background-image: var(--outcomer-bg-image) !important;
-  background-size: 100% 932px !important;
-  background-position: top center !important;
   background-repeat: no-repeat !important;
   box-shadow: none !important;
   transform: none !important;

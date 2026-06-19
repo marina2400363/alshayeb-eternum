@@ -977,6 +977,14 @@ function PublicWebsite() {
       setTrackedRegistration(existing.data);
       setRequest((prev) => ({ ...prev, ...existing.data }));
       setErrors({});
+
+      if (existing.data.paymentStatus === "pending" && !existing.data.paymentProof) {
+        const foundEvent = events.find(e => e.name === existing.data.eventName || e.id === existing.data.event);
+        if (foundEvent) setSelectedEvent(foundEvent);
+        setPage("payment");
+        return true;
+      }
+
       setPage("track");
       return true;
     }
@@ -1109,16 +1117,13 @@ function PublicWebsite() {
     const backendResult = await submitBackendOutcomer(formData);
     setIsSubmitting(false);
 
-    if (!backendResult) return;
-
-    if (backendResult?.duplicate) {
-      alert("An application already exists for this phone number and event.");
-      const existing = {
+    if (backendResult?.duplicate && backendResult?.attendee) {
+      routeExistingRegistration({
         source: "backend",
-        status: backendResult.attendee?.status,
+        status: backendResult.attendee.status || backendResult.attendee.applicationStatus,
         data: backendResult.attendee
-      };
-      if (routeExistingRegistration(existing)) return;
+      });
+      return;
     }
 
     setTrackedRegistration(backendResult.attendee);
@@ -1183,7 +1188,7 @@ function PublicWebsite() {
         </div>
         
         <div style={{ width: '100%', maxWidth: '320px', margin: '24px auto 0', display: 'flex' }}>
-          <button type="button" className="incomer-continue-btn" onClick={() => setPage('home')} style={{ width: '100%' }}>
+          <button type="button" className="incomer-continue-btn" onClick={() => setPage('incomer')} style={{ width: '100%' }}>
             <div style={{ width: '18px', flexShrink: 0 }} />
             <span>GO BACK</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)' }}>
@@ -1732,7 +1737,7 @@ function PublicWebsite() {
     return (
       <div className="pay-page">
         {/* Back arrow */}
-        <button className="pay-back-btn" onClick={() => setPage("register")}>
+        <button className="pay-back-btn" onClick={() => setPage("chooseEvent")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
           </svg>
@@ -1915,7 +1920,7 @@ function PublicWebsite() {
     return (
       <div className="sub-page">
         {/* Back arrow */}
-        <button className="pay-back-btn" onClick={() => setPage("outcomerLanding")}>
+        <button className="pay-back-btn" onClick={() => setPage("trackLookup")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
           </svg>
@@ -2153,7 +2158,7 @@ function PublicWebsite() {
     return (
       <div className="trk-page">
         {/* Back */}
-        <button className="pay-back-btn" onClick={() => setPage("outcomerLanding")}>
+        <button className="pay-back-btn" onClick={() => setPage("trackLookup")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
           </svg>
@@ -2303,7 +2308,10 @@ function PublicWebsite() {
     return (
       <div className="tkt-page">
         {/* Back */}
-        <button className="pay-back-btn" onClick={() => setPage("home")}>
+        <button className="pay-back-btn" onClick={() => {
+          const isOutcomer = foundClient?.type === "OUTCOMER" || foundClient?.accessType === "OUTCOMER";
+          setPage(isOutcomer ? "track" : "incomer");
+        }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
           </svg>
