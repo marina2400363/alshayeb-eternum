@@ -246,14 +246,22 @@ const BackButton = ({ to = "home", onNavigate }) => (
   </button>
 );
 
-const EternumHeader = ({ eyebrow = "ALSHAYEB", title = "ETERNUM", subtitle = "NO BEGINNING. NO END.", compact = false }) => (
-  <header className={`eternum-header ${compact ? "compact" : ""}`}>
-      <div className="eternum-sigil" aria-hidden="true"></div>
-    <p>{eyebrow}</p>
-    <h1>{title}</h1>
-    {subtitle && <span>{subtitle}</span>}
-    <div className="eternum-divider" aria-hidden="true"><i></i></div>
-  </header>
+const BrandHeader = ({ title = "ETERNUM", subtitle = "NO BEGINNING. NO END." }) => (
+  <div className="brand-header-wrapper">
+    <div className="brand-header-logo-container">
+      <img
+        src={process.env.PUBLIC_URL + "/spade-reference.png"}
+        alt="Eternum Spade"
+        className="brand-header-spade-img"
+        draggable="false"
+      />
+    </div>
+    <div className="brand-header-typography">
+      <p className="brand-header-alshayeb">ALSHAYEB</p>
+      <div className="brand-header-eternum">{title}</div>
+      {subtitle && <p className="brand-header-subtitle">{subtitle}</p>}
+    </div>
+  </div>
 );
 
 const PublicShell = ({ children, backTo = "home", className = "", onNavigate }) => (
@@ -384,32 +392,8 @@ function EternumLoadingScreen({ visible }) {
 
       {/* Brand header */}
       <div className="els-brand">
-          <div className="els-spade-wrap" aria-hidden="true">
-            <svg width="52" height="78" viewBox="0 0 100 150" fill="none">
-              <defs>
-                <filter id="els-glow" x="-60%" y="-60%" width="220%" height="220%">
-                  <feGaussianBlur stdDeviation="3" result="b1"/>
-                  <feGaussianBlur stdDeviation="9" result="b2"/>
-                  <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
-                <linearGradient id="els-beam" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
-                  <stop offset="40%" stopColor="rgba(0,178,255,0.85)"/>
-                  <stop offset="50%" stopColor="#ffffff"/>
-                  <stop offset="60%" stopColor="rgba(0,178,255,0.85)"/>
-                  <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-                </linearGradient>
-              </defs>
-              <rect x="49.5" y="0" width="1" height="150" fill="url(#els-beam)"/>
-              <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
-                stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#els-glow)" strokeOpacity="0.95"/>
-              <path d="M 50 92 L 50 115 M 35 115 L 65 115"
-                stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#els-glow)" strokeOpacity="0.95"/>
-            </svg>
-          </div>
-        <p className="els-brand-alshayeb">ALSHAYEB</p>
-        <p className="els-brand-eternum">ETERNUM</p>
-        <p className="els-brand-tagline">NO BEGINNING. NO END.</p>
+        <BrandHeader />
+
         <div className="els-brand-divider" aria-hidden="true">
           <div className="els-brand-divider-line"/>
           <svg width="7" height="7" viewBox="0 0 9 9" fill="none">
@@ -1177,7 +1161,7 @@ function PublicWebsite() {
   if (page === "notfound") {
     return (
       <PublicShell className="status-public-page" onNavigate={setPage}>
-        <EternumHeader compact />
+        <BrandHeader />
         <section className="eternum-copy-block">
           <h2>APPLICATION NOT FOUND</h2>
           <p>No application was found with this phone number.</p>
@@ -1213,22 +1197,7 @@ function PublicWebsite() {
           </button>
         </div>
 
-        {/* ELEGANT SPADE LOGO */}
-        <div className="outcomer-logo-container">
-          <img
-            src={process.env.PUBLIC_URL + "/spade-reference.png"}
-            alt="Eternum Spade"
-            className="outcomer-spade-img"
-            draggable="false"
-          />
-        </div>
-
-        {/* BRAND TYPOGRAPHY */}
-        <div className="outcomer-brand-typography">
-          <p className="outcomer-brand-alshayeb">ALSHAYEB</p>
-          <div className="outcomer-brand-eternum">ETERNUM</div>
-          <p className="outcomer-brand-subtitle">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         {/* DIAMOND DIVIDER UPPER */}
         <div className="outcomer-diamond-divider">
@@ -1387,22 +1356,7 @@ function PublicWebsite() {
           </button>
         </div>
 
-        {/* ELEGANT SPADE LOGO */}
-        <div className="outcomer-logo-container">
-          <img
-            src={process.env.PUBLIC_URL + "/spade-reference.png"}
-            alt="Eternum Spade"
-            className="outcomer-spade-img"
-            draggable="false"
-          />
-        </div>
-
-        {/* BRAND TYPOGRAPHY */}
-        <div className="outcomer-brand-typography">
-          <p className="outcomer-brand-alshayeb">ALSHAYEB</p>
-          <div className="outcomer-brand-eternum">ETERNUM</div>
-          <p className="outcomer-brand-subtitle">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         {/* Title + subtitle */}
         <div className="outcomer-destination-header">
@@ -1506,22 +1460,7 @@ function PublicWebsite() {
           </button>
         </div>
 
-        {/* ELEGANT SPADE LOGO */}
-        <div className="outcomer-logo-container">
-          <img
-            src={process.env.PUBLIC_URL + "/spade-reference.png"}
-            alt="Eternum Spade"
-            className="outcomer-spade-img"
-            draggable="false"
-          />
-        </div>
-
-        {/* BRAND TYPOGRAPHY */}
-        <div className="outcomer-brand-typography">
-          <p className="outcomer-brand-alshayeb">ALSHAYEB</p>
-          <div className="outcomer-brand-eternum">ETERNUM</div>
-          <p className="outcomer-brand-subtitle">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         <div className="outcomer-destination-header">
           <div className="outcomer-diamond-divider small">
@@ -1589,25 +1528,10 @@ function PublicWebsite() {
           </button>
         </div>
 
-        {/* ELEGANT SPADE LOGO */}
-        <div className="outcomer-logo-container">
-          <img
-            src={process.env.PUBLIC_URL + "/spade-reference.png"}
-            alt="Eternum Spade"
-            className="outcomer-spade-img"
-            draggable="false"
-          />
-        </div>
-
-        {/* BRAND TYPOGRAPHY */}
-        <div className="outcomer-brand-typography">
-          <p className="outcomer-brand-alshayeb">ALSHAYEB</p>
-          <div className="outcomer-brand-eternum">ETERNUM</div>
-          <p className="outcomer-brand-subtitle">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         {/* FORM CARDS */}
-        <div className="outcomer-reg-form">
+        <div className="outcomer-reg-form" style={{ marginTop: '-25px' }}>
           {/* FULL NAME */}
           <div className={`outcomer-reg-card ${errors.fullName ? "error" : ""}`}>
             <div className="outcomer-reg-icon">
@@ -1909,7 +1833,7 @@ function PublicWebsite() {
   if (page === "instapay") {
     return (
       <PublicShell backTo="payment" className="payment-public-page" onNavigate={setPage}>
-        <EternumHeader title="ETERNITY" subtitle="PAYMENT METHOD" compact />
+        <BrandHeader title="ETERNITY" subtitle="PAYMENT METHOD" />
         <section className="eternum-card payment-method-card">
           <h3>PAY</h3>
           <strong className="fee-mini">{selectedEvent.fee}</strong>
@@ -1932,39 +1856,7 @@ function PublicWebsite() {
           </svg>
         </button>
 
-        {/* Spade header */}
-        <div className="upv-header">
-          <svg className="pay-spade-svg" width="58" height="84" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="upv-spade-glow" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="3" result="b1"/>
-                <feGaussianBlur stdDeviation="8" result="b2"/>
-                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <linearGradient id="upv-beam" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
-                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="50%" stopColor="#ffffff"/>
-                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-              </linearGradient>
-            </defs>
-            <rect x="49.5" y="0" width="1" height="150" fill="url(#upv-beam)"/>
-            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none"
-              filter="url(#upv-spade-glow)" strokeOpacity="0.95"/>
-            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none"
-              filter="url(#upv-spade-glow)" strokeOpacity="0.95"/>
-          </svg>
-          <h1 className="upv-title">ETERNITY</h1>
-          <div className="upv-subtitle-row">
-            <p className="upv-subtitle">PAYMENT VERIFICATION</p>
-            <svg width="7" height="7" viewBox="0 0 9 9" fill="none" style={{display:'block',margin:'6px auto 0'}}>
-              <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.65)" strokeWidth="1" fill="none"/>
-            </svg>
-          </div>
-        </div>
+        <BrandHeader subtitle="UPLOAD PROOF OF PAYMENT" />
 
         {/* Instruction */}
         <p className="upv-instruction">
@@ -2299,33 +2191,7 @@ function PublicWebsite() {
           </svg>
         </button>
 
-        {/* Brand lockup */}
-        <div className="trk-brand">
-          <svg width="56" height="82" viewBox="0 0 100 150" fill="none">
-            <defs>
-              <filter id="trk-glow" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="3" result="b1"/>
-                <feGaussianBlur stdDeviation="8" result="b2"/>
-                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <linearGradient id="trk-beam" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
-                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="50%" stopColor="#ffffff"/>
-                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-              </linearGradient>
-            </defs>
-            <rect x="49.5" y="0" width="1" height="150" fill="url(#trk-beam)"/>
-            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#trk-glow)" strokeOpacity="0.95"/>
-            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#trk-glow)" strokeOpacity="0.95"/>
-          </svg>
-          <p className="trk-alshayeb">ALSHAYEB</p>
-          <h1 className="trk-eternum">ETERNUM</h1>
-          <p className="trk-tagline">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         {/* Diamond divider */}
         <div className="trk-divider-row">
@@ -2475,33 +2341,7 @@ function PublicWebsite() {
           </svg>
         </button>
 
-        {/* Brand header */}
-        <div className="tkt-brand">
-          <svg width="52" height="78" viewBox="0 0 100 150" fill="none">
-            <defs>
-              <filter id="tkt-glow" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="3" result="b1"/>
-                <feGaussianBlur stdDeviation="9" result="b2"/>
-                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <linearGradient id="tkt-beam" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
-                <stop offset="40%" stopColor="rgba(0,178,255,0.85)"/>
-                <stop offset="50%" stopColor="#ffffff"/>
-                <stop offset="60%" stopColor="rgba(0,178,255,0.85)"/>
-                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-              </linearGradient>
-            </defs>
-            <rect x="49.5" y="0" width="1" height="150" fill="url(#tkt-beam)"/>
-            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none" filter="url(#tkt-glow)" strokeOpacity="0.95"/>
-            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" filter="url(#tkt-glow)" strokeOpacity="0.95"/>
-          </svg>
-          <p className="tkt-alshayeb">ALSHAYEB</p>
-          <h1 className="tkt-eternum">ETERNUM</h1>
-          <p className="tkt-tagline">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         {/* QR Card */}
         <div className="tkt-qr-card">
@@ -2678,22 +2518,7 @@ function PublicWebsite() {
           </button>
         </div>
 
-        {/* ELEGANT SPADE LOGO */}
-        <div className="incomer-logo-container">
-          <img
-            src={process.env.PUBLIC_URL + "/spade-reference.png"}
-            alt="Eternum Spade"
-            className="incomer-spade-img"
-            draggable="false"
-          />
-        </div>
-
-        {/* BRAND TYPOGRAPHY */}
-        <div className="incomer-brand-typography">
-          <p className="incomer-brand-alshayeb">ALSHAYEB</p>
-          <div className="incomer-brand-eternum">ETERNUM</div>
-          <p className="incomer-brand-subtitle">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         {/* DIAMOND DIVIDER UPPER */}
         <div className="incomer-diamond-divider">
@@ -2800,21 +2625,7 @@ function PublicWebsite() {
         </div>
 
         {/* SPADE LOGO */}
-        <div className="incomer-logo-container">
-          <img
-            src={process.env.PUBLIC_URL + "/spade-reference.png"}
-            alt="Eternum Spade"
-            className="incomer-spade-img"
-            draggable="false"
-          />
-        </div>
-
-        {/* BRAND TYPOGRAPHY */}
-        <div className="incomer-brand-typography">
-          <p className="incomer-brand-alshayeb">ALSHAYEB</p>
-          <div className="incomer-brand-eternum">ETERNUM</div>
-          <p className="incomer-brand-subtitle">NO BEGINNING. NO END.</p>
-        </div>
+        <BrandHeader />
 
         {/* DIAMOND DIVIDER UPPER */}
         <div className="incomer-diamond-divider">
