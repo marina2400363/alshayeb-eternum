@@ -560,6 +560,7 @@ function PublicWebsite() {
   const [phone, setPhone] = useState("");
   const [foundClient, setFoundClient] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   /* showLoader stays true for at least MIN_LOAD_MS after loading starts,
      preventing the screen from flashing away too quickly */
   const MIN_LOAD_MS = 1800;
@@ -820,13 +821,13 @@ function PublicWebsite() {
 
   const validateRegistration = () => {
     const newErrors = {};
-    const fullName = request.fullName.trim();
-    const phoneNumber = cleanValue(request.phoneNumber);
-    const email = request.email.trim();
-    const gender = request.gender;
-    const schoolOrOriginProm = request.schoolOrOriginProm.trim();
-    const age = request.age.trim();
-    const instagramUsername = request.instagramUsername.trim();
+    const fullName = String(request.fullName ?? "").trim();
+    const phoneNumber = cleanValue(String(request.phoneNumber ?? ""));
+    const email = String(request.email ?? "").trim();
+    const gender = String(request.gender ?? "").trim();
+    const schoolOrOriginProm = String(request.schoolOrOriginProm ?? "").trim();
+    const ageValue = String(request.age ?? "").trim();
+    const instagramUsername = String(request.instagramUsername ?? "").trim();
 
     if (!fullName) {
       newErrors.fullName = "Full name is required.";
@@ -856,10 +857,10 @@ function PublicWebsite() {
       newErrors.schoolOrOriginProm = "School / Origin Prom is required.";
     }
 
-    if (!age) {
+    if (!ageValue) {
       newErrors.age = "Age is required.";
-    } else if (!/^\d+$/.test(age) || Number(age) < 15 || Number(age) > 40) {
-      newErrors.age = "Age must be a number between 15 and 40.";
+    } else if (!/^\d+$/.test(ageValue) || Number(ageValue) < 16 || Number(ageValue) > 30) {
+      newErrors.age = "Age must be a number between 16 and 30.";
     }
 
     if (!instagramUsername) {
@@ -1080,7 +1081,7 @@ function PublicWebsite() {
       } else {
         setErrors((prev) => ({
           ...prev,
-          screenshot: error.message || "Could not save this registration. Please make sure the backend server is running."
+          submit: error.message || "Could not save this registration. Please make sure the backend server is running."
         }));
       }
       return null;
@@ -1088,24 +1089,11 @@ function PublicWebsite() {
   };
 
   const goToPayment = async () => {
+    if (isSubmitting) return;
     if (!validateRegistration()) return;
-    const existing = await findExistingRegistration(request.phoneNumber);
-    if (existing && routeExistingRegistration(existing)) return;
-    setPage("payment");
-  };
 
-  const submitRequest = async () => {
-    if (!validateScreenshot()) return;
-
-    const newRequest = {
-      ...request,
-      event: selectedEvent.name,
-      eventId: selectedEvent.id,
-      requestId: "OUT-" + Math.floor(1000 + Math.random() * 9000),
-      applicationStatus: "PENDING REVIEW",
-      paymentStatus: "UNDER VERIFICATION",
-      submittedAt: new Date().toISOString()
-    };
+    setIsSubmitting(true);
+    setErrors({});
 
     const formData = new FormData();
     formData.append("fullName", request.fullName);
@@ -1116,13 +1104,15 @@ function PublicWebsite() {
     formData.append("age", request.age);
     formData.append("instagramUsername", request.instagramUsername);
     formData.append("eventName", selectedEvent.name);
-    formData.append("paymentProof", request.screenshotFile);
+    if (selectedEvent.id) formData.append("eventId", selectedEvent.id);
 
     const backendResult = await submitBackendOutcomer(formData);
+    setIsSubmitting(false);
 
     if (!backendResult) return;
 
     if (backendResult?.duplicate) {
+      alert("An application already exists for this phone number and event.");
       const existing = {
         source: "backend",
         status: backendResult.attendee?.status,
@@ -1131,21 +1121,42 @@ function PublicWebsite() {
       if (routeExistingRegistration(existing)) return;
     }
 
-    const persistedRequest = backendResult?.attendee
-      ? {
-          ...newRequest,
-          ...backendResult.attendee,
-          event: backendResult.attendee.eventName || selectedEvent.name,
-          requestId: backendResult.attendee.id || newRequest.requestId,
-          applicationStatus: backendResult.attendee.status || newRequest.applicationStatus,
-          paymentStatus: backendResult.attendee.paymentStatus || newRequest.paymentStatus
-        }
-      : newRequest;
+    setTrackedRegistration(backendResult.attendee);
+    setRequest((prev) => ({
+      ...prev,
+      ...backendResult.attendee,
+      requestId: backendResult.attendee?.id || prev.requestId
+    }));
+    setPage("payment");
+  };
 
-    setTrackedRegistration(persistedRequest);
-    setRequest(persistedRequest);
+  const submitRequest = async () => {
+    if (isSubmitting) return;
+    if (!validateScreenshot()) return;
+
+    setIsSubmitting(true);
     setErrors({});
-    setPage("submitted");
+
+    const formData = new FormData();
+    formData.append("attendeeId", trackedRegistration?._id || trackedRegistration?.id);
+    formData.append("paymentProof", request.screenshotFile);
+
+    try {
+      const backendResult = await apiRequest("/api/outcomers/payment-proof", {
+        method: "POST",
+        body: formData
+      });
+      setIsSubmitting(false);
+
+      if (backendResult?.attendee) {
+        setTrackedRegistration(backendResult.attendee);
+        setRequest((prev) => ({ ...prev, ...backendResult.attendee }));
+      }
+      setPage("submitted");
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrors({ screenshot: err.message || "Failed to upload payment proof. Please try again." });
+    }
   };
 
   const FieldError = ({ name }) => {
@@ -1160,21 +1171,28 @@ function PublicWebsite() {
 
   if (page === "notfound") {
     return (
-      <PublicShell className="status-public-page" onNavigate={setPage}>
+      <div className="incomer-page-container">
         <BrandHeader />
-        <section className="eternum-copy-block">
-          <h2>APPLICATION NOT FOUND</h2>
-          <p>No application was found with this phone number.</p>
-        </section>
-        <div className="eternum-card not-found-card">
-          <span className="status-icon" aria-hidden="true">!</span>
-          <div>
-            <h3>APPLICATION NOT FOUND</h3>
-            <p>No application was found with this phone number.</p>
-            <button type="button" className="eternum-text-link" onClick={() => setPage("outcomerLanding")}>REGISTER NOW <b>&rarr;</b></button>
-          </div>
+
+        <div className="incomer-welcome-box">
+          <h2>ACCESS NOT FOUND</h2>
+          <p>No incoming access was found for this phone number.</p>
+          <p style={{ marginTop: '16px', color: 'rgba(255, 255, 255, 0.45)' }}>
+            Please contact your assigned committee member for assistance.
+          </p>
         </div>
-      </PublicShell>
+        
+        <div style={{ width: '100%', maxWidth: '320px', margin: '24px auto 0', display: 'flex' }}>
+          <button type="button" className="incomer-continue-btn" onClick={() => setPage('home')} style={{ width: '100%' }}>
+            <div style={{ width: '18px', flexShrink: 0 }} />
+            <span>GO BACK</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)' }}>
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -1531,7 +1549,7 @@ function PublicWebsite() {
         <BrandHeader />
 
         {/* FORM CARDS */}
-        <div className="outcomer-reg-form" style={{ marginTop: '-25px' }}>
+        <div className="outcomer-reg-form">
           {/* FULL NAME */}
           <div className={`outcomer-reg-card ${errors.fullName ? "error" : ""}`}>
             <div className="outcomer-reg-icon">
@@ -1698,8 +1716,9 @@ function PublicWebsite() {
             </svg>
           </div>
           <p className="outcomer-reg-footer-copy">ALL APPLICATIONS ARE REVIEWED<br/>BY ALSHAYEB'S TEAM</p>
-          <button className="outcomer-reg-submit" onClick={goToPayment}>
-            SUBMIT APPLICATION <span className="outcomer-reg-submit-arrow">→</span>
+          {errors.submit && <div className="outcomer-reg-error" style={{ marginBottom: "16px", color: "#ff4d4f" }}>{errors.submit}</div>}
+          <button className="outcomer-reg-submit" onClick={goToPayment} disabled={isSubmitting}>
+            {isSubmitting ? "SUBMITTING..." : "SUBMIT APPLICATION"} <span className="outcomer-reg-submit-arrow">→</span>
           </button>
         </div>
       </div>
@@ -1719,32 +1738,10 @@ function PublicWebsite() {
           </svg>
         </button>
 
-        {/* Spade + APPLICATION RECEIVED */}
-        <div className="pay-header">
-          <svg className="pay-spade-svg" width="60" height="88" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="pay-spade-glow" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="3" result="b1"/>
-                <feGaussianBlur stdDeviation="8" result="b2"/>
-                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <linearGradient id="pay-beam" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
-                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="50%" stopColor="#ffffff"/>
-                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-              </linearGradient>
-            </defs>
-            <rect x="49.5" y="0" width="1" height="150" fill="url(#pay-beam)"/>
-            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none"
-              filter="url(#pay-spade-glow)" strokeOpacity="0.95"/>
-            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none"
-              filter="url(#pay-spade-glow)" strokeOpacity="0.95"/>
-          </svg>
-          <p className="pay-eyebrow">APPLICATION RECEIVED</p>
+        <BrandHeader />
+        
+        <div style={{ textAlign: 'center' }}>
+          <p className="pay-eyebrow" style={{ marginTop: '0' }}>APPLICATION RECEIVED</p>
         </div>
 
         {/* Glowing check circle */}
@@ -1895,8 +1892,8 @@ function PublicWebsite() {
         </div>
 
         {/* Submit button */}
-        <button className="upv-submit-btn" onClick={submitRequest}>
-          <span>SUBMIT RECEIPT</span>
+        <button className="upv-submit-btn" onClick={submitRequest} disabled={isSubmitting}>
+          <span>{isSubmitting ? "SUBMITTING..." : "SUBMIT RECEIPT"}</span>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
           </svg>
@@ -1924,36 +1921,7 @@ function PublicWebsite() {
           </svg>
         </button>
 
-        {/* Spade + ETERNITY */}
-        <div className="sub-header">
-          <svg className="pay-spade-svg" width="58" height="84" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="sub-glow" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="3" result="b1"/>
-                <feGaussianBlur stdDeviation="8" result="b2"/>
-                <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <linearGradient id="sub-beam" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0,178,255,0)"/>
-                <stop offset="40%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="50%" stopColor="#ffffff"/>
-                <stop offset="60%" stopColor="rgba(0,178,255,0.8)"/>
-                <stop offset="100%" stopColor="rgba(0,178,255,0)"/>
-              </linearGradient>
-            </defs>
-            <rect x="49.5" y="0" width="1" height="150" fill="url(#sub-beam)"/>
-            <path d="M 50 35 C 50 35, 22 65, 22 85 C 22 98, 36 102, 50 92 C 64 102, 78 98, 78 85 C 78 65, 50 35, 50 35 Z"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" fill="none"
-              filter="url(#sub-glow)" strokeOpacity="0.95"/>
-            <path d="M 50 92 L 50 115 M 35 115 L 65 115"
-              stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none"
-              filter="url(#sub-glow)" strokeOpacity="0.95"/>
-          </svg>
-          <h1 className="upv-title">ETERNITY</h1>
-          <svg width="8" height="8" viewBox="0 0 9 9" fill="none" style={{marginTop:'4px'}}>
-            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.6)" strokeWidth="1" fill="none"/>
-          </svg>
-        </div>
+        <BrandHeader />
 
         {/* Glowing check */}
         <div className="pay-check-circle" style={{margin:'16px 0 14px'}}>
@@ -2851,7 +2819,7 @@ function AdminLogin() {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (credentials.email.trim().toLowerCase() !== ADMIN_EMAIL || credentials.password !== ADMIN_PASSWORD) {
+    if (String(credentials.email ?? "").trim().toLowerCase() !== ADMIN_EMAIL || credentials.password !== ADMIN_PASSWORD) {
       setLoginError("Invalid admin email or password.");
       return;
     }

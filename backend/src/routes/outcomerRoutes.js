@@ -123,16 +123,20 @@ router.post(
 
     let event = null;
     if (req.body.eventId) {
-      event = await Event.findById(req.body.eventId);
-      if (!event) {
-        throw apiError("Selected event was not found.", 404);
+      const mongoose = require("mongoose");
+      if (mongoose.Types.ObjectId.isValid(req.body.eventId)) {
+        event = await Event.findById(req.body.eventId);
       }
+      // If it's not a valid ObjectId, we safely ignore it and rely on eventName.
     }
 
-    const existingAttendee = await Attendee.findOne({ phone: values.phone }).sort({ createdAt: -1 });
+    const existingAttendee = await Attendee.findOne({ 
+      phoneNormalized: values.phone,
+      event: event?._id
+    }).sort({ createdAt: -1 });
 
-    if (existingAttendee) {
-      const status = String(existingAttendee.status || "").toLowerCase();
+    const handleDuplicate = (existing) => {
+      const status = String(existing.status || "").toLowerCase();
       const nextAction = status === "approved"
         ? "ticket"
         : status === "rejected"
@@ -144,8 +148,12 @@ router.post(
         duplicate: true,
         nextAction,
         message: "Existing registration found.",
-        attendee: serializeAttendee(existingAttendee)
+        attendee: serializeAttendee(existing)
       });
+    };
+
+    if (existingAttendee) {
+      handleDuplicate(existingAttendee);
       return;
     }
 
@@ -161,16 +169,34 @@ router.post(
       };
     }
 
-    const attendee = await Attendee.create({
-      ...values,
-      event: event?._id,
-      eventName: event?.name || req.body.eventName,
-      attendeeType: "outcomer",
-      accessType: "OUTCOMER",
-      status: "pending",
-      paymentStatus: "under_verification",
-      paymentProof
-    });
+    let attendee;
+    try {
+      attendee = await Attendee.create({
+        ...values,
+        phoneNormalized: values.phone,
+        event: event?._id,
+        eventName: event?.name || req.body.eventName,
+        attendeeType: "outcomer",
+        accessType: "OUTCOMER",
+        status: "pending",
+        paymentStatus: req.file ? "under_verification" : "pending",
+        paymentProof
+      });
+    } catch (err) {
+      // Catch MongoDB unique index race-condition
+      if (err.code === 11000) {
+        const raceConditionExisting = await Attendee.findOne({ 
+          phoneNormalized: values.phone,
+          event: event?._id
+        }).sort({ createdAt: -1 });
+        
+        if (raceConditionExisting) {
+          handleDuplicate(raceConditionExisting);
+          return;
+        }
+      }
+      throw err;
+    }
 
     const emailSent = await sendStatusEmail(
       attendee,

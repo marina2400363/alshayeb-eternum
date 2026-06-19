@@ -10,7 +10,11 @@ const attendeeSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
-      trim: true,
+      trim: true
+    },
+    phoneNormalized: {
+      type: String,
+      required: true,
       index: true
     },
     email: {
@@ -119,6 +123,6 @@ const attendeeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-attendeeSchema.index({ phone: 1, event: 1 });
+attendeeSchema.index({ phoneNormalized: 1, event: 1 }, { unique: true });
 
 module.exports = mongoose.model("Attendee", attendeeSchema);

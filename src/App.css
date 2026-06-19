@@ -9206,14 +9206,18 @@ body::after {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: -15px; /* Pull entire block up naturally */
+  margin-bottom: 32px; /* Safe gap before form/content begins */
 }
 
 .brand-header-logo-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 12px;
   width: 100%;
+  margin-top: 0;
+  margin-bottom: clamp(-150px, -26vw, -80px); /* Tighter responsive overlap! */
+  z-index: 1;
 }
 
 .brand-header-spade-img {
@@ -9222,13 +9226,12 @@ body::after {
   height: auto;
   object-fit: contain;
   pointer-events: none;
-  transform: translateY(-35px); 
   filter: drop-shadow(0 0 18px rgba(0, 140, 255, 0.5)) drop-shadow(0 0 40px rgba(0, 100, 255, 0.25));
 }
 
 .brand-header-typography {
   text-align: center;
-  margin-top: -190px;
+  margin-top: 0; /* No negative margin to prevent form collision */
   line-height: 1;
   position: relative;
   z-index: 3;
@@ -9271,8 +9274,4 @@ body::after {
   margin-bottom: 0;
 }
 
-@media (max-width: 600px) {
-  .brand-header-typography {
-    margin-top: -130px;
-  }
-}
+/* Removed media query as structural overlap is fully responsive via clamp */

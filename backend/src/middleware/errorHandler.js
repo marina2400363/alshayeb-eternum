@@ -1,5 +1,6 @@
 function errorHandler(error, req, res, next) {
   const statusCode = error.statusCode || 500;
+  console.error("BACKEND ERROR:", error);
 
   res.status(statusCode).json({
     success: false,
