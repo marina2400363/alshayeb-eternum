@@ -8,7 +8,7 @@ const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { serializeAttendee } = require("../utils/serializers");
 const { sendStatusEmail } = require("../utils/email");
-const { uploadPaymentProof } = require("../utils/cloudinaryUpload");
+const { uploadPaymentProof, uploadOutcomerPhoto } = require("../utils/cloudinaryUpload");
 
 const router = express.Router();
 const allowedPaymentProofTypes = new Set(["image/png", "image/jpeg", "image/jpg"]);
@@ -39,7 +39,23 @@ function uploadPaymentProofMiddleware(req, res, next) {
       return;
     }
 
-    next(error);
+    next(apiError("Payment screenshot upload failed: " + error.message, 400));
+  });
+}
+
+function uploadOutcomerPhotoMiddleware(req, res, next) {
+  upload.single("outcomerPhoto")(req, res, (error) => {
+    if (!error) {
+      next();
+      return;
+    }
+
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+      next(apiError("Personal photo must be 5MB or smaller.", 422));
+      return;
+    }
+
+    next(apiError("Personal photo upload failed: " + error.message, 400));
   });
 }
 
@@ -111,7 +127,7 @@ function validateRegistration(body) {
 
 router.post(
   "/register",
-  uploadPaymentProofMiddleware,
+  uploadOutcomerPhotoMiddleware,
   asyncHandler(async (req, res) => {
     const { errors, values } = validateRegistration(req.body);
 
@@ -157,17 +173,18 @@ router.post(
       return;
     }
 
-    let paymentProof = undefined;
-    if (req.file) {
-      const uploadedProof = await uploadPaymentProof(req.file);
-      paymentProof = {
-        url: uploadedProof.secure_url || uploadedProof.url,
-        publicId: uploadedProof.public_id,
-        fileName: req.file.originalname,
-        fileType: req.file.mimetype,
-        uploadedAt: new Date()
-      };
+    if (!req.file) {
+      throw apiError("Personal photo is strictly required.", 422);
     }
+
+    const uploadedPhoto = await uploadOutcomerPhoto(req.file);
+    const outcomerPhoto = {
+      url: uploadedPhoto.secure_url || uploadedPhoto.url,
+      publicId: uploadedPhoto.public_id,
+      fileName: req.file.originalname,
+      fileType: req.file.mimetype,
+      uploadedAt: new Date()
+    };
 
     let attendee;
     try {
@@ -179,8 +196,9 @@ router.post(
         attendeeType: "outcomer",
         accessType: "OUTCOMER",
         status: "pending",
-        paymentStatus: req.file ? "under_verification" : "pending",
-        paymentProof
+        paymentStatus: (event && event.price > 0) ? "pending" : "not_required",
+        outcomerPhoto,
+        registrationReceivedAt: new Date()
       });
     } catch (err) {
       // Catch MongoDB unique index race-condition

@@ -875,6 +875,10 @@ function PublicWebsite() {
       newErrors.instagramUsername = "Instagram username cannot contain spaces.";
     }
 
+    if (!request.outcomerPhotoFile) {
+      newErrors.outcomerPhoto = "Personal photo is required.";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -894,6 +898,24 @@ function PublicWebsite() {
     const { name, value } = e.target;
     setRequest((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const handleOutcomerPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
+      setErrors((prev) => ({ ...prev, outcomerPhoto: "Only PNG, JPG, or JPEG images are allowed." }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, outcomerPhoto: "Personal photo must be 5MB or smaller." }));
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setRequest((prev) => ({ ...prev, outcomerPhoto: url, outcomerPhotoFile: file }));
+    setErrors((prev) => ({ ...prev, outcomerPhoto: "" }));
   };
 
   const handleScreenshotUpload = async (e) => {
@@ -1119,6 +1141,7 @@ function PublicWebsite() {
     formData.append("instagramUsername", request.instagramUsername);
     formData.append("eventName", selectedEvent.name);
     if (selectedEvent.id) formData.append("eventId", selectedEvent.id);
+    if (request.outcomerPhotoFile) formData.append("outcomerPhoto", request.outcomerPhotoFile);
 
     const backendResult = await submitBackendOutcomer(formData);
     setIsSubmitting(false);
@@ -1719,17 +1742,17 @@ function PublicWebsite() {
             </div>
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
-              <span className="outcomer-reg-upload-label">UPLOAD AN IMAGE FOR YOU</span>
-              <span className={`outcomer-reg-upload-hint ${request.screenshot ? 'uploaded' : ''}`}>
-                {request.screenshot ? request.screenshot : 'Tap to upload'}
+              <span className="outcomer-reg-upload-label">UPLOAD PERSONAL PHOTO</span>
+              <span className={`outcomer-reg-upload-hint ${request.outcomerPhoto ? 'uploaded' : ''}`}>
+                {request.outcomerPhotoFile ? request.outcomerPhotoFile.name : 'Tap to upload'}
               </span>
             </div>
             <svg className="outcomer-reg-upload-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
-            <input id="reg-image-upload" type="file" hidden accept="image/png,image/jpeg,image/jpg" onChange={handleScreenshotUpload} />
+            <input id="reg-image-upload" type="file" hidden accept="image/png,image/jpeg,image/jpg" onChange={handleOutcomerPhotoUpload} />
           </label>
-          {errors.screenshot && <div className="outcomer-reg-error">{errors.screenshot}</div>}
+          {errors.outcomerPhoto && <div className="outcomer-reg-error">{errors.outcomerPhoto}</div>}
         </div>
 
         {/* BOTTOM SECTION */}
@@ -3141,6 +3164,7 @@ function EventsPage() {
     prefix: "",
     price: 1800,
     googleSheetId: "",
+    exportGoogleSheetId: "",
     schools: ""
   });
 
@@ -3160,6 +3184,7 @@ function EventsPage() {
         prefix: event.prefix || "",
         price: event.price || 1800,
         googleSheetId: event.googleSheetId || "",
+        exportGoogleSheetId: event.exportGoogleSheetId || "",
         schools: (event.schools || []).join(", ")
       });
     } else {
@@ -3174,6 +3199,7 @@ function EventsPage() {
         prefix: "",
         price: 1800,
         googleSheetId: "",
+        exportGoogleSheetId: "",
         schools: ""
       });
     }
@@ -3329,6 +3355,10 @@ function EventsPage() {
                 <label>Google Sheet ID (For Sync)</label>
                 <input value={formData.googleSheetId} onChange={e => setFormData({...formData, googleSheetId: e.target.value})} />
               </div>
+              <div className="form-group">
+                <label>Export Google Sheet ID (For Confirmed Outcomers)</label>
+                <input value={formData.exportGoogleSheetId} onChange={e => setFormData({...formData, exportGoogleSheetId: e.target.value})} placeholder="Live sync target sheet ID" />
+              </div>
               
               <div className="admin-modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
@@ -3468,6 +3498,12 @@ function OutcomersPage() {
                 <div><span>INSTAGRAM USERNAME</span><strong>{request.instagramUsername}</strong></div>
                 <div><span>STATUS / CURRENT PHASE</span><strong>{request.applicationStatus}</strong></div>
                 <div><span>PROM</span><strong>{request.event}</strong></div>
+                {request.outcomerPhoto?.url && (
+                  <div><span>PERSONAL PHOTO</span><strong><a href={request.outcomerPhoto.url} target="_blank" rel="noreferrer" style={{color: "var(--accent)"}}>View Photo</a></strong></div>
+                )}
+                {request.paymentProof?.url && (
+                  <div><span>PAYMENT PROOF</span><strong><a href={request.paymentProof.url} target="_blank" rel="noreferrer" style={{color: "var(--accent)"}}>View Proof</a></strong></div>
+                )}
               </div>
               <div className="outcomer-status-row">
                 <span className={`status-badge ${statusClass(request.applicationStatus)}`}>{request.applicationStatus}</span>

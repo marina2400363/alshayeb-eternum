@@ -51,6 +51,10 @@ const eventSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    exportGoogleSheetId: {
+      type: String,
+      trim: true
+    },
     sync: {
       lastSyncAt: Date,
       lastSyncStatus: String,

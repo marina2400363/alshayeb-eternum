@@ -74,6 +74,13 @@ const attendeeSchema = new mongoose.Schema(
       enum: ["not_required", "pending", "under_verification", "verified", "rejected"],
       default: "pending"
     },
+    outcomerPhoto: {
+      url: String,
+      publicId: String,
+      fileName: String,
+      fileType: String,
+      uploadedAt: Date
+    },
     paymentProof: {
       url: String,
       publicId: String,

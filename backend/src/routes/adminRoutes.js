@@ -8,6 +8,7 @@ const { sendStatusEmail } = require("../utils/email");
 const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
 const Event = require("../models/Event");
+const { syncEventExportSheet } = require("../services/googleSheetsExportSync");
 
 const router = express.Router();
 
@@ -268,6 +269,10 @@ router.patch(
       message: "Attendee approved and QR credentials issued.",
       attendee: serializeAttendee(attendee)
     });
+
+    if (attendee.attendeeType === "outcomer" && attendee.event) {
+      syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+    }
   })
 );
 
@@ -309,6 +314,10 @@ router.patch(
       message: "Attendee rejected.",
       attendee: serializeAttendee(attendee)
     });
+
+    if (attendee.attendeeType === "outcomer" && attendee.event) {
+      syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+    }
   })
 );
 
@@ -389,6 +398,10 @@ router.patch(
       message: "Payment status updated.",
       attendee: serializeAttendee(attendee)
     });
+
+    if (attendee.attendeeType === "outcomer" && attendee.event) {
+      syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+    }
   })
 );
 

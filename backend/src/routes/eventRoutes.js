@@ -17,7 +17,7 @@ router.get(
 router.post(
   "/",
   asyncHandler(async (req, res) => {
-    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, capacity } = req.body;
+    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity } = req.body;
 
     if (!name || !slug) {
       throw apiError("Event name and slug are required.");
@@ -42,7 +42,8 @@ router.post(
       prefix,
       price,
       googleSheetId,
-      capacity
+      exportGoogleSheetId,
+      capacity: capacity || 0
     });
 
     res.status(201).json({ success: true, event });
@@ -52,7 +53,7 @@ router.post(
 router.put(
   "/:id",
   asyncHandler(async (req, res) => {
-    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, capacity } = req.body;
+    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity } = req.body;
 
     if (!prefix) {
       throw apiError("Event prefix is required for QR ID generation.");
@@ -75,7 +76,8 @@ router.put(
         prefix,
         price,
         googleSheetId,
-        capacity
+        exportGoogleSheetId,
+        capacity: capacity || 0
       },
       { new: true, runValidators: true }
     );
