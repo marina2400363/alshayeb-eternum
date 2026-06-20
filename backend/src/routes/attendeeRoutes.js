@@ -51,7 +51,7 @@ router.get(
       throw apiError("Enter an Egyptian phone number starting with 01 and 11 digits long.", 422);
     }
 
-    const attendee = await Attendee.findOne({ phone }).sort({ createdAt: -1 });
+    const attendee = await Attendee.findOne({ phoneNormalized: phone }).sort({ createdAt: -1 });
 
     if (!attendee) {
       res.json({ success: true, found: false, attendee: null });

@@ -58,7 +58,7 @@ router.post(
         };
         await event.save();
       }
-      throw apiError(`Sync failed: ${err.message}`, 500);
+      throw apiError(`Sync failed: ${err.message}`, 400);
     }
   })
 );

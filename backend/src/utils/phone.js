@@ -6,6 +6,8 @@ function cleanPhone(value) {
     cleaned = "0" + cleaned.slice(3);
   } else if (cleaned.startsWith("201")) {
     cleaned = "0" + cleaned.slice(2);
+  } else if (cleaned.startsWith("1") && cleaned.length === 10) {
+    cleaned = "0" + cleaned;
   }
   
   return cleaned;

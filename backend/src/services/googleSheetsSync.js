@@ -1,4 +1,4 @@
-const { google } = require("googleapis");
+const { parse } = require("csv-parse/sync");
 const Attendee = require("../models/Attendee");
 const Event = require("../models/Event");
 const { cleanPhone } = require("../utils/phone");
@@ -20,50 +20,74 @@ function getColumnIndexes(headers) {
   return indexes;
 }
 
+function extractSheetId(input) {
+  if (!input) return null;
+  const match = input.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : input.trim();
+}
+
 async function syncEventIncomers(eventId) {
   const event = await Event.findById(eventId);
   if (!event || !event.googleSheetId) {
     throw new Error("Event or Google Sheet ID not found");
   }
 
-  // Setup Auth
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n")
-    },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-  });
+  const sheetId = extractSheetId(event.googleSheetId);
+  if (!sheetId) {
+    throw new Error("Invalid Google Sheet ID or URL");
+  }
 
-  const sheets = google.sheets({ version: "v4", auth });
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
 
   let rows = [];
   try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: event.googleSheetId,
-      range: "A:Z"
+    const response = await fetch(csvUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+    }
+    const csvData = await response.text();
+    
+    // If it's an HTML page (like a login redirect), throw an error.
+    if (csvData.trim().toLowerCase().startsWith("<!doctype html>") || csvData.trim().toLowerCase().startsWith("<html")) {
+      throw new Error("Received HTML instead of CSV. Please make sure 'General access' is set to 'Anyone with the link'.");
+    }
+
+    rows = parse(csvData, {
+      skip_empty_lines: true
     });
-    rows = response.data.values;
   } catch (err) {
-    throw new Error(`Google Sheets API Error: ${err.message}`);
+    throw new Error(`Failed to fetch or parse published CSV: ${err.message}. Make sure the sheet is published to the web or viewable by anyone with the link.`);
   }
 
   if (!rows || rows.length < 2) {
     return { imported: 0, skipped: 0, errors: 0 };
   }
 
-  const headers = rows[0];
-  const colIdx = getColumnIndexes(headers);
+  let headerRowIndex = -1;
+  let headers = [];
+  let colIdx = {};
 
-  if (colIdx.phone === undefined) {
+  // Scan the first 10 rows to find the one containing the "phone" column
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    const tempColIdx = getColumnIndexes(rows[i]);
+    if (tempColIdx.phone !== undefined) {
+      headerRowIndex = i;
+      headers = rows[i];
+      colIdx = tempColIdx;
+      break;
+    }
+  }
+
+  if (headerRowIndex === -1 || colIdx.phone === undefined) {
     throw new Error("Could not find a 'phone' column in the sheet");
   }
 
   let imported = 0;
   let skipped = 0;
+  let updatedCount = 0;
   let errors = 0;
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerRowIndex + 1; i < rows.length; i++) {
     try {
       const row = rows[i];
       const rawPhone = row[colIdx.phone];
@@ -78,18 +102,28 @@ async function syncEventIncomers(eventId) {
         continue;
       }
 
-      const existing = await Attendee.findOne({ phoneNormalized, event: eventId });
-      if (existing) {
-        skipped++;
-        continue;
-      }
-
       const fullName = row[colIdx.name] || "Unknown Name";
       const email = row[colIdx.email] || "";
       const instagram = row[colIdx.instagram] || "";
       const gender = row[colIdx.gender] ? row[colIdx.gender].toLowerCase() : undefined;
       const university = row[colIdx.university] || "";
       const notes = row[colIdx.notes] || "";
+
+      const existing = await Attendee.findOne({ phoneNormalized, event: eventId });
+      if (existing) {
+        // If they already exist, fill in any missing fields from the sheet
+        let updated = false;
+        if (!existing.university && university) { existing.university = university; updated = true; }
+        if (!existing.email && email) { existing.email = email; updated = true; }
+        if (!existing.instagram && instagram) { existing.instagram = instagram; updated = true; }
+        if (!existing.fullName || existing.fullName === "Unknown Name") {
+            if (fullName && fullName !== "Unknown Name") { existing.fullName = fullName; updated = true; }
+        }
+        
+        if (updated) { await existing.save(); updatedCount++; }
+        skipped++;
+        continue;
+      }
 
       const qrId = await generateUniqueQrId(Attendee, event.prefix);
       const qrToken = generateQrToken();
@@ -132,7 +166,7 @@ async function syncEventIncomers(eventId) {
   };
   await event.save();
 
-  return { imported, skipped, errors };
+  return { imported, skipped, errors, debug: { headers: headers.slice(0,10), colIdx, updatedCount } };
 }
 
 module.exports = {

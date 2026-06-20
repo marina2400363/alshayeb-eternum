@@ -674,6 +674,7 @@ function PublicWebsite() {
   const toTicketClient = (attendee) => {
     const promEvent = findPromEvent(attendee.eventName || attendee.event || attendee.Venue);
     return {
+      ...attendee,
       Name: attendee.fullName || attendee.name || attendee.Name,
       Phone: attendee.phoneNumber || attendee.phone || attendee.Phone,
       QR: attendee.qrToken || attendee.qrId || attendee.QR,
@@ -2302,7 +2303,7 @@ function PublicWebsite() {
     const rawStatus      = safeValue(foundClient.status || foundClient.Status, "Active");
     const isUsed         = rawStatus.toLowerCase() === "used";
     const venue          = "ALSHAYEB ETERNUM";
-    const school         = safeValue(foundClient.schoolOrOriginProm || foundClient.school || foundClient.School, "—");
+    const school         = safeValue(foundClient.schoolOrOriginProm || foundClient.university || foundClient.school || foundClient.School, "—");
     const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname || guestName.split(" ")[0], "—");
 
     const ticketPromEvent   = findPromEvent(foundClient.eventName || foundClient.event || foundClient.Venue || venue);
@@ -3211,7 +3212,7 @@ function EventsPage() {
     setSyncing(eventId);
     try {
       const json = await apiRequest(`/api/admin/events/${eventId}/sync`, { method: "POST" });
-      alert(`Sync Success! Imported: ${json.stats?.imported || 0}, Skipped: ${json.stats?.skipped || 0}, Errors: ${json.stats?.errors || 0}`);
+      alert(`Sync Success! Imported: ${json.stats?.imported || 0}, Skipped: ${json.stats?.skipped || 0}, Errors: ${json.stats?.errors || 0}\n\nDebug: ${JSON.stringify(json.stats?.debug?.colIdx)}`);
       setRefreshKey(k => k + 1);
     } catch (err) {
       alert(err.message);
