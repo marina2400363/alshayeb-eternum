@@ -12,9 +12,9 @@ function generateShortCode(length = 4) {
   return code;
 }
 
-async function generateUniqueQrId(Attendee) {
+async function generateUniqueQrId(Attendee, prefix = "ALSHAYEB-") {
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    const qrId = `ALSHAYEB-${generateShortCode()}`;
+    const qrId = `${prefix}${generateShortCode()}`;
     const existing = await Attendee.exists({ qrId });
 
     if (!existing) {

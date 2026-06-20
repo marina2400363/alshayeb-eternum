@@ -19,13 +19,6 @@ const ADMIN_SESSION_KEY = "alshayebAdminSession";
 const ADMIN_EMAIL = "admin@alshayeb.com";
 const ADMIN_PASSWORD = "admin123";
 
-const events = [
-  { id: "miu-prom-2026", name: "MIU PROM 2026", date: "31 MAY 2026", dateTime: "2026-05-31T21:30:00+03:00", fee: "250 EGP" },
-  { id: "bue-prom-2026", name: "BUE PROM 2026", date: "14 JUNE 2026", dateTime: "2026-06-14T21:30:00+03:00", fee: "250 EGP" },
-  { id: "aast-prom-2026", name: "AAST PROM 2026", date: "20 JUNE 2026", dateTime: "2026-06-20T21:30:00+03:00", fee: "250 EGP" },
-  { id: "future-prom-2026", name: "FUTURE ACADEMY PROM 2026", date: "28 JUNE 2026", dateTime: "2026-06-28T21:30:00+03:00", fee: "250 EGP" }
-];
-
 const DEFAULT_OUTCOMER_SELECTION = {
   approved: 2847,
   pending: 1024,
@@ -220,6 +213,14 @@ function normalizeEventFee(fee) {
 }
 
 function eventDateTimeValue(event) {
+  if (event?.date && event?.entryTime) {
+    try {
+      const d = new Date(event.date);
+      const [hours, minutes] = event.entryTime.split(':');
+      d.setHours(parseInt(hours, 10) || 21, parseInt(minutes, 10) || 30, 0, 0);
+      return d.toISOString();
+    } catch (e) {}
+  }
   return event?.dateTime || event?.date || QR_REVEAL_TIME;
 }
 
@@ -585,8 +586,8 @@ function PublicWebsite() {
 
   const isBrowserHistoryNavigation = useRef(false);
   const [errors, setErrors] = useState({});
-  const [selectedEvent, setSelectedEvent] = useState(events[0]);
-  const [liveEvents, setLiveEvents] = useState(events);
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState({});
   const [outcomerSelection, setOutcomerSelection] = useState(DEFAULT_OUTCOMER_SELECTION);
   const [guestListCount, setGuestListCount] = useState(137);
   const [now, setNow] = useState(Date.now());
@@ -665,7 +666,7 @@ function PublicWebsite() {
     const text = String(value ?? "").trim();
     return text || fallback;
   };
-  const displayEvents = liveEvents.length ? liveEvents : events;
+  const displayEvents = liveEvents;
   const findPromEvent = (promName) => {
     const normalizedProm = String(promName || "").trim().toLowerCase();
     return displayEvents.find((event) => String(event.name || "").trim().toLowerCase() === normalizedProm) || selectedEvent;
@@ -712,16 +713,20 @@ function PublicWebsite() {
               name: event.name,
               date: event.date ? new Date(event.date).toLocaleDateString(undefined, { day: "2-digit", month: "long", year: "numeric" }).toUpperCase() : "DATE TBA",
               dateTime: event.date || QR_REVEAL_TIME,
-              fee: normalizeEventFee(event.fee),
-              venue: event.venue || "ALSHAYEB ETERNUM"
+              entryTime: event.entryTime || "21:30",
+              price: event.price || 1800,
+              fee: event.price ? `${event.price} EGP` : "1800 EGP",
+              venue: event.venue || "ALSHAYEB ETERNUM",
+              status: event.status || "available",
+              schools: event.schools || []
             }))
-          : events;
+          : [];
         setLiveEvents(backendEvents);
         setSelectedEvent((current) => backendEvents.find((event) => event.name === current.name) || backendEvents[0] || current);
       })
       .catch((error) => {
         console.log("Event load failed:", error);
-        setLiveEvents(events);
+        setLiveEvents([]);
       });
 
     apiRequest("/api/admin/site-settings")
@@ -979,7 +984,7 @@ function PublicWebsite() {
       setErrors({});
 
       if (existing.data.paymentStatus === "pending" && !existing.data.paymentProof) {
-        const foundEvent = events.find(e => e.name === existing.data.eventName || e.id === existing.data.event);
+        const foundEvent = liveEvents.find(e => e.name === existing.data.eventName || e._id === existing.data.event || e.id === existing.data.event);
         if (foundEvent) setSelectedEvent(foundEvent);
         setPage("payment");
         return true;
@@ -1507,9 +1512,9 @@ function PublicWebsite() {
                 <div className="outcomer-dest-number">{String(index + 1).padStart(2, "0")}</div>
                 <div className="outcomer-dest-divider" />
                 <div className="outcomer-dest-info">
-                  <h3>{event.name}</h3>
-                  <span className="outcomer-dest-date">{event.date}</span>
-                  <span className="outcomer-dest-venue">{event.venue || "ALSHAYEB ETERNUM"}</span>
+                  <h3>{event.name || "NO NAME FOUND"}</h3>
+                  <span className="outcomer-dest-date">{event.date || "NO DATE"}</span>
+                  <span className="outcomer-dest-venue">{event.venue || "NO VENUE"}</span>
                 </div>
                 <button
                   type="button"
@@ -1650,12 +1655,25 @@ function PublicWebsite() {
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
               <label>SCHOOL YOU'RE COMING WITH</label>
-              <input
-                name="schoolOrOriginProm"
-                placeholder="Select"
-                value={request.schoolOrOriginProm}
-                onChange={handleRequestChange}
-              />
+              {selectedEvent?.schools && selectedEvent.schools.length > 0 ? (
+                <select
+                  name="schoolOrOriginProm"
+                  value={request.schoolOrOriginProm}
+                  onChange={handleRequestChange}
+                >
+                  <option value="" disabled>Select a school</option>
+                  {selectedEvent.schools.map(school => (
+                    <option key={school} value={school}>{school}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  name="schoolOrOriginProm"
+                  placeholder="Select"
+                  value={request.schoolOrOriginProm}
+                  onChange={handleRequestChange}
+                />
+              )}
             </div>
           </div>
           {errors.schoolOrOriginProm && <div className="outcomer-reg-error">{errors.schoolOrOriginProm}</div>}
@@ -2278,7 +2296,7 @@ function PublicWebsite() {
   if (page === "ticket" && foundClient) {
     const guestName      = safeValue(foundClient.name || foundClient.Name || foundClient.fullName, "Guest");
     const guestPhone     = safeValue(foundClient.phone || foundClient.Phone || foundClient.phoneNumber, "—");
-    const qrId           = safeValue(foundClient.qr || foundClient.QR || foundClient.qrId || foundClient.id || foundClient.ID, "N/A");
+    const qrId           = safeValue(foundClient.ID || foundClient.qrId || foundClient.id, "N/A");
     const qrValue        = String(foundClient.qrToken || foundClient.qr || foundClient.QR || "").trim();
     const accessType     = safeValue(foundClient.accessType || foundClient["Access Type"] || foundClient.type || foundClient.attendeeType, "OUTCOMER");
     const rawStatus      = safeValue(foundClient.status || foundClient.Status, "Active");
@@ -2288,12 +2306,13 @@ function PublicWebsite() {
     const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname || guestName.split(" ")[0], "—");
 
     const ticketPromEvent   = findPromEvent(foundClient.eventName || foundClient.event || foundClient.Venue || venue);
-    const rawDateTime       = ticketPromEvent?.dateTime || ticketPromEvent?.date || foundClient.PromDateTime || foundClient.eventDate || null;
+    const rawDateTime       = eventDateTimeValue(ticketPromEvent) || foundClient.PromDateTime || foundClient.eventDate || null;
     const ticketRevealDate  = rawDateTime ? new Date(rawDateTime).getTime() : new Date(QR_REVEAL_TIME).getTime();
     const safeRevealDate    = Number.isFinite(ticketRevealDate) ? ticketRevealDate : new Date(QR_REVEAL_TIME).getTime();
     const ticketQrLocked    = now < safeRevealDate;
     const ticketDistance    = Math.max(safeRevealDate - now, 0);
-    const tHours   = Math.floor(ticketDistance / (1000 * 60 * 60));
+    const tDays    = Math.floor(ticketDistance / (1000 * 60 * 60 * 24));
+    const tHours   = Math.floor((ticketDistance / (1000 * 60 * 60)) % 24);
     const tMins    = Math.floor((ticketDistance / (1000 * 60)) % 60);
     const tSecs    = Math.floor((ticketDistance / 1000) % 60);
 
@@ -2347,6 +2366,8 @@ function PublicWebsite() {
             <div className="tkt-countdown-row">
               <p className="tkt-unlocking-label">UNLOCKING IN</p>
               <div className="tkt-countdown">
+                <span className="tkt-cd-num">{String(tDays).padStart(2,"0")}</span>
+                <span className="tkt-cd-sep">:</span>
                 <span className="tkt-cd-num">{String(tHours).padStart(2,"0")}</span>
                 <span className="tkt-cd-sep">:</span>
                 <span className="tkt-cd-num">{String(tMins).padStart(2,"0")}</span>
@@ -2354,7 +2375,7 @@ function PublicWebsite() {
                 <span className="tkt-cd-num">{String(tSecs).padStart(2,"0")}</span>
               </div>
               <div className="tkt-cd-labels">
-                <span>HOURS</span><span>MINUTES</span><span>SECONDS</span>
+                <span>DAYS</span><span>HOURS</span><span>MINUTES</span><span>SECONDS</span>
               </div>
             </div>
           )}
@@ -3023,10 +3044,12 @@ function useBackendData(path, fallback) {
 function AdminDashboard() {
   const { data, loading, error } = useBackendData("/api/admin/dashboard", {
     stats: [],
+    eventStats: [],
     recentActivity: [],
     recentAttendees: []
   });
   const stats = data.stats || [];
+  const eventStats = data.eventStats || [];
   const activity = data.recentActivity || [];
   const recentEvents = [...new Set((data.recentAttendees || []).map((attendee) => attendeeProm(attendee)).filter(Boolean))];
 
@@ -3044,6 +3067,22 @@ function AdminDashboard() {
         ))}
         {!loading && stats.length === 0 && <div className="admin-empty-state">NO MONGODB STATS YET</div>}
       </div>
+
+      {eventStats.map(event => (
+        <div key={event.eventId} style={{ marginTop: '2rem' }}>
+          <div className="admin-panel-title">
+            <h3>{event.eventName} Stats</h3>
+          </div>
+          <div className="admin-stat-grid">
+            <div className="admin-stat-card"><span>Total</span><strong>{event.total}</strong></div>
+            <div className="admin-stat-card"><span>Incomers</span><strong>{event.incomers}</strong></div>
+            <div className="admin-stat-card"><span>Outcomers</span><strong>{event.outcomers}</strong></div>
+            <div className="admin-stat-card"><span>Approved</span><strong>{event.approved}</strong></div>
+            <div className="admin-stat-card"><span>Pending</span><strong>{event.pending}</strong></div>
+            <div className="admin-stat-card"><span>Declined</span><strong>{event.declined}</strong></div>
+          </div>
+        </div>
+      ))}
 
       <div className="admin-dashboard-grid">
         <section className="admin-panel">
@@ -3084,8 +3123,102 @@ function AdminDashboard() {
 }
 
 function EventsPage() {
-  const { data, loading, error } = useBackendData("/api/events", { events: [] });
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { data, loading, error } = useBackendData("/api/events", { events: [] }, [refreshKey]);
   const liveEvents = data.events || [];
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    date: "",
+    entryTime: "21:30",
+    venue: "ALSHAYEB ETERNUM",
+    status: "available",
+    prefix: "",
+    price: 1800,
+    googleSheetId: "",
+    schools: ""
+  });
+
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(null);
+
+  const handleOpenModal = (event = null) => {
+    if (event) {
+      setEditingEvent(event);
+      setFormData({
+        name: event.name || "",
+        slug: event.slug || "",
+        date: event.date ? event.date.split('T')[0] : "",
+        entryTime: event.entryTime || "21:30",
+        venue: event.venue || "ALSHAYEB ETERNUM",
+        status: event.status || "available",
+        prefix: event.prefix || "",
+        price: event.price || 1800,
+        googleSheetId: event.googleSheetId || "",
+        schools: (event.schools || []).join(", ")
+      });
+    } else {
+      setEditingEvent(null);
+      setFormData({
+        name: "",
+        slug: "",
+        date: "",
+        entryTime: "21:30",
+        venue: "ALSHAYEB ETERNUM",
+        status: "available",
+        prefix: "",
+        price: 1800,
+        googleSheetId: "",
+        schools: ""
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    
+    try {
+      const payload = {
+        ...formData,
+        schools: formData.schools.split(",").map(s => s.trim()).filter(Boolean)
+      };
+      
+      const method = editingEvent ? "PUT" : "POST";
+      const url = editingEvent ? `/api/events/${editingEvent._id}` : "/api/events";
+      
+      const json = await apiRequest(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+      
+      setIsModalOpen(false);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSync = async (eventId) => {
+    if (!window.confirm("Manually trigger Google Sheets sync? (Note: Automated sync runs every 5 mins)")) return;
+    setSyncing(eventId);
+    try {
+      const json = await apiRequest(`/api/admin/events/${eventId}/sync`, { method: "POST" });
+      alert(`Sync Success! Imported: ${json.stats?.imported || 0}, Skipped: ${json.stats?.skipped || 0}, Errors: ${json.stats?.errors || 0}`);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   return (
     <AdminLayout>
@@ -3094,40 +3227,119 @@ function EventsPage() {
         <div className="admin-panel-title">
           <div>
             <h3>Event Registry</h3>
-            <p className="muted">Events are loaded from MongoDB.</p>
+            <p className="muted">Manage available events, pricing, and sync operations.</p>
           </div>
-          <button className="mini-admin-btn">CREATE EVENT</button>
+          <button className="mini-admin-btn" onClick={() => handleOpenModal()}>CREATE EVENT</button>
         </div>
         {error && <div className="admin-empty-state">{error}</div>}
 
         <AdminTable
-          columns={["Event Name", "Date", "Venue", "Registration Fee", "QR Reveal Time", "Registration Status", "Total Attendees", "Actions"]}
+          columns={["Name", "Prefix", "Status", "Date/Time", "Price", "Sheet Sync", "Actions"]}
           rows={liveEvents}
           renderRow={(event) => (
-            <tr key={event.id || event._id}>
-              <td>{event.name}</td>
-              <td>{event.date ? new Date(event.date).toLocaleDateString() : "Not set"}</td>
-              <td>{event.venue}</td>
-              <td>{event.fee}</td>
-              <td>{event.qrRevealTime || "Global default"}</td>
-              <td><span className={`status-badge ${statusClass(event.isActive ? "Open" : "Closed")}`}>{event.isActive ? "Open" : "Closed"}</span></td>
-              <td>{event.totalAttendees || 0}</td>
+            <tr key={event._id}>
+              <td>
+                <strong>{event.name}</strong><br/>
+                <small className="muted">{event.venue}</small>
+              </td>
+              <td><strong>{event.prefix}</strong></td>
+              <td><span className={`status-badge ${statusClass(event.status)}`}>{event.status}</span></td>
+              <td>
+                {event.date ? new Date(event.date).toLocaleDateString() : "TBA"}<br/>
+                <small className="muted">{event.entryTime}</small>
+              </td>
+              <td>{event.price} EGP</td>
+              <td>
+                {event.googleSheetId ? (
+                  <div>
+                    <span className={`status-badge ${statusClass(event.sync?.lastSyncStatus === "success" ? "Approved" : "Rejected")}`}>
+                      {event.sync?.lastSyncStatus || "Pending"}
+                    </span><br/>
+                    <small className="muted">
+                      {event.sync?.lastSyncAt ? new Date(event.sync.lastSyncAt).toLocaleString() : "Never synced"}
+                    </small>
+                  </div>
+                ) : <span className="muted">No Sheet</span>}
+              </td>
               <td>
                 <div className="table-actions">
-                  <button>Edit</button>
-                  <button>Close Registration</button>
-                  <button>View Attendees</button>
+                  <button onClick={() => handleOpenModal(event)}>Edit</button>
+                  {event.googleSheetId && (
+                    <button onClick={() => handleSync(event._id)} disabled={syncing === event._id}>
+                      {syncing === event._id ? "Syncing..." : "Sync Now"}
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
           )}
         />
-        {!loading && liveEvents.length === 0 && <div className="admin-empty-state">NO EVENTS IN MONGODB YET</div>}
+        {!loading && liveEvents.length === 0 && <div className="admin-empty-state">NO EVENTS YET</div>}
       </section>
+
+      {isModalOpen && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <h3>{editingEvent ? "Edit Event" : "Create Event"}</h3>
+            <form onSubmit={handleSave}>
+              <div className="form-group">
+                <label>Event Name</label>
+                <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Slug</label>
+                  <input required value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Prefix (e.g. ORB)</label>
+                  <input required value={formData.prefix} onChange={e => setFormData({...formData, prefix: e.target.value})} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Date</label>
+                  <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Entry Time</label>
+                  <input required value={formData.entryTime} onChange={e => setFormData({...formData, entryTime: e.target.value})} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Price (EGP)</label>
+                  <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+                    <option value="available">Available</option>
+                    <option value="sold out">Sold Out</option>
+                    <option value="not available">Not Available</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Schools (Comma separated)</label>
+                <input value={formData.schools} onChange={e => setFormData({...formData, schools: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Google Sheet ID (For Sync)</label>
+                <input value={formData.googleSheetId} onChange={e => setFormData({...formData, googleSheetId: e.target.value})} />
+              </div>
+              
+              <div className="admin-modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Event"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
-
 function AttendeesPage() {
   const [query, setQuery] = useState("");
   const [accessType, setAccessType] = useState("All");

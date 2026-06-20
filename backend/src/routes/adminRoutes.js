@@ -7,6 +7,7 @@ const apiError = require("../utils/apiError");
 const { sendStatusEmail } = require("../utils/email");
 const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
+const Event = require("../models/Event");
 
 const router = express.Router();
 
@@ -90,20 +91,45 @@ function buildAttendeeQuery(query) {
 }
 
 async function dashboardStats() {
-  const [totalApplications, pendingReview, approved, rejected, used] = await Promise.all([
-    Attendee.countDocuments({}),
-    Attendee.countDocuments({ status: "pending" }),
-    Attendee.countDocuments({ status: "approved" }),
-    Attendee.countDocuments({ status: "rejected" }),
-    Attendee.countDocuments({ status: "used" })
-  ]);
+  const events = await Event.find({});
+  const eventStats = [];
+
+  for (const event of events) {
+    const [incomers, outcomers, approved, pending, rejected, total] = await Promise.all([
+      Attendee.countDocuments({ event: event._id, attendeeType: "incomer" }),
+      Attendee.countDocuments({ event: event._id, attendeeType: "outcomer" }),
+      Attendee.countDocuments({ event: event._id, status: "approved" }),
+      Attendee.countDocuments({ event: event._id, status: "pending" }),
+      Attendee.countDocuments({ event: event._id, status: "rejected" }),
+      Attendee.countDocuments({ event: event._id })
+    ]);
+
+    eventStats.push({
+      eventId: event._id,
+      eventName: event.name,
+      incomers,
+      outcomers,
+      approved,
+      pending,
+      declined: rejected,
+      total
+    });
+  }
+
+  // Calculate globals if needed, but return eventStats
+  const totalApplications = await Attendee.countDocuments({});
+  const pendingReview = await Attendee.countDocuments({ status: "pending" });
+  const globalApproved = await Attendee.countDocuments({ status: "approved" });
+  const globalRejected = await Attendee.countDocuments({ status: "rejected" });
+  const used = await Attendee.countDocuments({ status: "used" });
 
   return {
+    eventStats,
     stats: [
       { label: "Total Applications", value: totalApplications },
       { label: "Pending Review", value: pendingReview },
-      { label: "Approved", value: approved },
-      { label: "Rejected", value: rejected },
+      { label: "Approved", value: globalApproved },
+      { label: "Rejected", value: globalRejected },
       { label: "Used Passes", value: used }
     ]
   };
@@ -206,7 +232,12 @@ router.patch(
     attendee.reviewedAt = new Date();
 
     if (!attendee.qrId) {
-      attendee.qrId = await generateUniqueQrId(Attendee);
+      let prefix = "ALSHAYEB-";
+      if (attendee.event) {
+        const ev = await Event.findById(attendee.event);
+        if (ev && ev.prefix) prefix = ev.prefix;
+      }
+      attendee.qrId = await generateUniqueQrId(Attendee, prefix);
     }
 
     if (!attendee.qrToken) {
@@ -299,7 +330,12 @@ router.patch(
       attendee.reviewedAt = new Date();
 
       if (!attendee.qrId) {
-        attendee.qrId = await generateUniqueQrId(Attendee);
+        let prefix = "ALSHAYEB-";
+        if (attendee.event) {
+          const ev = await Event.findById(attendee.event);
+          if (ev && ev.prefix) prefix = ev.prefix;
+        }
+        attendee.qrId = await generateUniqueQrId(Attendee, prefix);
       }
 
       if (!attendee.qrToken) {

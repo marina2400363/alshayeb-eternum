@@ -5,12 +5,14 @@ require("dotenv").config();
 
 const app = require("./app");
 const connectDb = require("./config/db");
+const startCronJobs = require("./services/cronJobs");
 
 const port = process.env.PORT || 5000;
 console.log("URI:", process.env.MONGODB_URI);
 
 connectDb()
   .then(() => {
+    startCronJobs();
     app.listen(port, () => {
       console.log(`ALSHAYEB ETERNUM API listening on port ${port}`);
     });

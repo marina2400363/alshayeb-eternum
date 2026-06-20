@@ -6,6 +6,7 @@ const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
+const Event = require("../models/Event");
 
 const router = express.Router();
 
@@ -118,7 +119,12 @@ router.post(
 
     if (attendee.status === "approved") {
       if (!attendee.qrId) {
-        attendee.qrId = await generateUniqueQrId(Attendee);
+        let prefix = "ALSHAYEB-";
+        if (attendee.event) {
+          const ev = await Event.findById(attendee.event);
+          if (ev && ev.prefix) prefix = ev.prefix;
+        }
+        attendee.qrId = await generateUniqueQrId(Attendee, prefix);
       }
 
       if (!attendee.qrToken) {

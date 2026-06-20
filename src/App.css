@@ -6683,6 +6683,7 @@ body::after {
   justify-content: center;
   gap: 4px;
   overflow: hidden; /* prevent wrapping issues */
+  min-width: 0;
 }
 
 .outcomer-dest-info h3 {
@@ -6732,6 +6733,8 @@ body::after {
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
+  flex-shrink: 0;
+  width: auto;
 }
 
 .outcomer-dest-card:not(.disabled):hover .outcomer-dest-btn {

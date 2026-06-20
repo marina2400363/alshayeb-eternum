@@ -10,6 +10,7 @@ const exportRoutes = require("./routes/exportRoutes");
 const outcomerRoutes = require("./routes/outcomerRoutes");
 const scannerRoutes = require("./routes/scannerRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const syncRoutes = require("./routes/syncRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const notFound = require("./middleware/notFound");
 
@@ -73,6 +74,7 @@ app.use("/api/export", exportRoutes);
 app.use("/api/outcomers", outcomerRoutes);
 app.use("/api/scanner", scannerRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api", syncRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
