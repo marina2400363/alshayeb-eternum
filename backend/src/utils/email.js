@@ -38,7 +38,7 @@ function generateEmailHTML(content) {
       
       <!-- Call To Action Button -->
       <div style="margin-top: 40px;">
-        <a href="https://alshayebexperience.com/?page=incomer" style="display: inline-block; background: transparent; color: #60a5fa; padding: 14px 28px; text-decoration: none; border: 1px solid #3b82f6; border-radius: 4px; font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s ease; box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1), 0 0 10px rgba(59, 130, 246, 0.1);">
+        <a href="https://alshayebexperience.com/?page=trackLookup" style="display: inline-block; background: transparent; color: #60a5fa; padding: 14px 28px; text-decoration: none; border: 1px solid #3b82f6; border-radius: 4px; font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s ease; box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1), 0 0 10px rgba(59, 130, 246, 0.1);">
           TRACK YOUR APPLICATION
         </a>
       </div>
