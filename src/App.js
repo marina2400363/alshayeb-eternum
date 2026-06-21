@@ -34,7 +34,9 @@ const EXPORT_COLUMNS = [
   "Age",
   "Instagram Username",
   "Status",
-  "Prom"
+  "Prom",
+  "Amount",
+  "Entry Time"
 ];
 
 async function apiRequest(path, options = {}) {
@@ -111,7 +113,7 @@ function toAdminAttendee(attendee) {
     qrToken: attendee.qrToken,
     qrId: attendee.qrId,
     event: attendeeProm(attendee),
-    amount: attendee.amount || "250 EGP",
+    amount: attendee.event?.price ? `${attendee.event.price} EGP` : (attendee.amount || "TBA"),
     submittedAt: attendee.createdAt ? new Date(attendee.createdAt).toLocaleString() : "",
     paymentProof: attendee.paymentProof
   };
@@ -162,7 +164,9 @@ function buildRegistrationExportRows(attendees = []) {
       Age: row.age || "",
       "Instagram Username": row.instagramUsername || "",
       Status: row.status || row.paymentStatus || "",
-      Prom: row.event
+      Prom: row.event,
+      Amount: row.amount || "",
+      "Entry Time": attendee.event?.entryTime || "TBA"
     };
   });
 }
@@ -207,7 +211,7 @@ function exportRegistrationsByProm(attendees = []) {
 }
 
 function normalizeEventFee(fee) {
-  if (!fee) return "250 EGP";
+  if (!fee) return "TBA";
   if (typeof fee === "string") return fee;
   return `${fee.amount || 0} ${fee.currency || "EGP"}`;
 }
@@ -2347,9 +2351,7 @@ function PublicWebsite() {
     const eventDateDisp = rawDateTime 
       ? new Date(rawDateTime).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}).toUpperCase() 
       : "TBA";
-    const entryTimeDisp = rawDateTime
-      ? new Date(rawDateTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
-      : "TBA";
+    const entryTimeDisp = ticketPromEvent?.entryTime || foundClient.entryTime || "TBA";
 
     return (
       <div className="tkt-page">
@@ -3915,7 +3917,7 @@ function SettingsPage() {
       <section className="admin-panel">
         <div className="settings-grid">
           <label><span>InstaPay Link</span><input defaultValue="https://instapay.example/alshayeb" /></label>
-          <label><span>Default Registration Fee</span><input defaultValue="250 EGP" /></label>
+          <label><span>Default Registration Fee</span><input defaultValue="Dynamic based on event" disabled /></label>
           <label><span>QR Reveal Time</span><input defaultValue="2026-12-31T18:00:00" /></label>
           <label><span>Venue Name</span><input defaultValue="ALSHAYEB ETERNUM" /></label>
           <label><span>Event Background Image</span><input defaultValue="eternum-reference" /></label>

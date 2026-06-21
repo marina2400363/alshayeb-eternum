@@ -141,7 +141,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const [summary, recentAttendees] = await Promise.all([
       dashboardStats(),
-      Attendee.find({}).sort({ updatedAt: -1 }).limit(8)
+      Attendee.find({}).sort({ updatedAt: -1 }).limit(8).populate("event")
     ]);
 
     res.json({
@@ -208,7 +208,7 @@ router.put(
 router.get(
   "/attendees",
   asyncHandler(async (req, res) => {
-    const attendees = await Attendee.find(buildAttendeeQuery(req.query)).sort({ createdAt: -1 });
+    const attendees = await Attendee.find(buildAttendeeQuery(req.query)).sort({ createdAt: -1 }).populate("event");
 
     res.json({
       success: true,
@@ -220,7 +220,7 @@ router.get(
 router.patch(
   "/attendees/:id/approve",
   asyncHandler(async (req, res) => {
-    const attendee = await Attendee.findById(req.params.id);
+    const attendee = await Attendee.findById(req.params.id).populate("event");
 
     if (!attendee) {
       throw apiError("Attendee was not found.", 404);
@@ -277,7 +277,7 @@ router.patch(
 router.patch(
   "/attendees/:id/reject",
   asyncHandler(async (req, res) => {
-    const attendee = await Attendee.findById(req.params.id);
+    const attendee = await Attendee.findById(req.params.id).populate("event");
 
     if (!attendee) {
       throw apiError("Attendee was not found.", 404);
@@ -320,7 +320,7 @@ router.patch(
 router.patch(
   "/attendees/:id/payment-status",
   asyncHandler(async (req, res) => {
-    const attendee = await Attendee.findById(req.params.id);
+    const attendee = await Attendee.findById(req.params.id).populate("event");
 
     if (!attendee) {
       throw apiError("Attendee was not found.", 404);
