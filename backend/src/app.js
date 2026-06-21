@@ -73,6 +73,29 @@ app.use("/api/events", eventRoutes);
 app.use("/api/export", exportRoutes);
 app.use("/api/outcomers", outcomerRoutes);
 app.use("/api/scanner", scannerRoutes);
+
+app.get("/api/export-debug", async (req, res) => {
+  try {
+    const isConfigured = Boolean(process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
+    if (!isConfigured) {
+      return res.json({ success: false, error: "Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY in Vercel." });
+    }
+    
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n");
+    const { google } = require("googleapis");
+    const auth = new google.auth.JWT({
+      email: process.env.GOOGLE_CLIENT_EMAIL,
+      key: privateKey,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"]
+    });
+    
+    await auth.authorize();
+    res.json({ success: true, message: "Google Authentication is fully working!" });
+  } catch (err) {
+    res.json({ success: false, error: err.message, stack: err.stack });
+  }
+});
+
 app.use("/api/settings", settingsRoutes);
 app.use("/api", syncRoutes);
 
