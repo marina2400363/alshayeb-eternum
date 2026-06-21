@@ -4,7 +4,7 @@ function errorHandler(error, req, res, next) {
 
   res.status(statusCode).json({
     success: false,
-    message: statusCode === 500 ? "Something went wrong." : error.message,
+    message: error.message || "Something went wrong.",
     ...(error.details ? { details: error.details } : {}),
     ...(process.env.NODE_ENV === "development" ? { stack: error.stack } : {})
   });
