@@ -12,8 +12,10 @@ function getGoogleAuth() {
     throw new Error("Google Service Account is not configured in .env");
   }
 
-  // Handle newlines in private key securely
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n");
+  // Handle newlines and accidental surrounding quotes securely
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY
+    .replace(/^"|"$/g, "")
+    .replace(/\\n/g, "\n");
 
   return new google.auth.JWT({
     email: process.env.GOOGLE_CLIENT_EMAIL,
