@@ -19,14 +19,11 @@ function generateEmailHTML(content) {
     <div style="max-width: 500px; margin: 0 auto; background: #0b1120; border: 1px solid #1e3a8a; border-top: 4px solid #3b82f6; border-radius: 12px; padding: 40px 30px; box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); text-align: center;">
       
       <!-- Branding / Logo Text -->
-      <div style="margin-bottom: 30px;">
+      <div style="margin-bottom: 25px;">
         <h1 style="margin: 0; color: #60a5fa; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 10px rgba(96, 165, 250, 0.4);">
           ALSHAYEB EXPERIENCE
         </h1>
-        <h2 style="margin: 5px 0 0; color: #93c5fd; font-size: 14px; font-weight: 600; letter-spacing: 8px; text-transform: uppercase;">
-          ETERNUM
-        </h2>
-        <p style="margin: 8px 0 0; color: #4b5563; font-size: 10px; font-weight: 400; letter-spacing: 2px;">
+        <p style="margin: 12px 0 0; color: #4b5563; font-size: 11px; font-weight: 400; letter-spacing: 2px;">
           NO BEGINNING. NO END.
         </p>
       </div>
@@ -41,7 +38,7 @@ function generateEmailHTML(content) {
       
       <!-- Call To Action Button -->
       <div style="margin-top: 40px;">
-        <a href="https://alshayebexperience.com" style="display: inline-block; background: transparent; color: #60a5fa; padding: 14px 28px; text-decoration: none; border: 1px solid #3b82f6; border-radius: 4px; font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s ease; box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1), 0 0 10px rgba(59, 130, 246, 0.1);">
+        <a href="https://alshayebexperience.com/?page=incomer" style="display: inline-block; background: transparent; color: #60a5fa; padding: 14px 28px; text-decoration: none; border: 1px solid #3b82f6; border-radius: 4px; font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s ease; box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1), 0 0 10px rgba(59, 130, 246, 0.1);">
           TRACK YOUR APPLICATION
         </a>
       </div>

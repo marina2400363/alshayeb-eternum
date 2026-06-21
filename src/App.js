@@ -580,6 +580,9 @@ function PublicWebsite() {
 
   const [page, setPageState] = useState(() => {
     if (typeof window === "undefined") return "home";
+    const params = new URLSearchParams(window.location.search);
+    const urlPage = params.get("page");
+    if (urlPage) return urlPage;
     return window.history.state?.eternumPage || "home";
   });
   const pageRef = useRef(page);
