@@ -216,19 +216,19 @@ router.post(
       throw err;
     }
 
-    const emailSent = await sendStatusEmail(
+    // Send application submitted email non-blocking
+    sendStatusEmail(
       attendee,
-      "ALSHAYEB ETERNUM application received",
-      "Application received and currently under review."
+      "Your Application Has Been Received",
+      "Your application has been successfully submitted.\nYour status is now under review.\nYou can track your application status anytime through the ALSHAYEB platform using your phone number.\nWe will notify you once a decision has been made."
     );
 
-    if (emailSent) {
-      attendee.emailNotifications = {
-        ...attendee.emailNotifications,
-        registrationReceivedAt: new Date()
-      };
-      await attendee.save();
-    }
+    // Save timestamp regardless of immediate success so we don't duplicate on retries
+    attendee.emailNotifications = {
+      ...attendee.emailNotifications,
+      registrationReceivedAt: new Date()
+    };
+    await attendee.save();
 
     res.status(201).json({
       success: true,

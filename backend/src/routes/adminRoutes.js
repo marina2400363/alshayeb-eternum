@@ -249,19 +249,17 @@ router.patch(
     await attendee.save();
 
     if (previousStatus !== "approved" && !attendee.emailNotifications?.approvedAt) {
-      const emailSent = await sendStatusEmail(
+      sendStatusEmail(
         attendee,
-        "ALSHAYEB ETERNUM application approved",
-        "Application approved and QR pass available."
+        "You Have Been Selected",
+        "Your application has been approved.\nYour access has been granted.\nYou can now open the platform and view your ticket/access information."
       );
 
-      if (emailSent) {
-        attendee.emailNotifications = {
-          ...attendee.emailNotifications,
-          approvedAt: new Date()
-        };
-        await attendee.save();
-      }
+      attendee.emailNotifications = {
+        ...attendee.emailNotifications,
+        approvedAt: new Date()
+      };
+      await attendee.save();
     }
 
     if (attendee.attendeeType === "outcomer" && attendee.event) {
@@ -294,19 +292,17 @@ router.patch(
     await attendee.save();
 
     if (previousStatus !== "rejected" && !attendee.emailNotifications?.rejectedAt) {
-      const emailSent = await sendStatusEmail(
+      sendStatusEmail(
         attendee,
-        "ALSHAYEB ETERNUM application declined",
-        "Application declined."
+        "Application Status Updated",
+        "Your application could not be approved at this stage.\nPlease contact your assigned committee member for more information."
       );
 
-      if (emailSent) {
-        attendee.emailNotifications = {
-          ...attendee.emailNotifications,
-          rejectedAt: new Date()
-        };
-        await attendee.save();
-      }
+      attendee.emailNotifications = {
+        ...attendee.emailNotifications,
+        rejectedAt: new Date()
+      };
+      await attendee.save();
     }
 
     if (attendee.attendeeType === "outcomer" && attendee.event) {
@@ -362,35 +358,31 @@ router.patch(
     await attendee.save();
 
     if (paymentStatus === "verified" && previousStatus !== "approved" && !attendee.emailNotifications?.approvedAt) {
-      const emailSent = await sendStatusEmail(
+      sendStatusEmail(
         attendee,
-        "ALSHAYEB ETERNUM application approved",
-        "Application approved and QR pass available."
+        "You Have Been Selected",
+        "Your application has been approved.\nYour access has been granted.\nYou can now open the platform and view your ticket/access information."
       );
 
-      if (emailSent) {
-        attendee.emailNotifications = {
-          ...attendee.emailNotifications,
-          approvedAt: new Date()
-        };
-        await attendee.save();
-      }
+      attendee.emailNotifications = {
+        ...attendee.emailNotifications,
+        approvedAt: new Date()
+      };
+      await attendee.save();
     }
 
     if (paymentStatus === "rejected" && previousStatus !== "rejected" && !attendee.emailNotifications?.rejectedAt) {
-      const emailSent = await sendStatusEmail(
+      sendStatusEmail(
         attendee,
-        "ALSHAYEB ETERNUM application declined",
-        "Application declined."
+        "Application Status Updated",
+        "Your application could not be approved at this stage.\nPlease contact your assigned committee member for more information."
       );
 
-      if (emailSent) {
-        attendee.emailNotifications = {
-          ...attendee.emailNotifications,
-          rejectedAt: new Date()
-        };
-        await attendee.save();
-      }
+      attendee.emailNotifications = {
+        ...attendee.emailNotifications,
+        rejectedAt: new Date()
+      };
+      await attendee.save();
     }
 
     if (attendee.attendeeType === "outcomer" && attendee.event) {
