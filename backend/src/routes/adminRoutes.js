@@ -271,7 +271,7 @@ router.patch(
     });
 
     if (attendee.attendeeType === "outcomer" && attendee.event) {
-      syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
     }
   })
 );
@@ -316,7 +316,7 @@ router.patch(
     });
 
     if (attendee.attendeeType === "outcomer" && attendee.event) {
-      syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
     }
   })
 );
@@ -400,7 +400,7 @@ router.patch(
     });
 
     if (attendee.attendeeType === "outcomer" && attendee.event) {
-      syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
     }
   })
 );
