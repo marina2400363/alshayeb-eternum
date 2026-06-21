@@ -264,15 +264,15 @@ router.patch(
       }
     }
 
+    if (attendee.attendeeType === "outcomer" && attendee.event) {
+      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+    }
+
     res.json({
       success: true,
       message: "Attendee approved and QR credentials issued.",
       attendee: serializeAttendee(attendee)
     });
-
-    if (attendee.attendeeType === "outcomer" && attendee.event) {
-      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
-    }
   })
 );
 
@@ -309,15 +309,15 @@ router.patch(
       }
     }
 
+    if (attendee.attendeeType === "outcomer" && attendee.event) {
+      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+    }
+
     res.json({
       success: true,
       message: "Attendee rejected.",
       attendee: serializeAttendee(attendee)
     });
-
-    if (attendee.attendeeType === "outcomer" && attendee.event) {
-      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
-    }
   })
 );
 
@@ -393,15 +393,15 @@ router.patch(
       }
     }
 
+    if (attendee.attendeeType === "outcomer" && attendee.event) {
+      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
+    }
+
     res.json({
       success: true,
       message: "Payment status updated.",
       attendee: serializeAttendee(attendee)
     });
-
-    if (attendee.attendeeType === "outcomer" && attendee.event) {
-      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync hook failed:", err));
-    }
   })
 );
 
