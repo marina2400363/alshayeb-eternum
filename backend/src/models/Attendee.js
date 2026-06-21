@@ -103,6 +103,10 @@ const attendeeSchema = new mongoose.Schema(
     qrIssuedAt: {
       type: Date
     },
+    isUsed: {
+      type: Boolean,
+      default: false
+    },
     scannedAt: {
       type: Date
     },

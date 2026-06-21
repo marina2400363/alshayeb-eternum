@@ -2330,8 +2330,7 @@ function PublicWebsite() {
     const qrId           = safeValue(foundClient.ID || foundClient.qrId || foundClient.id, "N/A");
     const qrValue        = String(foundClient.qrToken || foundClient.qr || foundClient.QR || "").trim();
     const accessType     = safeValue(foundClient.accessType || foundClient["Access Type"] || foundClient.type || foundClient.attendeeType, "OUTCOMER");
-    const rawStatus      = safeValue(foundClient.status || foundClient.Status, "Active");
-    const isUsed         = rawStatus.toLowerCase() === "used";
+    const isUsed         = foundClient.isUsed || foundClient.scanned || foundClient.scannedAt || foundClient.usedAt || (String(foundClient.status || "").toLowerCase() === "used");
     const venue          = "ALSHAYEB ETERNUM";
     const school         = safeValue(foundClient.schoolOrOriginProm || foundClient.university || foundClient.school || foundClient.School, "—");
     const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname || guestName.split(" ")[0], "—");
@@ -2420,7 +2419,7 @@ function PublicWebsite() {
             { icon: "phone",      label: "PHONE NUMBER",   val: guestPhone },
             { icon: "id",         label: "ID",             val: qrId.toUpperCase() },
             { icon: "crown",      label: "ACCESS TYPE",    val: accessType.toUpperCase(), color: "#00b2ff" },
-            { icon: "shield",     label: "STATUS",         val: isUsed ? "USED BEFORE" : "ACTIVE", color: isUsed ? "#ff3366" : "#00b2ff", dot: true },
+            { icon: "shield",     label: "STATUS",         val: isUsed ? "USED" : "UNUSED", color: isUsed ? "#ff3366" : "#00b2ff", dot: true },
             { icon: "cal",        label: "DATE",           val: eventDateDisp },
             { icon: "clock",      label: "ENTRY TIME",     val: entryTimeDisp },
             { icon: "venue",      label: "VENUE",          val: venue },

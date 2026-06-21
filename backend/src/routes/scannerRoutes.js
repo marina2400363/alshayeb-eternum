@@ -41,8 +41,18 @@ router.post(
       return;
     }
 
+    if (attendee.isUsed || attendee.scannedAt || attendee.scanCount > 0) {
+      res.status(403).json({
+        success: true,
+        valid: false,
+        reason: "QR code has already been scanned.",
+        attendee: serializeAttendee(attendee)
+      });
+      return;
+    }
+
     if (markUsed) {
-      attendee.status = "used";
+      attendee.isUsed = true;
       attendee.scannedAt = new Date();
       attendee.scanCount += 1;
       await attendee.save();
