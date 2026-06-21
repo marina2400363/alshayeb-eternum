@@ -6682,7 +6682,6 @@ body::after {
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  overflow: hidden; /* prevent wrapping issues */
   min-width: 0;
 }
 
@@ -6693,9 +6692,16 @@ body::after {
   letter-spacing: 0.4em;
   color: #ffffff;
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+  .outcomer-dest-info h3 {
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+  }
 }
 
 .outcomer-dest-date {
@@ -6714,9 +6720,9 @@ body::after {
   letter-spacing: 0.15em;
   color: rgba(255,255,255,0.4);
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.4;
 }
 
 .outcomer-dest-btn {
