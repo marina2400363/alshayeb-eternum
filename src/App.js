@@ -597,6 +597,7 @@ function PublicWebsite() {
   const [selectedEvent, setSelectedEvent] = useState({});
   const [outcomerSelection, setOutcomerSelection] = useState(DEFAULT_OUTCOMER_SELECTION);
   const [guestListCount, setGuestListCount] = useState(137);
+  const [globalInstapayLink, setGlobalInstapayLink] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [trackedRegistration, setTrackedRegistration] = useState(null);
   const [lookupFailed, setLookupFailed] = useState(false);
