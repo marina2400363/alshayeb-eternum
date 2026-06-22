@@ -1217,7 +1217,7 @@ function PublicWebsite() {
 
   if (page === "notfound") {
     return (
-      <div className="incomer-page-container eternum-page-bg">
+      <div className="incomer-page-container">
         <BrandHeader />
 
         <div className="incomer-welcome-box">
@@ -1244,7 +1244,7 @@ function PublicWebsite() {
 
   if (page === "outcomerLanding") {
     return (
-      <div className="outcomer-landing-container eternum-page-bg">
+      <div className="outcomer-landing-container">
         {/* BACK ARROW */}
         <div className="outcomer-back-wrapper">
           <button
@@ -1410,7 +1410,7 @@ function PublicWebsite() {
     };
 
     return (
-      <div className="outcomer-landing-container arp-page eternum-page-bg">
+      <div className="outcomer-landing-container arp-page">
         {/* Back arrow */}
         <div className="outcomer-back-wrapper">
           <button className="outcomer-back-btn" onClick={() => { setLookupFailed(false); setPage("outcomerLanding"); }}>
@@ -1507,7 +1507,7 @@ function PublicWebsite() {
 
   if (page === "chooseEvent") {
     return (
-      <div className="outcomer-landing-container outcomer-destinations-container eternum-page-bg">
+      <div className="outcomer-landing-container outcomer-destinations-container">
         {/* BACK ARROW */}
         <div className="outcomer-back-wrapper">
           <button
@@ -1575,7 +1575,7 @@ function PublicWebsite() {
 
   if (page === "register") {
     return (
-      <div className="outcomer-landing-container outcomer-register-container eternum-page-bg">
+      <div className="outcomer-landing-container outcomer-register-container">
         {/* BACK ARROW */}
         <div className="outcomer-back-wrapper">
           <button
@@ -1789,7 +1789,7 @@ function PublicWebsite() {
     const instapayLink = selectedEvent?.instapayLink || globalInstapayLink || null;
 
     return (
-      <div className="pay-page eternum-page-bg">
+      <div className="pay-page">
         {/* Back arrow */}
         <button className="pay-back-btn" onClick={() => setPage("chooseEvent")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1888,7 +1888,7 @@ function PublicWebsite() {
 
   if (page === "instapay") {
     return (
-      <PublicShell backTo="payment" className="payment-public-page eternum-page-bg" onNavigate={setPage}>
+      <PublicShell backTo="payment" className="payment-public-page" onNavigate={setPage}>
         <BrandHeader title="ETERNITY" subtitle="PAYMENT METHOD" />
         <section className="eternum-card payment-method-card">
           <h3>PAY</h3>
@@ -1904,7 +1904,7 @@ function PublicWebsite() {
 
   if (page === "upload") {
     return (
-      <div className="upv-page eternum-page-bg">
+      <div className="upv-page">
         {/* Back arrow */}
         <button className="pay-back-btn" onClick={() => setPage("payment")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1972,7 +1972,7 @@ function PublicWebsite() {
     const fmtNum = (n) => Number(n).toLocaleString();
 
     return (
-      <div className="sub-page eternum-page-bg">
+      <div className="sub-page">
         {/* Back arrow */}
         <button className="pay-back-btn" onClick={() => setPage("trackLookup")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2530,7 +2530,7 @@ function PublicWebsite() {
 
   if (page === "guestList") {
     return (
-      <div className="incomer-page-container guest-list-reference eternum-page-bg">
+      <div className="incomer-page-container guest-list-reference">
         {/* BACK ARROW */}
         <div className="incomer-back-wrapper">
           <button
@@ -2636,7 +2636,7 @@ function PublicWebsite() {
 
   if (page === "incomer") {
     return (
-      <div className="incomer-page-container eternum-page-bg">
+      <div className="incomer-page-container">
         {/* BACK ARROW */}
         <div className="incomer-back-wrapper">
           <button
@@ -3949,7 +3949,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<PublicWebsite />} />
+        <Route path="/" element={<div className="eternum-global-bg"><PublicWebsite /></div>} />
         <Route path="/control" element={<AdminLogin />} />
         <Route
           path="/control/dashboard"

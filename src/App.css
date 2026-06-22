@@ -39,21 +39,29 @@ body {
   letter-spacing: 0;
 }
 
-.admin-bg::before {
+.eternum-global-bg {
+  min-height: 100vh;
+  background-color: #01030A !important;
+}
+
+.eternum-global-bg::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 12%, rgba(93, 124, 255, 0.18), transparent 28%),
-    radial-gradient(circle at 18% 28%, rgba(22, 80, 156, 0.18), transparent 20%),
-    radial-gradient(circle at 82% 24%, rgba(48, 90, 170, 0.16), transparent 20%),
-    radial-gradient(circle at 50% 76%, rgba(212, 169, 63, 0.07), transparent 24%),
-    linear-gradient(180deg, #02040b 0%, #030712 48%, #000 100%);
+    radial-gradient(ellipse at 50% 0%, rgba(40, 110, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(10, 30, 80, 0.08), transparent 70%),
+    linear-gradient(180deg, #02040B 0%, #01030A 55%, #000207 100%) !important;
   opacity: 1;
   z-index: -4;
+  pointer-events: none;
 }
 
-body::after {
+.eternum-global-bg .animated-bg {
+  display: none !important;
+}
+
+.admin-bg::after {
   content: "";
   position: fixed;
   inset: 0;
@@ -989,10 +997,7 @@ button:disabled,
 
 .ticket-page {
   align-items: flex-start;
-  background:
-    radial-gradient(circle at 50% 8%, rgba(127, 157, 255, 0.2), transparent 28%),
-    radial-gradient(circle at 50% 42%, rgba(160, 102, 255, 0.13), transparent 30%),
-    linear-gradient(180deg, rgba(0, 2, 10, 0.44), rgba(0, 0, 0, 0.94));
+  /* stripped background */
 }
 
 .ticket-pass {
@@ -2459,12 +2464,16 @@ button:disabled,
     linear-gradient(180deg, rgba(6, 13, 25, 0.86), rgba(2, 5, 10, 0.9));
 }
 
-body::before {
+.admin-bg {
+  background-color: #000 !important;
+}
+
+.admin-bg::before {
   opacity: 0.45;
   filter: saturate(0.85) brightness(0.65);
 }
 
-body::after {
+.admin-bg::after {
   background:
     radial-gradient(circle at 50% 14%, rgba(45, 116, 255, 0.1), transparent 28%),
     radial-gradient(circle at 50% 78%, rgba(212, 169, 63, 0.055), transparent 26%),
@@ -2493,11 +2502,9 @@ body::after {
 }
 
 .app-shell,
-.ticket-page {
-  background:
-    radial-gradient(circle at 50% 8%, rgba(45, 116, 255, 0.1), transparent 26%),
-    linear-gradient(180deg, rgba(1, 4, 9, 0.3), rgba(0, 0, 0, 0.82));
-}
+  .ticket-page {
+    /* stripped background */
+  }
 
 .app-shell::before,
 .ticket-page::before,
@@ -2770,10 +2777,7 @@ button,
 .ticket-page.tone-purple,
 .ticket-page.tone-gold,
 .admin-control-page.tone-gold {
-  background:
-    radial-gradient(circle at 50% 9%, rgba(var(--dept-accent-rgb), 0.16), transparent 30%),
-    radial-gradient(circle at 50% 82%, rgba(var(--dept-accent-rgb), 0.055), transparent 25%),
-    linear-gradient(180deg, rgba(1, 4, 9, 0.42), rgba(0, 0, 0, 0.9));
+  /* stripped background */
 }
 
 .app-shell.tone-blue::before,
@@ -3025,17 +3029,14 @@ body,
 .app-shell,
 .ticket-page,
 .admin-control-page {
-  background-color: var(--eternum-black);
+  /* stripped background-color */
 }
 
 .app,
 .app-shell,
 .ticket-page,
 .admin-control-page {
-  background-image:
-    radial-gradient(circle at 50% 9%, rgba(96, 130, 255, 0.14), transparent 30%),
-    radial-gradient(circle at 50% 78%, rgba(212, 169, 63, 0.06), transparent 28%),
-    linear-gradient(180deg, rgba(1, 4, 9, 0.42), rgba(0, 0, 0, 0.92));
+  /* stripped background-image */
 }
 
 .app::before,
@@ -3730,14 +3731,14 @@ body {
   background: #000;
 }
 
-body::before {
+.admin-bg::before {
   background:
     linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.7)),
     #000;
   opacity: 1;
 }
 
-body::after {
+.admin-bg::after {
   background:
     radial-gradient(circle at 50% 38%, rgba(119, 135, 255, 0.12), transparent 28%),
     linear-gradient(90deg, rgba(0,0,0,0.92), transparent 19%, transparent 81%, rgba(0,0,0,0.92));
@@ -3753,9 +3754,7 @@ body::after {
   justify-content: center;
   min-height: 100svh;
   padding: 0;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.58)),
-    #000;
+  /* stripped background */
 }
 
 .app-shell.reference-flow::before,
@@ -3960,9 +3959,7 @@ body::after {
 .ticket-page {
   align-items: flex-start;
   padding: 0;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.36), #000 42%, #000 100%),
-    #000;
+  /* stripped background */
 }
 
 .ticket-page::before,
@@ -4050,7 +4047,7 @@ body::after {
 }
 
 @media (max-width: 520px) {
-  body::before {
+  .admin-bg::before {
     background:
       linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.72)),
       #000;
@@ -4129,7 +4126,7 @@ body::after {
   align-items: flex-start;
   justify-content: center;
   padding: 0;
-  background: #000;
+  /* stripped background */
 }
 
 .app-shell.incomer-reference.tone-blue::before,
@@ -4469,7 +4466,7 @@ body::after {
   display: block !important;
   padding: 0 !important;
   min-height: 100dvh !important;
-  background: #000 !important;
+  /* stripped background */
   overflow-x: hidden !important;
   overflow-y: auto !important;
 }
@@ -4745,10 +4742,7 @@ body::after {
   align-items: stretch !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  background:
-    radial-gradient(circle at 50% 13%, rgba(65, 144, 255, 0.18), transparent 20%),
-    radial-gradient(circle at 50% 93%, rgba(40, 130, 255, 0.16), transparent 22%),
-    linear-gradient(180deg, #030814 0%, var(--bg-main) 42%, #01030a 100%) !important;
+  /* stripped background */
   color: var(--text-main) !important;
 }
 
@@ -5520,7 +5514,7 @@ body::after {
   box-sizing: border-box !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  background: linear-gradient(180deg, #02040b 0%, #030610 50%, #010208 100%) !important;
+  /* stripped background */
 }
 
 .app-shell.guest-list-reference::before,
@@ -9264,3 +9258,27 @@ body::after {
 }
 
 /* Removed media query as structural overlap is fully responsive via clamp */
+
+
+.eternum-global-bg {
+  min-height: 100vh;
+  background-color: #01030A !important;
+}
+
+.eternum-global-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(40, 110, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(10, 30, 80, 0.08), transparent 70%),
+    linear-gradient(180deg, #02040B 0%, #01030A 55%, #000207 100%) !important;
+  opacity: 1;
+  z-index: -4;
+  pointer-events: none;
+}
+
+.eternum-global-bg .animated-bg {
+  display: none !important;
+}
+
