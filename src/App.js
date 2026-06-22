@@ -251,6 +251,15 @@ const BackButton = ({ to = "home", onNavigate }) => (
   </button>
 );
 
+
+const EternumWordmark = ({ title = "ETERNUM", subtitle = "NO BEGINNING. NO END." }) => (
+  <div className="eternum-wordmark-container">
+    <div className="eternum-wordmark-alshayeb">ALSHAYEB</div>
+    <div className="eternum-wordmark-eternum">{title}</div>
+    {subtitle && <div className="eternum-wordmark-tagline">{subtitle}</div>}
+  </div>
+);
+
 const BrandHeader = ({ title = "ETERNUM", subtitle = "NO BEGINNING. NO END." }) => (
   <div className="brand-header-wrapper">
     <div className="brand-header-logo-container">
@@ -262,9 +271,7 @@ const BrandHeader = ({ title = "ETERNUM", subtitle = "NO BEGINNING. NO END." }) 
       />
     </div>
     <div className="brand-header-typography">
-      <p className="brand-header-alshayeb">ALSHAYEB</p>
-      <div className="brand-header-eternum">{title}</div>
-      {subtitle && <p className="brand-header-subtitle">{subtitle}</p>}
+      <EternumWordmark title={title} subtitle={subtitle} />
     </div>
   </div>
 );
@@ -2768,9 +2775,7 @@ function PublicWebsite() {
 
       {/* Brand header */}
       <div className="home-brand">
-        <p className="home-brand-alshayeb">ALSHAYEB</p>
-        <h1 className="home-brand-eternum">ETERNUM</h1>
-        <span className="home-brand-tagline">NO BEGINNING. NO END.</span>
+        <EternumWordmark />
       </div>
 
       {/* Virtual assistant */}
