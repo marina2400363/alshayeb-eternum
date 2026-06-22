@@ -9567,12 +9567,13 @@ select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
   -webkit-text-fill-color: #F3F7FF !important;
+  color: #F3F7FF !important;
   caret-color: #F3F7FF !important;
   box-shadow: 
-    0 0 0 1000px rgba(4, 8, 24, 0.55) inset, 
+    0 0 0 1000px #060C1F inset, 
     inset 0 0 10px rgba(80, 140, 255, 0.04) !important;
   -webkit-box-shadow: 
-    0 0 0 1000px rgba(4, 8, 24, 0.55) inset, 
+    0 0 0 1000px #060C1F inset, 
     inset 0 0 10px rgba(80, 140, 255, 0.04) !important;
   border: 1px solid rgba(110, 170, 255, 0.18) !important;
   transition: background-color 9999s ease-in-out 0s !important;
