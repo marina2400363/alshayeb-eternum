@@ -1694,7 +1694,7 @@ function PublicWebsite() {
                   value={request.schoolOrOriginProm}
                   onChange={handleRequestChange}
                 >
-                  <option value="" disabled>Select a school</option>
+                  <option value="" disabled>Select</option>
                   {selectedEvent.schools.map(school => (
                     <option key={school} value={school}>{school}</option>
                   ))}
