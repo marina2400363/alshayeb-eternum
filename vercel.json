@@ -17,11 +17,5 @@
     "api/[...path].js": {
       "maxDuration": 30
     }
-  },
-  "crons": [
-    {
-      "path": "/api/sync/cron/sync-all",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  }
 }
