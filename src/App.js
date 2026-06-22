@@ -286,7 +286,7 @@ const PrimaryButton = ({ children, onClick, disabled, type = "button", className
 const PhoneInput = ({ value, onChange, error }) => (
   <div className={`eternum-phone ${error ? "error-input" : ""}`}>
     <span>+20</span>
-    <input className="eternum-input" type="text" placeholder="Enter your phone number" value={value} onChange={onChange} />
+    <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} type="text" placeholder="Enter your phone number" value={value} onChange={onChange} />
   </div>
 );
 
@@ -1601,7 +1601,7 @@ function PublicWebsite() {
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
               <label>FULL NAME</label>
-              <input className="eternum-input" name="fullName" placeholder="Enter your full name" value={request.fullName} onChange={handleRequestChange} />
+              <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} name="fullName" placeholder="Enter your full name" value={request.fullName} onChange={handleRequestChange} />
             </div>
           </div>
           {errors.fullName && <div className="outcomer-reg-error">{errors.fullName}</div>}
@@ -1617,7 +1617,7 @@ function PublicWebsite() {
               <div className="outcomer-reg-phone-wrapper">
                 <span className="outcomer-reg-phone-prefix">+20 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
                 <div className="outcomer-reg-phone-div" />
-                <input className="eternum-input" name="phoneNumber" placeholder="Enter your phone number" value={request.phoneNumber} onChange={handleRequestChange} />
+                <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} name="phoneNumber" placeholder="Enter your phone number" value={request.phoneNumber} onChange={handleRequestChange} />
               </div>
             </div>
           </div>
@@ -1631,7 +1631,7 @@ function PublicWebsite() {
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
               <label>EMAIL ADDRESS</label>
-              <input className="eternum-input" name="email" placeholder="Enter your email address" value={request.email} onChange={handleRequestChange} />
+              <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} name="email" placeholder="Enter your email address" value={request.email} onChange={handleRequestChange} />
             </div>
           </div>
           {errors.email && <div className="outcomer-reg-error">{errors.email}</div>}
@@ -1700,7 +1700,7 @@ function PublicWebsite() {
                   ))}
                 </select>
               ) : (
-                <input className="eternum-input"
+                <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                     name="schoolOrOriginProm"
                     placeholder="Select"
                   value={request.schoolOrOriginProm}
@@ -1719,7 +1719,7 @@ function PublicWebsite() {
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
               <label>AGE</label>
-              <input className="eternum-input" name="age" placeholder="Enter your age" value={request.age} onChange={handleRequestChange} />
+              <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} name="age" placeholder="Enter your age" value={request.age} onChange={handleRequestChange} />
             </div>
           </div>
           {errors.age && <div className="outcomer-reg-error">{errors.age}</div>}
@@ -1734,7 +1734,7 @@ function PublicWebsite() {
               <label>INSTAGRAM USERNAME</label>
               <div className="outcomer-reg-insta-wrapper">
                 <span className="outcomer-reg-insta-prefix">@</span>
-                <input className="eternum-input" name="instagramUsername" placeholder="Enter your Instagram username" value={request.instagramUsername} onChange={handleRequestChange} />
+                <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} name="instagramUsername" placeholder="Enter your Instagram username" value={request.instagramUsername} onChange={handleRequestChange} />
               </div>
             </div>
           </div>
@@ -2565,7 +2565,7 @@ function PublicWebsite() {
         {loading && <p className="incomer-loading">Checking guest list...</p>}
 
         {/* PHONE FORM */}
-        <form className="incomer-phone-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+        <form autoComplete="off" className="incomer-phone-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
           <label>PHONE NUMBER</label>
           <div className="incomer-phone-row">
             <div className="incomer-country-code">
@@ -2574,7 +2574,7 @@ function PublicWebsite() {
                 <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <input className="eternum-input"
+            <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 type="tel"
                 placeholder="Enter your phone number"
               value={phone}
@@ -2678,7 +2678,7 @@ function PublicWebsite() {
         )}
 
         {/* PHONE FORM */}
-        <form className="incomer-phone-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+        <form autoComplete="off" className="incomer-phone-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
           <label>PHONE NUMBER</label>
           <div className="incomer-phone-row">
             <div className="incomer-country-code">
@@ -2687,7 +2687,7 @@ function PublicWebsite() {
                 <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <input className="eternum-input"
+            <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 type="tel"
                 placeholder="Enter your phone number"
               value={phone}
@@ -3313,7 +3313,7 @@ function EventsPage() {
         <div className="admin-modal-overlay">
           <div className="admin-modal">
             <h3>{editingEvent ? "Edit Event" : "Create Event"}</h3>
-            <form onSubmit={handleSave}>
+            <form autoComplete="off" onSubmit={handleSave}>
               <div className="form-group">
                 <label>Event Name</label>
                 <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
