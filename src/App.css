@@ -3363,10 +3363,8 @@ select:focus {
   min-height: calc(100vh - 44px);
   padding: clamp(28px, 7vw, 54px) clamp(22px, 6vw, 42px);
   border-radius: 26px;
-  background:
-    radial-gradient(circle at 50% 13%, rgba(198, 210, 255, 0.15), transparent 18%),
-    radial-gradient(circle at 50% 46%, rgba(88, 111, 255, 0.18), transparent 30%),
-    linear-gradient(180deg, rgba(1, 3, 9, 0.72), rgba(0, 0, 0, 0.92));
+  /* background stripped */
+  
   box-shadow: inset 0 0 42px rgba(127, 157, 255, 0.055), 0 0 34px rgba(var(--dept-accent-rgb, 127, 157, 255), 0.14);
 }
 
@@ -3728,7 +3726,7 @@ select:focus {
 /* Reference parity layer: the uploaded Eternum gate image is the source of truth. */
 body {
   font-family: var(--eternum-font);
-  background: #000;
+  background: #030918 !important;
 }
 
 .admin-bg::before {
@@ -3769,16 +3767,16 @@ body {
   padding: clamp(34px, 7vw, 64px) clamp(30px, 8vw, 56px);
   border: 0;
   border-radius: 0;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.08) 42%, rgba(0,0,0,0.76) 70%, rgba(0,0,0,0.98) 100%);
+  /* background stripped */
+  
   box-shadow: none;
   justify-content: flex-start;
 }
 
 .reference-flow.form-reference .cosmic-card,
 .reference-flow.lookup-reference .cosmic-card {
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.36), rgba(0,0,0,0.82));
+  /* background stripped */
+  
 }
 
 .reference-flow .back-icon {
@@ -4148,8 +4146,8 @@ body {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.04) 45%, rgba(0,0,0,0.16) 68%, rgba(0,0,0,0.78) 100%);
+  /* background stripped */
+  
   box-shadow: none;
 }
 
@@ -4763,10 +4761,8 @@ body {
   overflow: visible !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background:
-    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(69, 153, 255, 0.24) 50%, transparent calc(50% + 0.5px)),
-    radial-gradient(circle at 50% 9%, rgba(111, 193, 255, 0.18), transparent 21%),
-    transparent !important;
+  /* background stripped */
+  
   box-shadow: none !important;
   backdrop-filter: none !important;
   text-align: center !important;
@@ -5537,11 +5533,8 @@ body {
   box-sizing: border-box !important;
   border: 1px solid rgba(111, 193, 255, 0.42) !important;
   border-radius: 20px !important;
-  background:
-    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(77, 155, 255, 0.22) 50%, transparent calc(50% + 0.5px)),
-    radial-gradient(ellipse at 0% 30%, rgba(16, 60, 120, 0.18), transparent 28%),
-    radial-gradient(ellipse at 100% 30%, rgba(16, 60, 120, 0.18), transparent 28%),
-    rgba(2, 4, 10, 0.97) !important;
+  /* background stripped */
+  
   box-shadow:
     inset 0 0 22px rgba(77, 155, 255, 0.06),
     0 0 22px rgba(77, 155, 255, 0.08) !important;
@@ -5967,23 +5960,8 @@ body {
   align-items: center;
   padding: 0 20px 48px;
   position: relative;
-  background:
-  radial-gradient(
-    ellipse at 50% 12%,
-    rgba(24, 58, 120, 0.32),
-    transparent 58%
-  ),
-  radial-gradient(
-    ellipse at 50% 55%,
-    rgba(8, 28, 75, 0.15),
-    transparent 65%
-  ),
-  linear-gradient(
-    180deg,
-    #020511 0%,
-    #030919 45%,
-    #01030a 100%
-  );
+  /* background stripped */
+  
   color: #ffffff;
 }
 
@@ -7326,7 +7304,8 @@ body {
 .upv-page {
   min-height: 100vh;
   width: 100%;
-  background: #03081a;
+  /* background stripped */
+  
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7566,7 +7545,8 @@ body {
 .arp-page {
   min-height: 100vh;
   width: 100%;
-  background: #03081a;
+  /* background stripped */
+  
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -8140,7 +8120,8 @@ body {
 .trk-page {
   min-height: 100vh;
   width: 100%;
-  background: #03081a;
+  /* background stripped */
+  
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -8491,7 +8472,8 @@ body {
 .tkt-page {
   min-height: 100vh;
   width: 100%;
-  background: #03081a;
+  /* background stripped */
+  
   display: flex;
   flex-direction: column;
   align-items: center;
