@@ -501,10 +501,7 @@ function EternumLoadingScreen({ visible }) {
             title: 'SECURE',
             desc: 'Your data is protected',
             icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.75)" strokeWidth="1.3" strokeLinecap="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <polyline points="9 12 11 14 15 10"/>
-              </svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path><line x1="11" y1="11" x2="11" y2="21"></line><line x1="8" y1="16" x2="14" y2="16"></line><line x1="13.8" y1="5.8" x2="20" y2="2"></line><polyline points="15 2 20 2 20 7"></polyline></svg>
             )
           },
           {
