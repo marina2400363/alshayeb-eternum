@@ -2414,7 +2414,6 @@ function PublicWebsite() {
           <p className="tkt-identity-title">ACCESS IDENTITY</p>
           {[
             { icon: "user-solid", label: "NAME",          val: guestName.toUpperCase() },
-            { icon: "user",       label: "PREFERRED NAME", val: preferredName.toUpperCase() },
             { icon: "school",     label: "SCHOOL",         val: school.toUpperCase() },
             { icon: "phone",      label: "PHONE NUMBER",   val: guestPhone },
             { icon: "id",         label: "ID",             val: qrId.toUpperCase() },
