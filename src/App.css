@@ -9600,22 +9600,22 @@ select:-webkit-autofill:focus {
   font-family: 'Michroma', 'Inter', sans-serif;
   font-size: clamp(10px, 1.8vw, 15px);
   font-weight: 300;
-  letter-spacing: clamp(14px, 2.5vw, 24px);
+  letter-spacing: clamp(14px, 3.5vw, 28px);
   text-transform: uppercase;
-  margin-right: calc(clamp(14px, 2.5vw, 24px) * -1);
+  margin-right: calc(clamp(14px, 3.5vw, 28px) * -1);
 }
 
 .eternum-wordmark-eternum {
   margin: 0;
   color: white;
-  font-family: 'Aquire', 'Orbitron', sans-serif;
-  font-size: clamp(38px, 9.5vw, 76px);
+  font-family: 'Rajdhani', 'Orbitron', sans-serif;
+  font-size: clamp(48px, 11vw, 84px);
   font-weight: 300;
   line-height: 1;
-  letter-spacing: clamp(18px, 4vw, 38px);
+  letter-spacing: clamp(14px, 3.5vw, 32px);
   text-transform: uppercase;
   text-shadow: 0 0 22px rgba(255, 255, 255, 0.18);
-  margin-right: calc(clamp(18px, 4vw, 38px) * -1); 
+  margin-right: calc(clamp(14px, 3.5vw, 32px) * -1); 
 }
 
 .eternum-wordmark-tagline {
