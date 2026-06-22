@@ -32,7 +32,8 @@ router.get(
 
     res.json({
       success: true,
-      guestListDisplayCount: settings.guestListDisplayCount ?? DEFAULT_GUEST_LIST_DISPLAY_COUNT
+      guestListDisplayCount: settings.guestListDisplayCount ?? DEFAULT_GUEST_LIST_DISPLAY_COUNT,
+      instapayLink: settings.instapayLink || "https://instapay.example/alshayeb"
     });
   })
 );

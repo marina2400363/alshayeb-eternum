@@ -51,9 +51,14 @@ function buildSettingsUpdate(body, currentSettings) {
     currentSettings.guestListDisplayCount ?? DEFAULT_SITE_SETTINGS.guestListDisplayCount
   );
 
+  const nextInstapayLink = typeof body.instapayLink === "string" 
+    ? body.instapayLink.trim() 
+    : currentSettings.instapayLink ?? "https://instapay.example/alshayeb";
+
   return {
     outcomerSelection: nextSelection,
-    guestListDisplayCount: nextGuestCount
+    guestListDisplayCount: nextGuestCount,
+    instapayLink: nextInstapayLink
   };
 }
 

@@ -726,7 +726,8 @@ function PublicWebsite() {
               fee: event.price ? `${event.price} EGP` : "1800 EGP",
               venue: event.venue || "ALSHAYEB ETERNUM",
               status: event.status || "available",
-              schools: event.schools || []
+              schools: event.schools || [],
+              instapayLink: event.instapayLink
             }))
           : [];
         setLiveEvents(backendEvents);
@@ -753,6 +754,9 @@ function PublicWebsite() {
         const displayCount = Number(result.guestListDisplayCount);
         if (Number.isFinite(displayCount) && displayCount >= 0) {
           setGuestListCount(Math.floor(displayCount));
+        }
+        if (result.instapayLink) {
+          setGlobalInstapayLink(result.instapayLink);
         }
       })
       .catch((error) => {
@@ -1781,7 +1785,7 @@ function PublicWebsite() {
 
   if (page === "payment") {
     const rawFee = String(selectedEvent?.fee || "1800").replace(/EGP/i, "").trim() || "1800";
-    const instapayLink = selectedEvent?.instapayLink || null;
+    const instapayLink = selectedEvent?.instapayLink || globalInstapayLink || null;
 
     return (
       <div className="pay-page">
@@ -3834,7 +3838,7 @@ function ExportPage() {
 
 function SettingsPage() {
   const { data, loading, error, setData } = useBackendData("/api/admin/site-settings", {
-    settings: { outcomerSelection: DEFAULT_OUTCOMER_SELECTION, guestListDisplayCount: 137 }
+    settings: { outcomerSelection: DEFAULT_OUTCOMER_SELECTION, guestListDisplayCount: 137, instapayLink: "https://instapay.example/alshayeb" }
   });
   const [message, setMessage] = useState("");
   const selection = {
@@ -3842,6 +3846,7 @@ function SettingsPage() {
     ...(data.settings?.outcomerSelection || {})
   };
   const guestListDisplayCount = data.settings?.guestListDisplayCount ?? 137;
+  const instapayLinkValue = data.settings?.instapayLink ?? "https://instapay.example/alshayeb";
 
   const updateSelectionField = (field, value) => {
     setMessage("");
@@ -3868,7 +3873,18 @@ function SettingsPage() {
     }));
   };
 
-  const saveSelectionNumbers = async () => {
+  const updateInstapayLink = (value) => {
+    setMessage("");
+    setData((prev) => ({
+      ...prev,
+      settings: {
+        ...(prev.settings || {}),
+        instapayLink: value
+      }
+    }));
+  };
+
+  const saveSettings = async () => {
     setMessage("");
     const guestCountNumber = Number(guestListDisplayCount);
 
@@ -3882,13 +3898,14 @@ function SettingsPage() {
         method: "PUT",
         body: JSON.stringify({
           outcomerSelection: selection,
-          guestListDisplayCount: Math.floor(guestCountNumber)
+          guestListDisplayCount: Math.floor(guestCountNumber),
+          instapayLink: instapayLinkValue
         })
       });
       setData(result);
-      setMessage("Display numbers updated.");
+      setMessage("Settings updated successfully.");
     } catch (requestError) {
-      setMessage(requestError.message || "Could not update display numbers.");
+      setMessage(requestError.message || "Could not update settings.");
     }
   };
 
@@ -3909,19 +3926,19 @@ function SettingsPage() {
           <label><span>Declined Display Number</span><input type="number" min="0" value={selection.declined} onChange={(event) => updateSelectionField("declined", event.target.value)} /></label>
           <label><span>Guest List Display Count</span><input type="number" min="0" value={guestListDisplayCount} onChange={(event) => updateGuestListDisplayCount(event.target.value)} /></label>
         </div>
-        <button className="purple-btn settings-save" type="button" onClick={saveSelectionNumbers} disabled={loading}>SAVE DISPLAY NUMBERS</button>
+        <button className="purple-btn settings-save" type="button" onClick={saveSettings} disabled={loading}>SAVE SETTINGS</button>
         {message && <div className="admin-empty-state">{message}</div>}
       </section>
       <section className="admin-panel">
         <div className="settings-grid">
-          <label><span>InstaPay Link</span><input defaultValue="https://instapay.example/alshayeb" /></label>
+          <label><span>InstaPay Link</span><input value={instapayLinkValue} onChange={(e) => updateInstapayLink(e.target.value)} /></label>
           <label><span>Default Registration Fee</span><input defaultValue="Dynamic based on event" disabled /></label>
           <label><span>QR Reveal Time</span><input defaultValue="2026-12-31T18:00:00" /></label>
           <label><span>Venue Name</span><input defaultValue="ALSHAYEB ETERNUM" /></label>
           <label><span>Event Background Image</span><input defaultValue="eternum-reference" /></label>
           <label><span>Registration Open / Closed</span><select defaultValue="Open"><option>Open</option><option>Closed</option></select></label>
         </div>
-        <button className="purple-btn settings-save" type="button">SAVE SETTINGS LATER</button>
+        <button className="purple-btn settings-save" type="button" onClick={saveSettings} disabled={loading}>SAVE SETTINGS</button>
       </section>
     </AdminLayout>
   );
