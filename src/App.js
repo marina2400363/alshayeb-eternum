@@ -1653,9 +1653,9 @@ function PublicWebsite() {
               </svg>
             </div>
             <div className="outcomer-reg-divider" />
-            <div className="outcomer-reg-input-group">
-              <label>GENDER</label>
-              <div className="outcomer-gender-toggles">
+            <div className="outcomer-reg-input-group outcomer-reg-gender-group">
+                <label>GENDER</label>
+                <div className="outcomer-gender-toggles">
                 <button
                   type="button"
                   className={`outcomer-gender-btn ${request.gender === 'male' ? 'active' : ''}`}
