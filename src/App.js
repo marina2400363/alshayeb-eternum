@@ -286,7 +286,7 @@ const PrimaryButton = ({ children, onClick, disabled, type = "button", className
 const PhoneInput = ({ value, onChange, error }) => (
   <div className={`eternum-phone ${error ? "error-input" : ""}`}>
     <span>+20</span>
-    <input type="text" placeholder="Enter your phone number" value={value} onChange={onChange} />
+    <input className="eternum-input" type="text" placeholder="Enter your phone number" value={value} onChange={onChange} />
   </div>
 );
 
@@ -1217,7 +1217,7 @@ function PublicWebsite() {
 
   if (page === "notfound") {
     return (
-      <div className="incomer-page-container">
+      <div className="incomer-page-container eternum-page-bg">
         <BrandHeader />
 
         <div className="incomer-welcome-box">
@@ -1244,7 +1244,7 @@ function PublicWebsite() {
 
   if (page === "outcomerLanding") {
     return (
-      <div className="outcomer-landing-container">
+      <div className="outcomer-landing-container eternum-page-bg">
         {/* BACK ARROW */}
         <div className="outcomer-back-wrapper">
           <button
@@ -1410,7 +1410,7 @@ function PublicWebsite() {
     };
 
     return (
-      <div className="outcomer-landing-container arp-page">
+      <div className="outcomer-landing-container arp-page eternum-page-bg">
         {/* Back arrow */}
         <div className="outcomer-back-wrapper">
           <button className="outcomer-back-btn" onClick={() => { setLookupFailed(false); setPage("outcomerLanding"); }}>
@@ -1448,8 +1448,8 @@ function PublicWebsite() {
             </div>
             <div className="arp-input-div"/>
             <input
-              className="arp-phone-input"
-              type="tel"
+                className="arp-phone-input eternum-input"
+                type="tel"
               placeholder="Enter your phone number"
               value={phone}
               onChange={(e) => {
@@ -1507,7 +1507,7 @@ function PublicWebsite() {
 
   if (page === "chooseEvent") {
     return (
-      <div className="outcomer-landing-container outcomer-destinations-container">
+      <div className="outcomer-landing-container outcomer-destinations-container eternum-page-bg">
         {/* BACK ARROW */}
         <div className="outcomer-back-wrapper">
           <button
@@ -1575,7 +1575,7 @@ function PublicWebsite() {
 
   if (page === "register") {
     return (
-      <div className="outcomer-landing-container outcomer-register-container">
+      <div className="outcomer-landing-container outcomer-register-container eternum-page-bg">
         {/* BACK ARROW */}
         <div className="outcomer-back-wrapper">
           <button
@@ -1604,7 +1604,7 @@ function PublicWebsite() {
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
               <label>FULL NAME</label>
-              <input name="fullName" placeholder="Enter your full name" value={request.fullName} onChange={handleRequestChange} />
+              <input className="eternum-input" name="fullName" placeholder="Enter your full name" value={request.fullName} onChange={handleRequestChange} />
             </div>
           </div>
           {errors.fullName && <div className="outcomer-reg-error">{errors.fullName}</div>}
@@ -1620,7 +1620,7 @@ function PublicWebsite() {
               <div className="outcomer-reg-phone-wrapper">
                 <span className="outcomer-reg-phone-prefix">+20 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
                 <div className="outcomer-reg-phone-div" />
-                <input name="phoneNumber" placeholder="Enter your phone number" value={request.phoneNumber} onChange={handleRequestChange} />
+                <input className="eternum-input" name="phoneNumber" placeholder="Enter your phone number" value={request.phoneNumber} onChange={handleRequestChange} />
               </div>
             </div>
           </div>
@@ -1634,7 +1634,7 @@ function PublicWebsite() {
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
               <label>EMAIL ADDRESS</label>
-              <input name="email" placeholder="Enter your email address" value={request.email} onChange={handleRequestChange} />
+              <input className="eternum-input" name="email" placeholder="Enter your email address" value={request.email} onChange={handleRequestChange} />
             </div>
           </div>
           {errors.email && <div className="outcomer-reg-error">{errors.email}</div>}
@@ -1703,9 +1703,9 @@ function PublicWebsite() {
                   ))}
                 </select>
               ) : (
-                <input
-                  name="schoolOrOriginProm"
-                  placeholder="Select"
+                <input className="eternum-input"
+                    name="schoolOrOriginProm"
+                    placeholder="Select"
                   value={request.schoolOrOriginProm}
                   onChange={handleRequestChange}
                 />
@@ -1722,7 +1722,7 @@ function PublicWebsite() {
             <div className="outcomer-reg-divider" />
             <div className="outcomer-reg-input-group">
               <label>AGE</label>
-              <input name="age" placeholder="Enter your age" value={request.age} onChange={handleRequestChange} />
+              <input className="eternum-input" name="age" placeholder="Enter your age" value={request.age} onChange={handleRequestChange} />
             </div>
           </div>
           {errors.age && <div className="outcomer-reg-error">{errors.age}</div>}
@@ -1737,7 +1737,7 @@ function PublicWebsite() {
               <label>INSTAGRAM USERNAME</label>
               <div className="outcomer-reg-insta-wrapper">
                 <span className="outcomer-reg-insta-prefix">@</span>
-                <input name="instagramUsername" placeholder="Enter your Instagram username" value={request.instagramUsername} onChange={handleRequestChange} />
+                <input className="eternum-input" name="instagramUsername" placeholder="Enter your Instagram username" value={request.instagramUsername} onChange={handleRequestChange} />
               </div>
             </div>
           </div>
@@ -1789,7 +1789,7 @@ function PublicWebsite() {
     const instapayLink = selectedEvent?.instapayLink || globalInstapayLink || null;
 
     return (
-      <div className="pay-page">
+      <div className="pay-page eternum-page-bg">
         {/* Back arrow */}
         <button className="pay-back-btn" onClick={() => setPage("chooseEvent")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1888,7 +1888,7 @@ function PublicWebsite() {
 
   if (page === "instapay") {
     return (
-      <PublicShell backTo="payment" className="payment-public-page" onNavigate={setPage}>
+      <PublicShell backTo="payment" className="payment-public-page eternum-page-bg" onNavigate={setPage}>
         <BrandHeader title="ETERNITY" subtitle="PAYMENT METHOD" />
         <section className="eternum-card payment-method-card">
           <h3>PAY</h3>
@@ -1904,7 +1904,7 @@ function PublicWebsite() {
 
   if (page === "upload") {
     return (
-      <div className="upv-page">
+      <div className="upv-page eternum-page-bg">
         {/* Back arrow */}
         <button className="pay-back-btn" onClick={() => setPage("payment")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1972,7 +1972,7 @@ function PublicWebsite() {
     const fmtNum = (n) => Number(n).toLocaleString();
 
     return (
-      <div className="sub-page">
+      <div className="sub-page eternum-page-bg">
         {/* Back arrow */}
         <button className="pay-back-btn" onClick={() => setPage("trackLookup")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2530,7 +2530,7 @@ function PublicWebsite() {
 
   if (page === "guestList") {
     return (
-      <div className="incomer-page-container guest-list-reference">
+      <div className="incomer-page-container guest-list-reference eternum-page-bg">
         {/* BACK ARROW */}
         <div className="incomer-back-wrapper">
           <button
@@ -2577,9 +2577,9 @@ function PublicWebsite() {
                 <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <input
-              type="tel"
-              placeholder="Enter your phone number"
+            <input className="eternum-input"
+                type="tel"
+                placeholder="Enter your phone number"
               value={phone}
               onChange={(e) => {
                 setPhone(e.target.value);
@@ -2636,7 +2636,7 @@ function PublicWebsite() {
 
   if (page === "incomer") {
     return (
-      <div className="incomer-page-container">
+      <div className="incomer-page-container eternum-page-bg">
         {/* BACK ARROW */}
         <div className="incomer-back-wrapper">
           <button
@@ -2690,9 +2690,9 @@ function PublicWebsite() {
                 <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <input
-              type="tel"
-              placeholder="Enter your phone number"
+            <input className="eternum-input"
+                type="tel"
+                placeholder="Enter your phone number"
               value={phone}
               onChange={(e) => {
                 setPhone(e.target.value);
@@ -2898,7 +2898,7 @@ function AdminLogin() {
   };
 
   return (
-    <div className="app-shell admin-page tone-gold">
+    <div className="app-shell admin-page admin-bg tone-gold">
       <AnimatedBackground />
       <motion.form className="cosmic-card tone-card admin-login-card" {...pageMotion} onSubmit={handleSubmit}>
         <div className="ring small-ring"></div>
@@ -2961,7 +2961,7 @@ function AdminLayout({ children }) {
   };
 
   return (
-    <div className="admin-control-page tone-gold">
+    <div className="admin-control-page admin-bg tone-gold">
       <AnimatedBackground />
       <motion.div className="admin-control-shell" {...pageMotion}>
         <aside className="admin-sidebar">

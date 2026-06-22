@@ -10,7 +10,11 @@
   --eternum-panel-strong: rgba(2, 4, 12, 0.88);
   --eternum-line: rgba(164, 190, 255, 0.36);
   --eternum-line-bright: rgba(213, 226, 255, 0.72);
-  --eternum-blue: #7f9dff;
+  --eternum-blue: #79AFFF;
+  --eternum-glow: #5C9DFF;
+  --eternum-border: #6EA7FF;
+  --eternum-bg: #060C1F;
+  --eternum-page-bg: #01030A;
   --eternum-purple: #a066ff;
   --eternum-gold: #d8ba70;
   --eternum-text: #f7fbff;
@@ -35,7 +39,7 @@ body {
   letter-spacing: 0;
 }
 
-body::before {
+.admin-bg::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -6310,22 +6314,7 @@ body::after {
   align-items: center;
   padding: 0 20px 48px;
   position: relative;
-  background:  radial-gradient(
-    ellipse at 50% 0%,
-    rgba(12, 32, 78, 0.32),
-    transparent 55%
-  ),
-  radial-gradient(
-    ellipse at 50% 100%,
-    rgba(8, 22, 55, 0.18),
-    transparent 50%
-  ),
-  linear-gradient(
-    180deg,
-    #020611 0%,
-    #040a18 50%,
-    #02040b 100%
-  );
+  background: transparent;
   font-family: 'Inter', -apple-system, sans-serif;
   color: #ffffff;
 }
@@ -7056,7 +7045,7 @@ body::after {
 .pay-page {
   min-height: 100vh;
   width: 100%;
-  background: #03081a;
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7876,7 +7865,7 @@ body::after {
 .sub-page {
   min-height: 100vh;
   width: 100%;
-  background: #03081a;
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
