@@ -1,0 +1,14 @@
+name: Automated Sync Cron
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Sync Endpoint
+        run: curl -X GET https://www.alshayebexperience.com/api/sync/cron/sync-all
