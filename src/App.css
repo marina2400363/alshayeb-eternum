@@ -40,18 +40,18 @@ body {
 }
 
 .eternum-global-bg {
-  min-height: 100vh;
-  background-color: #030918 !important;
-}
+    min-height: 100vh;
+    background-color: #01030A !important;
+  }
 
 .eternum-global-bg::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(40, 110, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse at 50% 0%, rgba(40, 110, 255, 0.10), transparent 55%),
     radial-gradient(ellipse at 50% 50%, rgba(10, 30, 80, 0.08), transparent 70%),
-    linear-gradient(180deg, #051024 0%, #030918 55%, #010206 100%) !important;
+    linear-gradient(180deg, #02040B 0%, #01030A 55%, #000207 100%) !important;
   opacity: 1;
   z-index: -4;
   pointer-events: none;
@@ -9243,18 +9243,18 @@ body {
 
 
 .eternum-global-bg {
-  min-height: 100vh;
-  background-color: #030918 !important;
-}
+    min-height: 100vh;
+    background-color: #01030A !important;
+  }
 
 .eternum-global-bg::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(40, 110, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse at 50% 0%, rgba(40, 110, 255, 0.10), transparent 55%),
     radial-gradient(ellipse at 50% 50%, rgba(10, 30, 80, 0.08), transparent 70%),
-    linear-gradient(180deg, #051024 0%, #030918 55%, #010206 100%) !important;
+    linear-gradient(180deg, #02040B 0%, #01030A 55%, #000207 100%) !important;
   opacity: 1;
   z-index: -4;
   pointer-events: none;
