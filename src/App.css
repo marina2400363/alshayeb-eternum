@@ -278,7 +278,7 @@ body {
 /* Mobile-specific pull-up */
 @media (max-width: 767px) {
   .hp-content-section {
-    margin: -48% auto 0; /* Raise it much more on mobile */
+    margin: -50% auto 0; /* Raise it much more on mobile */
   }
 }
 
