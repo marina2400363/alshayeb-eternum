@@ -395,6 +395,7 @@ body {
   min-width: 0;
   padding: 0;
   justify-content: center;
+  gap: 1px; /* tight spacing between elements */
 }
 
 .hp-card-kicker {
@@ -403,7 +404,7 @@ body {
   font-weight: 600;
   letter-spacing: clamp(1.5px, 0.5vw, 2px);
   color: rgba(127, 157, 255, 0.8);
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .hp-card-name {
@@ -411,7 +412,7 @@ body {
   font-size: clamp(13px, 3.5vw, 16px);
   font-weight: 400;
   letter-spacing: clamp(5px, 1vw, 8px);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   color: white;
 }
 
@@ -419,10 +420,11 @@ body {
   font-family: 'Inter', -apple-system, sans-serif;
   font-size: clamp(8.5px, 2vw, 10px);
   font-weight: 300;
-  line-height: 1.2;
+  line-height: 1.1;
   color: rgba(200, 220, 255, 0.55);
   padding-right: 6px;
   white-space: normal;
+  text-transform: none; /* override global button uppercase! */
 }
 
 .hp-card-arrow {
