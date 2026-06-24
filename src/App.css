@@ -227,14 +227,17 @@ body {
   z-index: 0;
   display: flex;
   justify-content: center;
+  width: 100%;
+  max-width: 500px; /* Lock background width to prevent massive zoom on desktop */
+  margin: 0 auto;
 }
 
 .hp-bg-img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center top;
+  object-fit: cover;
+  object-position: center bottom; /* Anchor the floor to the bottom */
 }
 
 .hp-bg-overlay {
@@ -257,28 +260,35 @@ body {
   z-index: 2;
   display: flex;
   flex-direction: column;
+  justify-content: space-between; /* Pushes header to top, bottom-stack to bottom */
   width: 100%;
   max-width: 500px;
   min-height: 100vh;
   min-height: 100svh;
-  padding: 0 20px 28px;
+  padding: 6vh 20px 4vh; /* Top padding for header, bottom padding for footer */
+  margin: 0 auto;
+}
+
+/* ---- Bottom Stack ---- */
+.hp-bottom-stack {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* No margin-top needed because justify-content space-between pushes this down */
 }
 
 /* ---- Brand Header ---- */
 .hp-header {
   text-align: center;
-  padding-top: clamp(28px, 6vh, 50px);
-  padding-bottom: 0;
+  padding: 0;
 }
-
 
 /* ---- Section Label ---- */
 .hp-section-label {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: auto;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   padding: 0 4px;
 }
 
@@ -301,9 +311,10 @@ body {
 .hp-cards {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 20px; /* larger gaps between cards */
   width: 100%;
-  margin-bottom: 24px;
+  max-width: 440px; /* slightly narrower than full 500px container */
+  margin: 0 auto 36px; /* More breathing room before footer */
 }
 
 .hp-card {
@@ -311,8 +322,8 @@ body {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 80px;
-  padding: 14px 16px;
+  min-height: 72px; /* lighter cards */
+  padding: 12px 14px;
   border: 1px solid rgba(127, 157, 255, 0.22);
   border-radius: 12px;
   background:
@@ -459,36 +470,7 @@ body {
   color: rgba(200, 215, 255, 0.45);
 }
 
-/* ---- Mobile-specific refinements ---- */
-@media (max-width: 480px) {
-  .hp-content {
-    padding: 0 16px 24px;
-  }
-
-  .hp-card {
-    min-height: 90px;
-    padding: 16px 14px;
-  }
-
-  .hp-card-num {
-    width: 38px;
-  }
-
-  .hp-card-divider {
-    margin: 0 10px;
-  }
-}
-
-/* ---- Desktop centering ---- */
-@media (min-width: 768px) {
-  .hp-bg-img {
-    object-position: center top;
-  }
-
-  .hp-content {
-    padding: 40px 24px 28px;
-  }
-}
+/* ---- No old overrides ---- */
 
 
 /* ---- Spade Brand Asset ---- */
