@@ -204,20 +204,320 @@ body {
 /* ============================================================
    HOMEPAGE — Rebuilt with real React/CSS
    ============================================================ */
-.eternum-home {
-  min-height: 100vh;
+/* =========================================================================
+   HOMEPAGE ENTRY PORTAL
+   ========================================================================= */
+
+.hp-portal {
   position: relative;
-  z-index: 1;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
   overflow: hidden;
-  padding: 0 20px 40px;
-  color: #f7fbff;
-  text-align: center;
-  font-family: 'Inter', -apple-system, sans-serif;
-  background:
-    radial-gradient(circle at 50% 50%, transparent 38%, rgba(15,30,60,0.08) 40%, transparent 42%),
-    radial-gradient(circle at 50% 50%, transparent 54%, rgba(15,30,60,0.06) 56%, transparent 58%),
-    linear-gradient(180deg, #010207 0%, #000103 40%, #000000 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+
+/* ---- Full-bleed Background ---- */
+.hp-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hp-bg-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.hp-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(0, 2, 8, 0.15) 0%,
+      rgba(0, 2, 8, 0.05) 30%,
+      rgba(0, 2, 8, 0.35) 55%,
+      rgba(0, 2, 8, 0.85) 78%,
+      rgba(0, 2, 8, 0.96) 100%
+    );
+}
+
+/* ---- Content Stack ---- */
+.hp-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 500px;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 0 20px 28px;
+}
+
+/* ---- Brand Header ---- */
+.hp-header {
+  text-align: center;
+  margin-top: auto;
+  padding-bottom: 20px;
+}
+
+.hp-title {
+  margin: 0;
+  font-family: 'Michroma', sans-serif;
+  font-size: clamp(16px, 4.5vw, 22px);
+  font-weight: 400;
+  letter-spacing: clamp(10px, 3vw, 16px);
+  color: rgba(246, 248, 255, 0.9);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  margin-right: calc(clamp(10px, 3vw, 16px) * -1);
+}
+
+.hp-subtitle {
+  margin: 8px 0 0;
+  font-family: 'Michroma', sans-serif;
+  font-size: clamp(38px, 10vw, 58px);
+  font-weight: 200;
+  line-height: 0.95;
+  letter-spacing: clamp(10px, 3vw, 20px);
+  color: white;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.25), 0 0 60px rgba(127, 157, 255, 0.15);
+  margin-right: calc(clamp(10px, 3vw, 20px) * -1);
+}
+
+.hp-tagline {
+  margin: 14px 0 0;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: clamp(9px, 2.5vw, 12px);
+  font-weight: 400;
+  letter-spacing: clamp(5px, 1.5vw, 8px);
+  color: rgba(180, 210, 255, 0.7);
+  margin-right: calc(clamp(5px, 1.5vw, 8px) * -1);
+}
+
+/* ---- Section Label ---- */
+.hp-section-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+
+.hp-label-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(127, 157, 255, 0.35), transparent);
+}
+
+.hp-label-text {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: clamp(9px, 2.2vw, 11px);
+  font-weight: 500;
+  letter-spacing: clamp(3px, 1vw, 6px);
+  color: rgba(200, 215, 255, 0.65);
+  white-space: nowrap;
+}
+
+/* ---- Path Cards ---- */
+.hp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.hp-card {
+  --card-accent: rgba(127, 157, 255, 0.7);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 100px;
+  padding: 18px 16px;
+  border: 1px solid rgba(127, 157, 255, 0.22);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(40, 80, 160, 0.08), transparent 60%),
+    rgba(4, 8, 18, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.hp-card:hover,
+.hp-card:focus-visible {
+  border-color: rgba(127, 157, 255, 0.5);
+  box-shadow: 0 0 28px rgba(80, 140, 255, 0.12), inset 0 0 20px rgba(80, 140, 255, 0.04);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+/* Gold variant for Guest List */
+.hp-card--gold {
+  --card-accent: rgba(216, 186, 112, 0.8);
+  border-color: rgba(216, 186, 112, 0.25);
+}
+
+.hp-card--gold:hover,
+.hp-card--gold:focus-visible {
+  border-color: rgba(216, 186, 112, 0.55);
+  box-shadow: 0 0 28px rgba(216, 186, 112, 0.12), inset 0 0 20px rgba(216, 186, 112, 0.04);
+}
+
+.hp-card--gold .hp-card-num,
+.hp-card--gold .hp-card-kicker {
+  color: rgba(216, 186, 112, 0.85);
+}
+
+.hp-card--gold .hp-card-divider {
+  background: linear-gradient(180deg, transparent, rgba(216, 186, 112, 0.3), transparent);
+}
+
+.hp-card--gold .hp-card-arrow {
+  color: rgba(216, 186, 112, 0.7);
+  border-color: rgba(216, 186, 112, 0.4);
+}
+
+/* Card internals */
+.hp-card-num {
+  font-family: 'Michroma', sans-serif;
+  font-size: clamp(18px, 4vw, 24px);
+  color: rgba(127, 157, 255, 0.45);
+  flex-shrink: 0;
+  width: 44px;
+  text-align: center;
+}
+
+.hp-card-divider {
+  align-self: stretch;
+  width: 1px;
+  min-height: 50px;
+  margin: 0 14px;
+  background: linear-gradient(180deg, transparent, rgba(127, 157, 255, 0.25), transparent);
+  flex-shrink: 0;
+}
+
+.hp-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hp-card-kicker {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: clamp(8px, 2vw, 10px);
+  font-weight: 600;
+  letter-spacing: clamp(2px, 0.6vw, 4px);
+  color: rgba(127, 157, 255, 0.8);
+  margin-bottom: 4px;
+}
+
+.hp-card-name {
+  font-family: 'Michroma', sans-serif;
+  font-size: clamp(16px, 4.5vw, 22px);
+  font-weight: 400;
+  letter-spacing: clamp(4px, 1.2vw, 8px);
+  margin-bottom: 6px;
+  color: white;
+}
+
+.hp-card-desc {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: clamp(10px, 2.5vw, 12px);
+  font-weight: 300;
+  line-height: 1.4;
+  color: rgba(200, 220, 255, 0.55);
+}
+
+.hp-card-arrow {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: 10px;
+  color: rgba(127, 157, 255, 0.6);
+  transition: color 0.2s ease;
+}
+
+.hp-card:hover .hp-card-arrow {
+  color: rgba(127, 157, 255, 1);
+}
+
+.hp-card--gold:hover .hp-card-arrow {
+  color: rgba(216, 186, 112, 1);
+}
+
+/* ---- Footer ---- */
+.hp-footer {
+  text-align: center;
+  padding-top: 4px;
+}
+
+.hp-footer-tagline {
+  margin: 0;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: clamp(8px, 2vw, 10px);
+  font-weight: 500;
+  letter-spacing: clamp(3px, 0.8vw, 5px);
+  color: rgba(0, 178, 255, 0.65);
+  text-transform: uppercase;
+}
+
+.hp-footer-brand {
+  margin: 8px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(10px, 2.5vw, 13px);
+  font-weight: 300;
+  letter-spacing: clamp(3px, 0.8vw, 6px);
+  color: rgba(200, 215, 255, 0.45);
+}
+
+/* ---- Mobile-specific refinements ---- */
+@media (max-width: 480px) {
+  .hp-content {
+    padding: 0 16px 24px;
+  }
+
+  .hp-card {
+    min-height: 90px;
+    padding: 16px 14px;
+  }
+
+  .hp-card-num {
+    width: 38px;
+  }
+
+  .hp-card-divider {
+    margin: 0 10px;
+  }
+}
+
+/* ---- Desktop centering ---- */
+@media (min-width: 768px) {
+  .hp-portal {
+    justify-content: center;
+  }
+
+  .hp-bg-img {
+    object-position: center center;
+  }
+
+  .hp-content {
+    padding: 40px 24px;
+  }
+}
+
 
 /* ---- Spade Brand Asset ---- */
 .home-spade-asset {
@@ -4051,10 +4351,6 @@ body {
       #000;
   }
 
-  .eternum-home {
-    background-position: center -70px;
-    background-size: cover;
-  }
 
   .eternum-hero {
     min-height: 61svh;
