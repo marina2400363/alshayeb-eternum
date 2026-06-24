@@ -209,78 +209,66 @@ body {
    ========================================================================= */
 
 .hp-portal {
-  position: relative;
   width: 100%;
   min-height: 100vh;
   min-height: 100svh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   background: #010208;
 }
 
-/* ---- Full-bleed Background ---- */
-.hp-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  display: flex;
-  justify-content: center;
+/* ---- Hero Section (Spade) ---- */
+.hp-hero-section {
+  position: relative;
   width: 100%;
-  max-width: 500px; /* Lock background width to prevent massive zoom on desktop */
+  max-width: 500px;
   margin: 0 auto;
 }
 
-.hp-bg-img {
+.hp-hero-bg {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center bottom; /* Anchor the floor to the bottom */
+  height: auto;
+  object-fit: contain;
 }
 
-.hp-bg-overlay {
+.hp-hero-overlay {
   position: absolute;
   inset: 0;
   background:
     linear-gradient(180deg,
       rgba(0, 2, 8, 0.0) 0%,
       rgba(0, 2, 8, 0.0) 35%,
-      rgba(0, 2, 8, 0.4) 52%,
-      rgba(0, 2, 8, 0.82) 68%,
-      rgba(0, 2, 8, 0.96) 82%,
+      rgba(0, 2, 8, 0.2) 65%,
+      rgba(0, 2, 8, 0.7) 85%,
       rgba(0, 2, 8, 1.0) 100%
     );
+  pointer-events: none;
 }
 
-/* ---- Content Stack ---- */
-.hp-content {
+/* ---- Brand Header (Overlaid on Hero) ---- */
+.hp-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  padding-top: clamp(28px, 6vh, 50px);
+  z-index: 10;
+}
+
+/* ---- Content Section (Cards & Footer) ---- */
+.hp-content-section {
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* Pushes header to top, bottom-stack to bottom */
   width: 100%;
   max-width: 500px;
-  min-height: 100vh;
-  min-height: 100svh;
-  padding: 6vh 20px 4vh; /* Top padding for header, bottom padding for footer */
+  padding: 10px 20px 32px;
   margin: 0 auto;
-}
-
-/* ---- Bottom Stack ---- */
-.hp-bottom-stack {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  /* No margin-top needed because justify-content space-between pushes this down */
-}
-
-/* ---- Brand Header ---- */
-.hp-header {
-  text-align: center;
-  padding: 0;
+  background: #010208;
 }
 
 /* ---- Section Label ---- */

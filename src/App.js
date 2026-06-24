@@ -2764,81 +2764,78 @@ function PublicWebsite() {
 
   return (
     <main className="hp-portal">
-      {/* Full-bleed spade background */}
-      <div className="hp-bg">
+      {/* Hero Section (Spade + Header) */}
+      <div className="hp-hero-section">
         <img
           src={process.env.PUBLIC_URL + "/homepage-background-spade.png"}
           alt=""
           aria-hidden="true"
-          className="hp-bg-img"
+          className="hp-hero-bg"
           draggable="false"
         />
-        <div className="hp-bg-overlay" />
-      </div>
-
-      <div className="hp-content">
-        {/* Brand Header — identical shared wordmark */}
+        <div className="hp-hero-overlay" />
+        
         <header className="hp-header">
           <EternumWordmark />
         </header>
+      </div>
 
-        {/* Bottom Stack anchored below the spade */}
-        <div className="hp-bottom-stack">
-          {/* Section Label */}
-          <div className="hp-section-label">
-            <div className="hp-label-line" />
-            <span className="hp-label-text">CHOOSE YOUR PATH</span>
-            <div className="hp-label-line" />
-          </div>
-
-          {/* Path Cards */}
-          <div className="hp-cards">
-            <button className="hp-card" type="button" onClick={() => setPage("incomer")}>
-              <span className="hp-card-num">01</span>
-              <span className="hp-card-divider" />
-              <span className="hp-card-body">
-                <span className="hp-card-kicker">THE INVITED</span>
-                <span className="hp-card-name">INCOMER</span>
-                <span className="hp-card-desc">Already invited? Access your digital pass and event details.</span>
-              </span>
-              <span className="hp-card-arrow">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="11"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 17 12 13 15"/></svg>
-              </span>
-            </button>
-
-            <button className="hp-card" type="button" onClick={() => setPage("outcomerLanding")}>
-              <span className="hp-card-num">02</span>
-              <span className="hp-card-divider" />
-              <span className="hp-card-body">
-                <span className="hp-card-kicker">THE SEEKERS</span>
-                <span className="hp-card-name">OUTCOMER</span>
-                <span className="hp-card-desc">Request access to join the experience. Applications are reviewed by the committee.</span>
-              </span>
-              <span className="hp-card-arrow">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="11"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 17 12 13 15"/></svg>
-              </span>
-            </button>
-
-            <button className="hp-card hp-card--gold" type="button" onClick={() => setPage("guestList")}>
-              <span className="hp-card-num">03</span>
-              <span className="hp-card-divider" />
-              <span className="hp-card-body">
-                <span className="hp-card-kicker">THE ETERNAL LIST</span>
-                <span className="hp-card-name">GUEST LIST</span>
-                <span className="hp-card-desc">Check if your name made it onto the Eternal List.</span>
-              </span>
-              <span className="hp-card-arrow">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="11"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 17 12 13 15"/></svg>
-              </span>
-            </button>
-          </div>
-
-          {/* Footer */}
-          <footer className="hp-footer">
-            <p className="hp-footer-tagline">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
-            <p className="hp-footer-brand">&bull; ALSHAYEB ETERNUM &bull;</p>
-          </footer>
+      {/* Content Section (Cards + Footer) sitting below the spade */}
+      <div className="hp-content-section">
+        {/* Section Label */}
+        <div className="hp-section-label">
+          <div className="hp-label-line" />
+          <span className="hp-label-text">CHOOSE YOUR PATH</span>
+          <div className="hp-label-line" />
         </div>
+
+        {/* Path Cards */}
+        <div className="hp-cards">
+          <button className="hp-card" type="button" onClick={() => setPage("incomer")}>
+            <span className="hp-card-num">01</span>
+            <span className="hp-card-divider" />
+            <span className="hp-card-body">
+              <span className="hp-card-kicker">THE INVITED</span>
+              <span className="hp-card-name">INCOMER</span>
+              <span className="hp-card-desc">Already invited? Access your digital pass and event details.</span>
+            </span>
+            <span className="hp-card-arrow">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="11"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 17 12 13 15"/></svg>
+            </span>
+          </button>
+
+          <button className="hp-card" type="button" onClick={() => setPage("outcomerLanding")}>
+            <span className="hp-card-num">02</span>
+            <span className="hp-card-divider" />
+            <span className="hp-card-body">
+              <span className="hp-card-kicker">THE SEEKERS</span>
+              <span className="hp-card-name">OUTCOMER</span>
+              <span className="hp-card-desc">Request access to join the experience. Applications are reviewed by the committee.</span>
+            </span>
+            <span className="hp-card-arrow">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="11"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 17 12 13 15"/></svg>
+            </span>
+          </button>
+
+          <button className="hp-card hp-card--gold" type="button" onClick={() => setPage("guestList")}>
+            <span className="hp-card-num">03</span>
+            <span className="hp-card-divider" />
+            <span className="hp-card-body">
+              <span className="hp-card-kicker">THE ETERNAL LIST</span>
+              <span className="hp-card-name">GUEST LIST</span>
+              <span className="hp-card-desc">Check if your name made it onto the Eternal List.</span>
+            </span>
+            <span className="hp-card-arrow">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="11"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 17 12 13 15"/></svg>
+            </span>
+          </button>
+        </div>
+
+        {/* Footer */}
+        <footer className="hp-footer">
+          <p className="hp-footer-tagline">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
+          <p className="hp-footer-brand">&bull; ALSHAYEB ETERNUM &bull;</p>
+        </footer>
       </div>
     </main>
   );
