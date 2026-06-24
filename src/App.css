@@ -266,9 +266,9 @@ body {
   flex-direction: column;
   width: 100%;
   max-width: 500px;
-  padding: 10px 20px 32px;
-  margin: 0 auto;
-  background: #010208;
+  padding: 0 20px 32px;
+  margin: -35% auto 0; /* Pull up over the bottom empty space of the image */
+  background: transparent; /* Seamlessly overlay the dark bottom of the image */
 }
 
 /* ---- Section Label ---- */
@@ -276,7 +276,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   padding: 0 4px;
 }
 
