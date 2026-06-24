@@ -2777,11 +2777,9 @@ function PublicWebsite() {
       </div>
 
       <div className="hp-content">
-        {/* Brand Header */}
+        {/* Brand Header — identical shared wordmark */}
         <header className="hp-header">
-          <h1 className="hp-title">ALSHAYEB</h1>
-          <h2 className="hp-subtitle">EXPERIENCE</h2>
-          <p className="hp-tagline">NO BEGINNING. NO END.</p>
+          <EternumWordmark />
         </header>
 
         {/* Section Label */}
@@ -2836,7 +2834,7 @@ function PublicWebsite() {
         {/* Footer */}
         <footer className="hp-footer">
           <p className="hp-footer-tagline">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
-          <p className="hp-footer-brand">&bull; ALSHAYEB EXPERIENCE &bull;</p>
+          <p className="hp-footer-brand">&bull; ALSHAYEB ETERNUM &bull;</p>
         </footer>
       </div>
     </main>
