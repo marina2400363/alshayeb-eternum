@@ -267,7 +267,7 @@ body {
   width: 100%;
   max-width: 500px;
   padding: 0 20px 32px;
-  margin: -35% auto 0; /* Pull up over the bottom empty space of the image */
+  margin: -25% auto 0; /* Pull up over the bottom empty space of the image */
   background: transparent; /* Seamlessly overlay the dark bottom of the image */
 }
 
