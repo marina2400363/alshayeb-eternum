@@ -321,7 +321,7 @@ body {
   display: flex;
   align-items: center;
   width: 100%;
-  height: 66px; /* Fixed height so all 3 cards are exactly the same size */
+  height: 70px; /* Fixed height so all 3 cards are exactly the same size, tall enough for wrapping */
   padding: 8px 14px;
   border: 1px solid rgba(127, 157, 255, 0.22);
   border-radius: 12px;
@@ -417,14 +417,12 @@ body {
 
 .hp-card-desc {
   font-family: 'Inter', -apple-system, sans-serif;
-  font-size: clamp(8px, 1.8vw, 9px); /* smaller */
+  font-size: clamp(7.5px, 1.8vw, 9px); /* smaller */
   font-weight: 300;
-  line-height: 1.25;
+  line-height: 1.15;
   color: rgba(200, 220, 255, 0.55);
   padding-right: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal; /* Allow wrapping instead of ellipsis */
 }
 
 .hp-card-arrow {
