@@ -301,9 +301,9 @@ body {
 .hp-cards {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   width: 100%;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .hp-card {
@@ -311,10 +311,10 @@ body {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 100px;
-  padding: 18px 16px;
+  min-height: 80px;
+  padding: 14px 16px;
   border: 1px solid rgba(127, 157, 255, 0.22);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     radial-gradient(ellipse at 50% 0%, rgba(40, 80, 160, 0.08), transparent 60%),
     rgba(4, 8, 18, 0.65);
@@ -352,30 +352,29 @@ body {
 }
 
 .hp-card--gold .hp-card-divider {
-  background: linear-gradient(180deg, transparent, rgba(216, 186, 112, 0.3), transparent);
+  background: linear-gradient(180deg, transparent, rgba(216, 186, 112, 0.35), transparent);
 }
 
 .hp-card--gold .hp-card-arrow {
   color: rgba(216, 186, 112, 0.7);
-  border-color: rgba(216, 186, 112, 0.4);
 }
 
 /* Card internals */
 .hp-card-num {
   font-family: 'Michroma', sans-serif;
-  font-size: clamp(18px, 4vw, 24px);
-  color: rgba(127, 157, 255, 0.45);
+  font-size: clamp(14px, 3.5vw, 18px);
+  color: rgba(127, 157, 255, 0.55);
   flex-shrink: 0;
-  width: 44px;
+  width: 38px;
   text-align: center;
 }
 
 .hp-card-divider {
-  align-self: stretch;
+  align-self: center;
   width: 1px;
-  min-height: 50px;
-  margin: 0 14px;
-  background: linear-gradient(180deg, transparent, rgba(127, 157, 255, 0.25), transparent);
+  height: 42px;
+  margin: 0 16px;
+  background: linear-gradient(180deg, transparent, rgba(127, 157, 255, 0.35), transparent);
   flex-shrink: 0;
 }
 
@@ -384,51 +383,55 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding: 4px 0;
 }
 
 .hp-card-kicker {
   font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: clamp(8px, 2vw, 10px);
+  font-size: clamp(8px, 1.8vw, 9px);
   font-weight: 600;
-  letter-spacing: clamp(2px, 0.6vw, 4px);
+  letter-spacing: clamp(1.5px, 0.5vw, 3px);
   color: rgba(127, 157, 255, 0.8);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .hp-card-name {
   font-family: 'Michroma', sans-serif;
-  font-size: clamp(16px, 4.5vw, 22px);
+  font-size: clamp(15px, 4vw, 19px);
   font-weight: 400;
-  letter-spacing: clamp(4px, 1.2vw, 8px);
-  margin-bottom: 6px;
+  letter-spacing: clamp(7px, 2vw, 14px);
+  margin-bottom: 8px;
   color: white;
 }
 
 .hp-card-desc {
   font-family: 'Inter', -apple-system, sans-serif;
-  font-size: clamp(10px, 2.5vw, 12px);
+  font-size: clamp(9px, 2vw, 11px);
   font-weight: 300;
-  line-height: 1.4;
+  line-height: 1.35;
   color: rgba(200, 220, 255, 0.55);
+  padding-right: 8px;
 }
 
 .hp-card-arrow {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-left: 10px;
+  width: 32px;
+  height: 32px;
+  margin-left: 8px;
   color: rgba(127, 157, 255, 0.6);
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .hp-card:hover .hp-card-arrow {
   color: rgba(127, 157, 255, 1);
+  transform: translateX(2px);
 }
 
 .hp-card--gold:hover .hp-card-arrow {
   color: rgba(216, 186, 112, 1);
+  transform: translateX(2px);
 }
 
 /* ---- Footer ---- */
