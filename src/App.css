@@ -278,7 +278,7 @@ body {
 /* Mobile-specific pull-up */
 @media (max-width: 767px) {
   .hp-content-section {
-    margin: -60% auto 0; /* Raise it much more on mobile */
+    margin: -65% auto 0; /* Raise it much more on mobile */
   }
 }
 
@@ -310,10 +310,10 @@ body {
 .hp-cards {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* larger gaps between cards */
+  gap: 10px; /* Reduced gap so they fit on one screen */
   width: 100%;
-  max-width: 440px; /* slightly narrower than full 500px container */
-  margin: 0 auto 36px; /* More breathing room before footer */
+  max-width: 440px;
+  margin: 0 auto 36px;
 }
 
 .hp-card {
@@ -321,8 +321,8 @@ body {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 72px; /* lighter cards */
-  padding: 12px 14px;
+  height: 66px; /* Fixed height so all 3 cards are exactly the same size */
+  padding: 8px 14px;
   border: 1px solid rgba(127, 157, 255, 0.22);
   border-radius: 12px;
   background:
@@ -372,18 +372,18 @@ body {
 /* Card internals */
 .hp-card-num {
   font-family: 'Michroma', sans-serif;
-  font-size: clamp(14px, 3.5vw, 18px);
+  font-size: clamp(12px, 3vw, 15px); /* smaller */
   color: rgba(127, 157, 255, 0.55);
   flex-shrink: 0;
-  width: 38px;
+  width: 32px;
   text-align: center;
 }
 
 .hp-card-divider {
   align-self: center;
   width: 1px;
-  height: 42px;
-  margin: 0 16px;
+  height: 36px;
+  margin: 0 12px;
   background: linear-gradient(180deg, transparent, rgba(127, 157, 255, 0.35), transparent);
   flex-shrink: 0;
 }
@@ -393,41 +393,45 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 4px 0;
+  padding: 0;
+  justify-content: center;
 }
 
 .hp-card-kicker {
   font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: clamp(8px, 1.8vw, 9px);
+  font-size: clamp(7px, 1.5vw, 8px); /* smaller */
   font-weight: 600;
-  letter-spacing: clamp(1.5px, 0.5vw, 3px);
+  letter-spacing: clamp(1.5px, 0.5vw, 2px);
   color: rgba(127, 157, 255, 0.8);
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
 .hp-card-name {
   font-family: 'Michroma', sans-serif;
-  font-size: clamp(15px, 4vw, 19px);
+  font-size: clamp(12px, 3vw, 15px); /* smaller */
   font-weight: 400;
-  letter-spacing: clamp(7px, 2vw, 14px);
-  margin-bottom: 8px;
+  letter-spacing: clamp(5px, 1vw, 8px);
+  margin-bottom: 2px;
   color: white;
 }
 
 .hp-card-desc {
   font-family: 'Inter', -apple-system, sans-serif;
-  font-size: clamp(9px, 2vw, 11px);
+  font-size: clamp(8px, 1.8vw, 9px); /* smaller */
   font-weight: 300;
-  line-height: 1.35;
+  line-height: 1.25;
   color: rgba(200, 220, 255, 0.55);
-  padding-right: 8px;
+  padding-right: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hp-card-arrow {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 32px;
+  width: 24px;
   height: 32px;
   margin-left: 8px;
   color: rgba(127, 157, 255, 0.6);
