@@ -559,7 +559,7 @@ function EternumLoadingScreen({ visible }) {
           <p className="els-footer-text">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
           <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5L8.5 4.5L4.5 8.5L0.5 4.5Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
         </div>
-        <p className="els-footer-brand">ALSHAYEB ETERNUM</p>
+        <p className="els-footer-brand">ALSHAYEB EXPERIENCE</p>
       </footer>
     </div>
   );
@@ -1371,7 +1371,7 @@ function PublicWebsite() {
             <span>YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</span>
             <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.6)" strokeWidth="1" fill="none" /></svg>
           </div>
-          <div className="outcomer-footer-brand">ALSHAYEB ETERNUM</div>
+          <div className="outcomer-footer-brand">ALSHAYEB EXPERIENCE</div>
         </footer>
       </div>
     );
@@ -2328,7 +2328,7 @@ function PublicWebsite() {
           <span className="trk-footer-text">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</span>
           <svg width="5" height="5" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.4)" strokeWidth="1" fill="none"/></svg>
         </div>
-        <p className="trk-footer-brand">ALSHAYEB ETERNUM</p>
+        <p className="trk-footer-brand">ALSHAYEB EXPERIENCE</p>
       </div>
     );
   }
@@ -2525,7 +2525,7 @@ function PublicWebsite() {
         {/* Footer */}
         <div className="tkt-footer">
           <svg width="6" height="6" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/></svg>
-          <span className="tkt-footer-text">ALSHAYEB ETERNUM</span>
+          <span className="tkt-footer-text">ALSHAYEB EXPERIENCE</span>
           <svg width="6" height="6" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/></svg>
         </div>
       </div>
@@ -2632,7 +2632,7 @@ function PublicWebsite() {
             </p>
           </section>
         <footer className="guest-list-footer">
-          <span>&bull; ALSHAYEB ETERNUM &bull;</span>
+          <span>&bull; ALSHAYEB EXPERIENCE &bull;</span>
         </footer>
       </div>
     );
@@ -2834,7 +2834,7 @@ function PublicWebsite() {
         {/* Footer */}
         <footer className="hp-footer">
           <p className="hp-footer-tagline">YOUR JOURNEY. SECURE. PRIVATE. ETERNAL.</p>
-          <p className="hp-footer-brand">&bull; ALSHAYEB ETERNUM &bull;</p>
+          <p className="hp-footer-brand">&bull; ALSHAYEB EXPERIENCE &bull;</p>
         </footer>
       </div>
     </main>
