@@ -2577,7 +2577,7 @@ function PublicWebsite() {
         {/* BACK ARROW */}
         <div className="incomer-back-wrapper">
           <button
-            onClick={() => setPage('home')}
+            onClick={() => setPage("home")}
             aria-label="Go back"
             className="incomer-back-btn"
           >
@@ -2605,24 +2605,24 @@ function PublicWebsite() {
             <div className="rule-num">01</div>
             <div className="rule-content">
               <h3>ENTRY</h3>
-              <p>• Your QR code is personal. Sharing or transferring it ends your access.</p>
-              <p>• ALSHAYEB team may request a valid ID for verification</p>
+              <p>&#8226; Your QR code is personal. Sharing or transferring it ends your access.</p>
+              <p>&#8226; ALSHAYEB team may request a valid ID for verification</p>
             </div>
           </div>
           <div className="rule-card">
             <div className="rule-num">02</div>
             <div className="rule-content">
               <h3>DOORS</h3>
-              <p>• Doors open at 9:00 PM and close at 10:00 PM.</p>
-              <p>• Arrive early. Great experiences don't wait for late arrivals.</p>
+              <p>&#8226; Doors open at 9:00 PM and close at 10:00 PM.</p>
+              <p>&#8226; Arrive early. Great experiences don't wait for late arrivals.</p>
             </div>
           </div>
           <div className="rule-card">
             <div className="rule-num">03</div>
             <div className="rule-content">
               <h3>RE-ENTRY</h3>
-              <p>• Re-entry is permitted only for guests wearing their official ALSHAYEB wristband.</p>
-              <p>• Lost, removed, or damaged wristbands will void re-entry access.</p>
+              <p>&#8226; Re-entry is permitted only for guests wearing their official ALSHAYEB wristband.</p>
+              <p>&#8226; Lost, removed, or damaged wristbands will void re-entry access.</p>
             </div>
           </div>
           <div className="rule-card">
@@ -2637,45 +2637,45 @@ function PublicWebsite() {
             <div className="rule-num">05</div>
             <div className="rule-content">
               <h3>SECURITY</h3>
-              <p>• All guests are subject to security screening before entry.</p>
-              <p>• Weapons, illegal items, laser devices, drones, professional cameras, and unauthorized recording equipment never make it inside.</p>
+              <p>&#8226; All guests are subject to security screening before entry.</p>
+              <p>&#8226; Weapons, illegal items, laser devices, drones, professional cameras, and unauthorized recording equipment never make it inside.</p>
             </div>
           </div>
           <div className="rule-card">
             <div className="rule-num">06</div>
             <div className="rule-content">
-              <h3>ALCOHOL & DRUGS</h3>
-              <p>• Illegal drugs and prohibited substances have no place here.</p>
-              <p>• Alcohol is available only at events where ALSHAYEB officially permits it.</p>
+              <h3>ALCOHOL &amp; DRUGS</h3>
+              <p>&#8226; Illegal drugs and prohibited substances have no place here.</p>
+              <p>&#8226; Alcohol is available only at events where ALSHAYEB officially permits it.</p>
             </div>
           </div>
           <div className="rule-card">
             <div className="rule-num">07</div>
             <div className="rule-content">
               <h3>RESPECT</h3>
-              <p>• Respect isn't optional. It's the minimum requirement to stay.</p>
-              <p>• Harassment, unwanted physical contact, violence, discrimination, or disruptive behavior ends your experience immediately.</p>
+              <p>&#8226; Respect isn't optional. It's the minimum requirement to stay.</p>
+              <p>&#8226; Harassment, unwanted physical contact, violence, discrimination, or disruptive behavior ends your experience immediately.</p>
             </div>
           </div>
           <div className="rule-card">
             <div className="rule-num">08</div>
             <div className="rule-content">
               <h3>MEDIA</h3>
-              <p>• Some moments deserve to be remembered.</p>
-              <p>• By attending, you agree that photos and videos featuring you may be used by ALSHAYEB's media team</p>
+              <p>&#8226; Some moments deserve to be remembered.</p>
+              <p>&#8226; By attending, you agree that photos and videos featuring you may be used by ALSHAYEB's media team</p>
             </div>
           </div>
           <div className="rule-card">
-            <div className="rule-num">11</div>
+            <div className="rule-num">09</div>
             <div className="rule-content">
               <h3>RIGHT OF ADMISSION</h3>
-              <p>• ALSHAYEB reserves the right to refuse entry or remove any guest to protect the experience and the safety of others.</p>
+              <p>&#8226; ALSHAYEB reserves the right to refuse entry or remove any guest to protect the experience and the safety of others.</p>
             </div>
           </div>
         </div>
 
         <div className="rules-footer">
-          <p className="rules-footer-title">FINAL NOTICE</p>
+          <div className="rules-footer-title">FINAL NOTICE</div>
           <div className="rules-footer-text">
             <span>PROTECT THE EXPERIENCE.</span>
             <span className="rules-divider">|</span>

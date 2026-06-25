@@ -10009,11 +10009,8 @@ select:-webkit-autofill:focus {
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 20px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-}
-.rules-brand-logo::after {
-  content: "MENU =";
 }
 
 .rules-title {
@@ -10088,11 +10085,12 @@ select:-webkit-autofill:focus {
 
 .rules-footer {
   text-align: center;
-  margin-top: 40px;
+  margin: 40px auto 0 auto;
   border-top: 1px solid rgba(0, 178, 255, 0.2);
   border-bottom: 1px solid rgba(0, 178, 255, 0.2);
-  padding: 16px 0;
+  padding: 16px 24px;
   background: rgba(0, 178, 255, 0.03);
+  max-width: fit-content;
 }
 
 .rules-footer-title {
