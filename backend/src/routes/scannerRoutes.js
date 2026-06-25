@@ -51,18 +51,39 @@ router.post(
       return;
     }
 
+    let responseAttendee = attendee;
+
     if (markUsed) {
-      attendee.isUsed = true;
-      attendee.scannedAt = new Date();
-      attendee.scanCount += 1;
-      await attendee.save();
+      // Atomic update to prevent race conditions
+      const updatedAttendee = await Attendee.findOneAndUpdate(
+        { _id: attendee._id, isUsed: false, scanCount: 0 },
+        { 
+          $set: { isUsed: true, scannedAt: new Date() },
+          $inc: { scanCount: 1 }
+        },
+        { new: true }
+      );
+
+      if (!updatedAttendee) {
+        // If it returns null, another scanner just claimed it milliseconds ago
+        const doubleScannedAttendee = await Attendee.findById(attendee._id);
+        res.status(403).json({
+          success: true,
+          valid: false,
+          reason: "QR code has already been scanned.",
+          attendee: serializeAttendee(doubleScannedAttendee)
+        });
+        return;
+      }
+      
+      responseAttendee = updatedAttendee;
     }
 
     res.json({
       success: true,
       valid: true,
       message: "Access granted.",
-      attendee: serializeAttendee(attendee)
+      attendee: serializeAttendee(responseAttendee)
     });
   })
 );
