@@ -669,8 +669,16 @@ function PublicWebsite() {
       }, 0);
     };
 
+    const handleForceGoHome = () => {
+      setPage("home");
+    };
+
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    window.addEventListener("forceGoHome", handleForceGoHome);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("forceGoHome", handleForceGoHome);
+    };
   }, []);
 
   const cleanValue = (value) => String(value || "").replace(/\s/g, "").replace(/'/g, "").trim();
@@ -4132,7 +4140,7 @@ const PublicHamburgerMenu = () => {
             className="floating-menu-item"
             onClick={() => {
               setIsOpen(false);
-              window.location.href = "/";
+              window.dispatchEvent(new CustomEvent("forceGoHome"));
             }}
             type="button"
           >
