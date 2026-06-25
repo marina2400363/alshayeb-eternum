@@ -2462,7 +2462,11 @@ function PublicWebsite() {
               <p>ALSHAYEB ETERNUM is a secret dimension for music, art and connection.</p>
               <p>Designed as a circular island, it creates unforgettable experiences in a space where energy flows endlessly.</p>
             </div>
-            <div className="tkt-venue-glow-art" aria-hidden="true"/>
+            <div className="tkt-venue-glow-art" aria-hidden="true">
+              <svg width="36" height="15" viewBox="0 0 24 10" fill="none" stroke="rgba(127, 157, 255, 0.85)" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M 7,1 C 3,1 1,3.5 1,5 C 1,6.5 3,9 7,9 C 11,9 13,1 17,1 C 21,1 23,3.5 23,5 C 23,6.5 21,9 17,9 C 13,9 11,1 7,1 Z" />
+              </svg>
+            </div>
           </div>
         </div>
 

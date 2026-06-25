@@ -8973,13 +8973,18 @@ body {
   margin: 0 0 6px;
 }
 .tkt-venue-glow-art {
-  width: 70px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   flex-shrink: 0;
-  background: radial-gradient(ellipse at right top, rgba(0,178,255,0.35) 0%, rgba(0,40,120,0.15) 50%, transparent 70%);
   border-radius: 50%;
-  filter: blur(8px);
-  transform: translateX(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(0, 178, 255, 0.15) 0%, transparent 60%);
+  transform: translateX(5px);
+}
+.tkt-venue-glow-art svg {
+  filter: drop-shadow(0 0 6px rgba(0, 178, 255, 0.8));
 }
 
 /* Feature icons row */
