@@ -876,6 +876,7 @@ function PublicWebsite() {
               venue: event.venue || "ALSHAYEB ETERNUM",
               status: event.status || "available",
               schools: event.schools || [],
+              displayOrder: event.displayOrder,
               instapayLink: event.instapayLink
             }))
           : [];
@@ -1693,7 +1694,7 @@ function PublicWebsite() {
 
             return (
               <div key={event.id} className={`outcomer-dest-card ${!isAvailable ? 'disabled' : ''}`}>
-                <div className="outcomer-dest-number">{String(index + 1).padStart(2, "0")}</div>
+                <div className="outcomer-dest-number">{String(event.displayOrder && event.displayOrder !== 999 ? event.displayOrder : index + 1).padStart(2, "0")}</div>
                 <div className="outcomer-dest-divider" />
                 <div className="outcomer-dest-info">
                   <h3>{event.name || "NO NAME FOUND"}</h3>
@@ -3424,7 +3425,8 @@ function EventsPage() {
     price: 1800,
     googleSheetId: "",
     exportGoogleSheetId: "",
-    schools: ""
+    schools: "",
+    displayOrder: ""
   });
 
   const [saving, setSaving] = useState(false);
@@ -3444,7 +3446,8 @@ function EventsPage() {
         price: event.price || 1800,
         googleSheetId: event.googleSheetId || "",
         exportGoogleSheetId: event.exportGoogleSheetId || "",
-        schools: (event.schools || []).join(", ")
+        schools: (event.schools || []).join(", "),
+        displayOrder: event.displayOrder !== undefined && event.displayOrder !== null && event.displayOrder !== 999 ? event.displayOrder : ""
       });
     } else {
       setEditingEvent(null);
@@ -3459,7 +3462,8 @@ function EventsPage() {
         price: 1800,
         googleSheetId: "",
         exportGoogleSheetId: "",
-        schools: ""
+        schools: "",
+        displayOrder: ""
       });
     }
     setIsModalOpen(true);
@@ -3520,7 +3524,7 @@ function EventsPage() {
         {error && <div className="admin-empty-state">{error}</div>}
 
         <AdminTable
-          columns={["Name", "Prefix", "Status", "Date/Time", "Price", "Sheet Sync", "Actions"]}
+          columns={["Name", "Order", "Prefix", "Status", "Date/Time", "Price", "Sheet Sync", "Actions"]}
           rows={liveEvents}
           renderRow={(event) => (
             <tr key={event._id}>
@@ -3528,6 +3532,7 @@ function EventsPage() {
                 <strong>{event.name}</strong><br/>
                 <small className="muted">{event.venue}</small>
               </td>
+              <td><strong>{event.displayOrder !== undefined && event.displayOrder !== null && event.displayOrder !== 999 ? event.displayOrder : "-"}</strong></td>
               <td><strong>{event.prefix}</strong></td>
               <td><span className={`status-badge ${statusClass(event.status)}`}>{event.status}</span></td>
               <td>
@@ -3596,6 +3601,10 @@ function EventsPage() {
                 <div className="form-group">
                   <label>Price (EGP)</label>
                   <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Display Order</label>
+                  <input type="number" value={formData.displayOrder} min="1" onChange={e => setFormData({...formData, displayOrder: e.target.value})} placeholder="e.g. 1" />
                 </div>
                 <div className="form-group">
                   <label>Status</label>

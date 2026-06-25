@@ -36,14 +36,16 @@ async function syncEventExportSheet(eventId) {
     }
 
     let event;
-    if (mongoose.Types.ObjectId.isValid(eventId)) {
-      event = await Event.findById(eventId);
+    const actualEventId = typeof eventId === 'object' && eventId !== null && eventId._id ? eventId._id.toString() : String(eventId);
+
+    if (mongoose.Types.ObjectId.isValid(actualEventId)) {
+      event = await Event.findById(actualEventId);
     }
     if (!event) {
-      event = await Event.findOne({ name: new RegExp(`^${eventId}$`, 'i') });
+      event = await Event.findOne({ name: new RegExp(`^${actualEventId}$`, 'i') });
     }
     if (!event) {
-      console.error(`Export sync failed: Event ${eventId} not found.`);
+      console.error(`Export sync failed: Event ${actualEventId} not found.`);
       return;
     }
 

@@ -66,6 +66,10 @@ const eventSchema = new mongoose.Schema(
     capacity: {
       type: Number,
       default: 0
+    },
+    displayOrder: {
+      type: Number,
+      default: 999
     }
   },
   { timestamps: true }

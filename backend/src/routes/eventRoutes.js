@@ -9,7 +9,16 @@ const router = express.Router();
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const events = await Event.find({}).sort({ date: 1, createdAt: -1 });
+    const events = await Event.find({});
+    
+    // Sort events by displayOrder ascending, fallback to createdAt ascending
+    events.sort((a, b) => {
+      const orderA = a.displayOrder !== undefined && a.displayOrder !== null ? a.displayOrder : 999;
+      const orderB = b.displayOrder !== undefined && b.displayOrder !== null ? b.displayOrder : 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
     res.json({ success: true, events });
   })
 );
@@ -17,7 +26,7 @@ router.get(
 router.post(
   "/",
   asyncHandler(async (req, res) => {
-    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity } = req.body;
+    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder } = req.body;
 
     if (!name || !slug) {
       throw apiError("Event name and slug are required.");
@@ -31,6 +40,8 @@ router.post(
       throw apiError("Event price is required.");
     }
 
+    const parsedOrder = displayOrder !== undefined && displayOrder !== "" && !isNaN(Number(displayOrder)) ? Number(displayOrder) : 999;
+
     const event = await Event.create({
       name,
       slug,
@@ -43,7 +54,8 @@ router.post(
       price,
       googleSheetId,
       exportGoogleSheetId,
-      capacity: capacity || 0
+      capacity: capacity || 0,
+      displayOrder: parsedOrder
     });
 
     res.status(201).json({ success: true, event });
@@ -53,7 +65,7 @@ router.post(
 router.put(
   "/:id",
   asyncHandler(async (req, res) => {
-    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity } = req.body;
+    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder } = req.body;
 
     if (!prefix) {
       throw apiError("Event prefix is required for QR ID generation.");
@@ -62,6 +74,8 @@ router.put(
     if (price === undefined || price === null) {
       throw apiError("Event price is required.");
     }
+
+    const parsedOrder = displayOrder !== undefined && displayOrder !== "" && !isNaN(Number(displayOrder)) ? Number(displayOrder) : 999;
 
     const event = await Event.findByIdAndUpdate(
       req.params.id,
@@ -77,7 +91,8 @@ router.put(
         price,
         googleSheetId,
         exportGoogleSheetId,
-        capacity: capacity || 0
+        capacity: capacity || 0,
+        displayOrder: parsedOrder
       },
       { new: true, runValidators: true }
     );
