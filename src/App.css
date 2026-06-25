@@ -9091,6 +9091,8 @@ body {
   align-items: center;
   gap: 6px;
   padding: 6px 0;
+  cursor: pointer;
+  text-decoration: none;
 }
 .tkt-info-sep {
   width: 100%;
@@ -9984,5 +9986,136 @@ select:-webkit-autofill:focus {
   background: rgba(127, 157, 255, 0.15);
   color: #fff;
   outline: none;
+}
+
+
+/* =========================================================================
+   HOUSE RULES PAGE
+   ========================================================================= */
+.rules-page-container {
+  padding-bottom: 40px;
+}
+
+.rules-header {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+
+.rules-brand-logo {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rules-brand-logo::after {
+  content: "MENU =";
+}
+
+.rules-title {
+  font-family: 'Michroma', 'Inter', sans-serif;
+  font-size: 32px;
+  letter-spacing: 0.25em;
+  color: white;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.rules-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.rules-cyan {
+  color: #00b2ff;
+  letter-spacing: 0.1em;
+}
+
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rule-card {
+  display: flex;
+  background: rgba(5, 14, 36, 0.4);
+  border: 1px solid rgba(0, 178, 255, 0.15);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.rule-num {
+  font-family: 'Michroma', 'Inter', sans-serif;
+  font-size: 20px;
+  color: #00b2ff;
+  width: 40px;
+  flex-shrink: 0;
+  text-align: left;
+  margin-top: 2px;
+}
+
+.rule-content {
+  flex: 1;
+}
+
+.rule-content h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 8px 0;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.rule-content p {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 4px 0;
+}
+.rule-content p:last-child {
+  margin-bottom: 0;
+}
+
+.rules-footer {
+  text-align: center;
+  margin-top: 40px;
+  border-top: 1px solid rgba(0, 178, 255, 0.2);
+  border-bottom: 1px solid rgba(0, 178, 255, 0.2);
+  padding: 16px 0;
+  background: rgba(0, 178, 255, 0.03);
+}
+
+.rules-footer-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: #00b2ff;
+  margin: 0 0 8px 0;
+}
+
+.rules-footer-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rules-divider {
+  color: rgba(255, 255, 255, 0.2);
 }
 

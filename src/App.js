@@ -2552,7 +2552,7 @@ function PublicWebsite() {
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
             <div className="tkt-info-sep"/>
-            <div className="tkt-info-link">
+            <div className="tkt-info-link" onClick={() => setPage('houseRules')} role="button" tabIndex={0}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <span className="tkt-link-label">VENUE INFO</span>
               <span className="tkt-link-val">House rules</span>
@@ -2566,6 +2566,123 @@ function PublicWebsite() {
           <svg width="6" height="6" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/></svg>
           <span className="tkt-footer-text">ALSHAYEB EXPERIENCE</span>
           <svg width="6" height="6" viewBox="0 0 9 9" fill="none"><path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.5)" strokeWidth="1" fill="none"/></svg>
+        </div>
+      </div>
+    );
+  }
+
+  if (page === "houseRules") {
+    return (
+      <div className="incomer-page-container rules-page-container">
+        {/* BACK ARROW */}
+        <div className="incomer-back-wrapper">
+          <button
+            onClick={() => setPage('home')}
+            aria-label="Go back"
+            className="incomer-back-btn"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="rules-header">
+          <div className="rules-brand-logo">ALSHAYEB</div>
+          <h1 className="rules-title">HOUSE RULES</h1>
+          <p className="rules-subtitle">
+            <span className="rules-cyan">READ BEFORE YOU ENTER.</span><br/>
+            Every destination has rules.<br/>
+            These aren't restrictions. They're what protect the experience.
+          </p>
+        </div>
+
+        <div className="rules-list">
+          <div className="rule-card">
+            <div className="rule-num">01</div>
+            <div className="rule-content">
+              <h3>ENTRY</h3>
+              <p>• Your QR code is personal. Sharing or transferring it ends your access.</p>
+              <p>• ALSHAYEB team may request a valid ID for verification</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">02</div>
+            <div className="rule-content">
+              <h3>DOORS</h3>
+              <p>• Doors open at 9:00 PM and close at 10:00 PM.</p>
+              <p>• Arrive early. Great experiences don't wait for late arrivals.</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">03</div>
+            <div className="rule-content">
+              <h3>RE-ENTRY</h3>
+              <p>• Re-entry is permitted only for guests wearing their official ALSHAYEB wristband.</p>
+              <p>• Lost, removed, or damaged wristbands will void re-entry access.</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">04</div>
+            <div className="rule-content">
+              <h3>QR VALIDATION</h3>
+              <p>Only QR codes accessed through the official ALSHAYEB website are accepted. Screenshots, copies, or duplicated QR codes are invalid.<br/>
+              For security, your QR code will remain locked and automatically unlock only when you are near the venue entrance.</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">05</div>
+            <div className="rule-content">
+              <h3>SECURITY</h3>
+              <p>• All guests are subject to security screening before entry.</p>
+              <p>• Weapons, illegal items, laser devices, drones, professional cameras, and unauthorized recording equipment never make it inside.</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">06</div>
+            <div className="rule-content">
+              <h3>ALCOHOL & DRUGS</h3>
+              <p>• Illegal drugs and prohibited substances have no place here.</p>
+              <p>• Alcohol is available only at events where ALSHAYEB officially permits it.</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">07</div>
+            <div className="rule-content">
+              <h3>RESPECT</h3>
+              <p>• Respect isn't optional. It's the minimum requirement to stay.</p>
+              <p>• Harassment, unwanted physical contact, violence, discrimination, or disruptive behavior ends your experience immediately.</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">08</div>
+            <div className="rule-content">
+              <h3>MEDIA</h3>
+              <p>• Some moments deserve to be remembered.</p>
+              <p>• By attending, you agree that photos and videos featuring you may be used by ALSHAYEB's media team</p>
+            </div>
+          </div>
+          <div className="rule-card">
+            <div className="rule-num">11</div>
+            <div className="rule-content">
+              <h3>RIGHT OF ADMISSION</h3>
+              <p>• ALSHAYEB reserves the right to refuse entry or remove any guest to protect the experience and the safety of others.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rules-footer">
+          <p className="rules-footer-title">FINAL NOTICE</p>
+          <div className="rules-footer-text">
+            <span>PROTECT THE EXPERIENCE.</span>
+            <span className="rules-divider">|</span>
+            <span>RESPECT EVERYONE.</span>
+            <span className="rules-divider">|</span>
+            <span className="rules-cyan">ALSHAYEB ETERNUM.</span>
+          </div>
         </div>
       </div>
     );
