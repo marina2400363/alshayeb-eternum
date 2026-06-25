@@ -276,6 +276,66 @@ const BrandHeader = ({ title = "ETERNUM", subtitle = "NO BEGINNING. NO END." }) 
   </div>
 );
 
+const HouseRulesGuard = ({ onAccept, onBack }) => {
+  const [agreed, setAgreed] = useState(false);
+  return (
+    <div className="incomer-page-container rules-page-container">
+      <div className="incomer-back-wrapper">
+        <button onClick={onBack} aria-label="Go back" className="incomer-back-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+        </button>
+      </div>
+      <div className="rules-header">
+        <div className="rules-brand-logo">ALSHAYEB</div>
+        <h1 className="rules-title">HOUSE RULES</h1>
+        <p className="rules-subtitle">
+          <span className="rules-cyan">READ BEFORE YOU ENTER.</span><br/>
+          Every destination has rules.<br/>
+          These aren't restrictions. They're what protect the experience.
+        </p>
+      </div>
+      <HouseRulesContent />
+      <div className="rules-confirmation-action">
+        <label className="eternum-checkbox-wrapper">
+          <input 
+            type="checkbox" 
+            className="eternum-checkbox" 
+            checked={agreed} 
+            onChange={(e) => setAgreed(e.target.checked)} 
+          />
+          <span className="eternum-checkbox-custom">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+          <span className="eternum-checkbox-label">I UNDERSTAND THE RULES. LET ME IN.</span>
+        </label>
+        <button 
+          className="eternum-button rules-confirm-btn" 
+          disabled={!agreed}
+          onClick={onAccept}
+        >
+          <span>VIEW MY TICKET</span>
+          <b aria-hidden="true">&rarr;</b>
+        </button>
+      </div>
+      <div className="rules-footer">
+        <div className="rules-footer-title">FINAL NOTICE</div>
+        <div className="rules-footer-text">
+          <span>PROTECT THE EXPERIENCE.</span>
+          <span className="rules-divider">|</span>
+          <span>RESPECT EVERYONE.</span>
+          <span className="rules-divider">|</span>
+          <span className="rules-cyan">ALSHAYEB EXPERIENCE.</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const HouseRulesContent = () => (
   <div className="rules-list">
     <div className="rule-card">
@@ -2424,57 +2484,16 @@ function PublicWebsite() {
 
     if (!isRulesAccepted) {
       return (
-        <div className="incomer-page-container rules-page-container">
-          <div className="incomer-back-wrapper">
-            <button
-              onClick={() => {
-                const isOutcomer = foundClient?.type === "OUTCOMER" || foundClient?.accessType === "OUTCOMER";
-                setPage(isOutcomer ? "track" : "incomer");
-              }}
-              aria-label="Go back"
-              className="incomer-back-btn"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="rules-header">
-            <div className="rules-brand-logo">ALSHAYEB</div>
-            <h1 className="rules-title">HOUSE RULES</h1>
-            <p className="rules-subtitle">
-              <span className="rules-cyan">READ BEFORE YOU ENTER.</span><br/>
-              Every destination has rules.<br/>
-              These aren't restrictions. They're what protect the experience.
-            </p>
-          </div>
-
-          <HouseRulesContent />
-
-          <div className="rules-footer">
-            <button 
-              className="eternum-button" 
-              style={{marginTop: "20px", marginBottom: "30px", width: "100%", maxWidth: "340px", marginLeft: "auto", marginRight: "auto"}}
-              onClick={() => {
-                sessionStorage.setItem(rulesAcceptedKey, "true");
-                setNow(Date.now());
-              }}
-            >
-              <span>I ACCEPT &amp; VIEW TICKET</span>
-              <b aria-hidden="true">&rarr;</b>
-            </button>
-            <div className="rules-footer-title">FINAL NOTICE</div>
-            <div className="rules-footer-text">
-              <span>PROTECT THE EXPERIENCE.</span>
-              <span className="rules-divider">|</span>
-              <span>RESPECT EVERYONE.</span>
-              <span className="rules-divider">|</span>
-              <span className="rules-cyan">ALSHAYEB EXPERIENCE.</span>
-            </div>
-          </div>
-        </div>
+        <HouseRulesGuard 
+          onBack={() => {
+            const isOutcomer = foundClient?.type === "OUTCOMER" || foundClient?.accessType === "OUTCOMER";
+            setPage(isOutcomer ? "track" : "incomer");
+          }}
+          onAccept={() => {
+            sessionStorage.setItem(rulesAcceptedKey, "true");
+            setNow(Date.now());
+          }}
+        />
       );
     }
 
