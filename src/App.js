@@ -276,7 +276,7 @@ const BrandHeader = ({ title = "ETERNUM", subtitle = "NO BEGINNING. NO END." }) 
   </div>
 );
 
-const HouseRulesGuard = ({ onAccept, onBack }) => {
+const HouseRulesGuard = ({ onAccept, onBack, buttonText = "VIEW MY TICKET" }) => {
   const [agreed, setAgreed] = useState(false);
   return (
     <div className="incomer-page-container rules-page-container">
@@ -318,7 +318,7 @@ const HouseRulesGuard = ({ onAccept, onBack }) => {
           disabled={!agreed}
           onClick={onAccept}
         >
-          <span>VIEW MY TICKET</span>
+          <span>{buttonText}</span>
           <b aria-hidden="true">&rarr;</b>
         </button>
       </div>
@@ -1285,6 +1285,12 @@ function PublicWebsite() {
     }
   };
 
+  const handlePrePaymentRules = () => {
+    if (isSubmitting) return;
+    if (!validateRegistration()) return;
+    setPage("prePaymentRules");
+  };
+
   const goToPayment = async () => {
     if (isSubmitting) return;
     if (!validateRegistration()) return;
@@ -1925,11 +1931,22 @@ function PublicWebsite() {
           </div>
           <p className="outcomer-reg-footer-copy">ALL APPLICATIONS ARE REVIEWED<br/>BY ALSHAYEB'S TEAM</p>
           {errors.submit && <div className="outcomer-reg-error" style={{ marginBottom: "16px", color: "#ff4d4f" }}>{errors.submit}</div>}
-          <button className="outcomer-reg-submit" onClick={goToPayment} disabled={isSubmitting}>
+          <button className="outcomer-reg-submit" onClick={handlePrePaymentRules} disabled={isSubmitting}>
             {isSubmitting ? "SUBMITTING..." : "SUBMIT APPLICATION"} <span className="outcomer-reg-submit-arrow">→</span>
           </button>
         </div>
       </div>
+    );
+  }
+  if (page === "prePaymentRules") {
+    return (
+      <HouseRulesGuard 
+        buttonText="GO TO PAYMENT"
+        onBack={() => setPage("register")}
+        onAccept={() => {
+          goToPayment();
+        }}
+      />
     );
   }
 

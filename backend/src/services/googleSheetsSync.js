@@ -9,13 +9,13 @@ function getColumnIndexes(headers) {
   const indexes = {};
   headers.forEach((header, i) => {
     const h = (header || "").toString().toLowerCase().trim();
-    if (h.includes("name") && !h.includes("instagram")) indexes.name = i;
-    else if (h.includes("phone") || h.includes("mobile")) indexes.phone = i;
-    else if (h.includes("email")) indexes.email = i;
-    else if (h.includes("instagram") || h.includes("ig")) indexes.instagram = i;
-    else if (h.includes("gender")) indexes.gender = i;
-    else if (h.includes("school") || h.includes("university") || h.includes("prom")) indexes.university = i;
-    else if (h.includes("notes") || h.includes("remark")) indexes.notes = i;
+    if (h.includes("name") && !h.includes("instagram") && !h.includes("prom") && !h.includes("event") && indexes.name === undefined) indexes.name = i;
+    else if ((h.includes("phone") || h.includes("mobile")) && indexes.phone === undefined) indexes.phone = i;
+    else if (h.includes("email") && indexes.email === undefined) indexes.email = i;
+    else if ((h.includes("instagram") || h.includes("ig")) && indexes.instagram === undefined) indexes.instagram = i;
+    else if (h.includes("gender") && indexes.gender === undefined) indexes.gender = i;
+    else if ((h.includes("school") || h.includes("university") || h.includes("prom")) && indexes.university === undefined) indexes.university = i;
+    else if ((h.includes("notes") || h.includes("remark")) && indexes.notes === undefined) indexes.notes = i;
   });
   return indexes;
 }
@@ -116,7 +116,7 @@ async function syncEventIncomers(eventId) {
         if (!existing.university && university) { existing.university = university; updated = true; }
         if (!existing.email && email) { existing.email = email; updated = true; }
         if (!existing.instagram && instagram) { existing.instagram = instagram; updated = true; }
-        if (!existing.fullName || existing.fullName === "Unknown Name") {
+        if (!existing.fullName || existing.fullName === "Unknown Name" || existing.fullName.toLowerCase() === event.name.toLowerCase()) {
             if (fullName && fullName !== "Unknown Name") { existing.fullName = fullName; updated = true; }
         }
         
