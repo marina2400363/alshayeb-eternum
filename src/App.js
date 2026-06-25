@@ -2681,7 +2681,7 @@ function PublicWebsite() {
             <span className="rules-divider">|</span>
             <span>RESPECT EVERYONE.</span>
             <span className="rules-divider">|</span>
-            <span className="rules-cyan">ALSHAYEB ETERNUM.</span>
+            <span className="rules-cyan">ALSHAYEB EXPERIENCE.</span>
           </div>
         </div>
       </div>
