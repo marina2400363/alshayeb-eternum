@@ -3935,11 +3935,82 @@ function SettingsPage() {
   );
 }
 
+const PublicHamburgerMenu = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".floating-menu-container")) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      document.addEventListener("click", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="floating-menu-container">
+      <button 
+        className={`floating-hamburger-btn ${isOpen ? "open" : ""}`} 
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        aria-label="Menu"
+        type="button"
+      >
+        <span className="ham-line"></span>
+        <span className="ham-line"></span>
+        <span className="ham-line"></span>
+      </button>
+      
+      {isOpen && (
+        <div className="floating-menu-dropdown">
+          <button 
+            className="floating-menu-item"
+            onClick={() => {
+              setIsOpen(false);
+              window.location.href = "/";
+            }}
+            type="button"
+          >
+            HOME
+          </button>
+          <a 
+            className="floating-menu-item"
+            href="https://www.instagram.com/alshayebexperience?igsh=bGY0dmxvZXAwd3dr" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onClick={() => setIsOpen(false)}
+          >
+            INSTAGRAM
+          </a>
+          <a 
+            className="floating-menu-item"
+            href="https://www.tiktok.com/@alshayebexperience?_r=1&_t=ZS-97UW4Hhql9t" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onClick={() => setIsOpen(false)}
+          >
+            TIKTOK
+          </a>
+        </div>
+      )}
+    </div>
+  );
+};
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<div className="eternum-global-bg"><PublicWebsite /></div>} />
+        <Route path="/" element={<div className="eternum-global-bg"><PublicWebsite /><PublicHamburgerMenu /></div>} />
         <Route path="/control" element={<AdminLogin />} />
         <Route
           path="/control/dashboard"
