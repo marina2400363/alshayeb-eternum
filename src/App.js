@@ -2563,21 +2563,35 @@ function PublicWebsite() {
           </div>
 
           {ticketQrLocked && (
-            <div className="tkt-countdown-row">
-              <p className="tkt-unlocking-label">UNLOCKING IN</p>
-              <div className="tkt-countdown">
-                <span className="tkt-cd-num">{String(tDays).padStart(2,"0")}</span>
-                <span className="tkt-cd-sep">:</span>
-                <span className="tkt-cd-num">{String(tHours).padStart(2,"0")}</span>
-                <span className="tkt-cd-sep">:</span>
-                <span className="tkt-cd-num">{String(tMins).padStart(2,"0")}</span>
-                <span className="tkt-cd-sep">:</span>
-                <span className="tkt-cd-num">{String(tSecs).padStart(2,"0")}</span>
+            <>
+              <div className="tkt-countdown-row">
+                <p className="tkt-unlocking-label">UNLOCKING IN</p>
+                <div className="tkt-countdown">
+                  <span className="tkt-cd-num">{String(tDays).padStart(2,"0")}</span>
+                  <span className="tkt-cd-sep">:</span>
+                  <span className="tkt-cd-num">{String(tHours).padStart(2,"0")}</span>
+                  <span className="tkt-cd-sep">:</span>
+                  <span className="tkt-cd-num">{String(tMins).padStart(2,"0")}</span>
+                  <span className="tkt-cd-sep">:</span>
+                  <span className="tkt-cd-num">{String(tSecs).padStart(2,"0")}</span>
+                </div>
+                <div className="tkt-cd-labels">
+                  <span>DAYS</span><span>HOURS</span><span>MINUTES</span><span>SECONDS</span>
+                </div>
               </div>
-              <div className="tkt-cd-labels">
-                <span>DAYS</span><span>HOURS</span><span>MINUTES</span><span>SECONDS</span>
+              <div className="tkt-security-warning">
+                <div className="tkt-security-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                </div>
+                <p className="tkt-security-text">
+                  FOR SECURITY, YOUR QR CODE WILL REMAIN LOCKED AND AUTOMATICALLY UNLOCK ONLY WHEN YOU ARE NEAR THE VENUE ENTRANCE.
+                </p>
               </div>
-            </div>
+            </>
           )}
         </div>
 

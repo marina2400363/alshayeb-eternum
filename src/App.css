@@ -10226,3 +10226,42 @@ select:-webkit-autofill:focus {
   pointer-events: none;
 }
 
+/* --- Ticket Security Warning --- */
+.tkt-security-warning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(4, 12, 35, 0.6);
+  border: 1px solid rgba(255, 50, 50, 0.4);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 10px auto 20px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 0 15px rgba(255, 50, 50, 0.15), inset 0 0 10px rgba(255, 50, 50, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.tkt-security-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff3232;
+  filter: drop-shadow(0 0 4px rgba(255, 50, 50, 0.8));
+  flex-shrink: 0;
+}
+
+.tkt-security-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  line-height: 1.4;
+  color: rgba(255, 50, 50, 0.95);
+  text-transform: uppercase;
+  margin: 0;
+  text-align: left;
+}
+
