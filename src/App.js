@@ -2463,11 +2463,28 @@ function PublicWebsite() {
               <p>Designed as a circular island, it creates unforgettable experiences in a space where energy flows endlessly.</p>
             </div>
             <div className="tkt-venue-glow-art" aria-hidden="true">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="24" cy="24" r="18" stroke="rgba(127, 157, 255, 0.3)" strokeWidth="1" />
-                <circle cx="24" cy="24" r="12" stroke="rgba(127, 157, 255, 0.6)" strokeWidth="1.5" strokeDasharray="4 4" />
-                <circle cx="24" cy="24" r="6" stroke="rgba(127, 157, 255, 0.9)" strokeWidth="1.5" />
-                <circle cx="24" cy="24" r="2" fill="rgba(255, 255, 255, 0.9)" />
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="orbOuter" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="rgba(80,130,255,0.25)" />
+                    <stop offset="70%" stopColor="rgba(40,60,140,0.08)" />
+                    <stop offset="100%" stopColor="transparent" />
+                  </radialGradient>
+                  <radialGradient id="orbMid" cx="45%" cy="40%" r="50%">
+                    <stop offset="0%" stopColor="rgba(100,160,255,0.5)" />
+                    <stop offset="50%" stopColor="rgba(60,100,200,0.2)" />
+                    <stop offset="100%" stopColor="rgba(20,40,100,0.05)" />
+                  </radialGradient>
+                  <radialGradient id="orbCore" cx="42%" cy="38%" r="50%">
+                    <stop offset="0%" stopColor="rgba(200,220,255,0.95)" />
+                    <stop offset="40%" stopColor="rgba(120,170,255,0.6)" />
+                    <stop offset="100%" stopColor="rgba(60,100,200,0.1)" />
+                  </radialGradient>
+                </defs>
+                <circle cx="32" cy="32" r="30" fill="url(#orbOuter)" />
+                <circle cx="32" cy="32" r="20" fill="url(#orbMid)" />
+                <circle cx="32" cy="32" r="10" fill="url(#orbCore)" />
+                <circle cx="30" cy="29" r="3" fill="rgba(255,255,255,0.4)" />
               </svg>
             </div>
           </div>
