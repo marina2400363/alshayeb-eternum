@@ -2462,29 +2462,44 @@ function PublicWebsite() {
               <p>ALSHAYEB ETERNUM is a secret dimension for music, art and connection.</p>
               <p>Designed as a circular island, it creates unforgettable experiences in a space where energy flows endlessly.</p>
             </div>
-            <div className="tkt-venue-glow-art" aria-hidden="true">
-              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div className="tkt-venue-ring-art" aria-hidden="true">
+              <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                  <radialGradient id="orbOuter" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="rgba(80,130,255,0.25)" />
-                    <stop offset="70%" stopColor="rgba(40,60,140,0.08)" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </radialGradient>
-                  <radialGradient id="orbMid" cx="45%" cy="40%" r="50%">
-                    <stop offset="0%" stopColor="rgba(100,160,255,0.5)" />
-                    <stop offset="50%" stopColor="rgba(60,100,200,0.2)" />
-                    <stop offset="100%" stopColor="rgba(20,40,100,0.05)" />
-                  </radialGradient>
-                  <radialGradient id="orbCore" cx="42%" cy="38%" r="50%">
-                    <stop offset="0%" stopColor="rgba(200,220,255,0.95)" />
-                    <stop offset="40%" stopColor="rgba(120,170,255,0.6)" />
-                    <stop offset="100%" stopColor="rgba(60,100,200,0.1)" />
-                  </radialGradient>
+                  <linearGradient id="ringGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(40,100,255,0.9)" />
+                    <stop offset="50%" stopColor="rgba(80,160,255,1)" />
+                    <stop offset="100%" stopColor="rgba(20,60,200,0.6)" />
+                  </linearGradient>
+                  <filter id="arcBlur">
+                    <feGaussianBlur stdDeviation="3" />
+                  </filter>
+                  <filter id="arcBlurWide">
+                    <feGaussianBlur stdDeviation="8" />
+                  </filter>
                 </defs>
-                <circle cx="32" cy="32" r="30" fill="url(#orbOuter)" />
-                <circle cx="32" cy="32" r="20" fill="url(#orbMid)" />
-                <circle cx="32" cy="32" r="10" fill="url(#orbCore)" />
-                <circle cx="30" cy="29" r="3" fill="rgba(255,255,255,0.4)" />
+                {/* Wide outer glow */}
+                <circle cx="100" cy="100" r="88" stroke="rgba(40,100,255,0.15)" strokeWidth="12" fill="none" filter="url(#arcBlurWide)" />
+                {/* Outer ring - bright */}
+                <circle cx="100" cy="100" r="88" stroke="url(#ringGlow)" strokeWidth="2" fill="none" />
+                {/* Outer ring glow */}
+                <circle cx="100" cy="100" r="88" stroke="rgba(60,140,255,0.5)" strokeWidth="4" fill="none" filter="url(#arcBlur)" />
+                {/* Inner ring */}
+                <circle cx="100" cy="100" r="72" stroke="rgba(80,160,255,0.6)" strokeWidth="1.5" fill="none" />
+                {/* Inner ring glow */}
+                <circle cx="100" cy="100" r="72" stroke="rgba(40,100,255,0.3)" strokeWidth="4" fill="none" filter="url(#arcBlur)" />
+                {/* Particle dots */}
+                <circle cx="170" cy="45" r="1" fill="rgba(150,200,255,0.7)" />
+                <circle cx="180" cy="70" r="0.8" fill="rgba(150,200,255,0.5)" />
+                <circle cx="160" cy="30" r="0.6" fill="rgba(150,200,255,0.4)" />
+                <circle cx="185" cy="100" r="1" fill="rgba(150,200,255,0.6)" />
+                <circle cx="175" cy="130" r="0.7" fill="rgba(150,200,255,0.5)" />
+                <circle cx="165" cy="155" r="0.9" fill="rgba(150,200,255,0.6)" />
+                <circle cx="155" cy="170" r="0.6" fill="rgba(150,200,255,0.3)" />
+                <circle cx="140" cy="180" r="0.8" fill="rgba(150,200,255,0.4)" />
+                <circle cx="188" cy="88" r="0.5" fill="rgba(200,220,255,0.8)" />
+                <circle cx="150" cy="20" r="0.5" fill="rgba(200,220,255,0.5)" />
+                <circle cx="120" cy="188" r="0.7" fill="rgba(150,200,255,0.4)" />
+                <circle cx="190" cy="115" r="0.6" fill="rgba(150,200,255,0.5)" />
               </svg>
             </div>
           </div>

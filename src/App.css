@@ -8972,19 +8972,14 @@ body {
   line-height: 1.55;
   margin: 0 0 6px;
 }
-.tkt-venue-glow-art {
-  width: 70px;
-  height: 70px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle, rgba(60, 120, 255, 0.12) 0%, rgba(30, 60, 160, 0.06) 50%, transparent 75%);
-  transform: translateX(5px);
-}
-.tkt-venue-glow-art svg {
-  filter: drop-shadow(0 0 10px rgba(80, 140, 255, 0.5)) drop-shadow(0 0 20px rgba(40, 80, 200, 0.25));
+.tkt-venue-ring-art {
+  position: absolute;
+  top: 50%;
+  right: -60px;
+  transform: translateY(-50%);
+  width: 200px;
+  height: 200px;
+  pointer-events: none;
 }
 
 /* Feature icons row */
