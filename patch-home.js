@@ -61,7 +61,7 @@ const newHomeJSX = `  return (
             <div className="portal-card-text">
               <span className="portal-card-kicker">THE SEEKERS</span>
               <span className="portal-card-name">OUTCOMER</span>
-              <span className="portal-card-desc">Request access to join the experience. Applications are reviewed by the committee.</span>
+              <span className="portal-card-desc">Request access to join the experience. Applications are reviewed by alshayeb's team.</span>
             </div>
             <div className="portal-card-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

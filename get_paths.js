@@ -1,0 +1,1 @@
+const txt = require("child_process").execSync("git show e159b67:src/App.js", {encoding:"utf8"}); const matches = txt.match(/<path[^>]*d="([^"]+)"/g); if(matches){ console.log(matches.sort((a,b)=>b.length-a.length).slice(0, 3).join("\n")); }
