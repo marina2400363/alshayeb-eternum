@@ -2541,21 +2541,21 @@ function PublicWebsite() {
             <div className="tkt-info-link">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <span className="tkt-link-label">LOCATION</span>
-              <span className="tkt-link-val">Isletum</span>
+              <span className="tkt-link-val">Find & locate area</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
             <div className="tkt-info-sep"/>
-            <div className="tkt-info-link">
+            <a className="tkt-info-link" href="https://www.instagram.com/alshayebexperience?igsh=bGY0dmxvZXAwd3dr" target="_blank" rel="noopener noreferrer">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
               <span className="tkt-link-label">INSTAGRAM</span>
-              <span className="tkt-link-val">Follow us on Instagram</span>
+              <span className="tkt-link-val">Follow us on instagram</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
+            </a>
             <div className="tkt-info-sep"/>
             <div className="tkt-info-link">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <span className="tkt-link-label">VENUE INFO</span>
-              <span className="tkt-link-val">Find & locate area</span>
+              <span className="tkt-link-val">House rules</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
           </div>
