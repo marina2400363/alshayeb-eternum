@@ -3596,18 +3596,10 @@ function EventsPage() {
         const uploadData = new FormData();
         uploadData.append("bannerImage", bannerFile);
         
-        const uploadRes = await fetch(`/api/events/${json.event._id}/banner`, {
+        await apiRequest(`/api/events/${json.event._id}/banner`, {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${sessionStorage.getItem("adminToken")}`
-          },
           body: uploadData
         });
-        
-        if (!uploadRes.ok) {
-          const errText = await uploadRes.text();
-          throw new Error("Banner upload failed: " + errText);
-        }
       }
       
       setIsModalOpen(false);
