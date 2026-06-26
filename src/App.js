@@ -893,7 +893,10 @@ function PublicWebsite() {
               status: event.status || "available",
               schools: event.schools || [],
               displayOrder: event.displayOrder,
-              instapayLink: event.instapayLink
+              instapayLink: event.instapayLink,
+              bannerImageUrl: event.bannerImageUrl,
+              tagline: event.tagline,
+              description: event.description
             }))
           : [];
         setLiveEvents(backendEvents);
