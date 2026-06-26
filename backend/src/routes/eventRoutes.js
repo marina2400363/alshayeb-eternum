@@ -3,6 +3,7 @@ const express = require("express");
 const Event = require("../models/Event");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ router.get(
 
 router.post(
   "/",
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder } = req.body;
 
@@ -64,6 +66,7 @@ router.post(
 
 router.put(
   "/:id",
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder } = req.body;
 
@@ -107,6 +110,7 @@ router.put(
 
 router.delete(
   "/:id",
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const event = await Event.findByIdAndDelete(req.params.id);
     if (!event) {

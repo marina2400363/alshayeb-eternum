@@ -16,8 +16,6 @@ const BACKEND_API_URL = process.env.NODE_ENV === "production"
 
 const QR_REVEAL_TIME = "2026-12-31T18:00:00";
 const ADMIN_SESSION_KEY = "alshayebAdminSession";
-const ADMIN_EMAIL = "admin@alshayeb.com";
-const ADMIN_PASSWORD = "admin123";
 
 const DEFAULT_OUTCOMER_SELECTION = {
   approved: 2847,
@@ -43,6 +41,17 @@ async function apiRequest(path, options = {}) {
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const hasBody = options.body !== undefined && options.body !== null;
   const isJsonRequest = hasBody && !isFormData;
+
+  // Attach JWT token for all /api/admin requests automatically
+  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export");
+  let adminToken = "";
+  if (isAdminPath) {
+    try {
+      const session = JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY) || "null");
+      adminToken = session?.token || "";
+    } catch { /* ignore */ }
+  }
+
   let response;
 
   try {
@@ -50,6 +59,7 @@ async function apiRequest(path, options = {}) {
       ...options,
       headers: {
         ...(isJsonRequest ? { "Content-Type": "application/json" } : {}),
+        ...(adminToken ? { "Authorization": `Bearer ${adminToken}` } : {}),
         ...(options.headers || {})
       }
     });
@@ -3123,7 +3133,13 @@ function PublicWebsite() {
 function isAdminAuthenticated() {
   try {
     const session = JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY) || "null");
-    return Boolean(session?.authenticated);
+    if (!session?.authenticated || !session?.token || !session?.expiresAt) return false;
+    // Reject expired sessions client-side so the UI redirects to login proactively
+    if (Date.now() > session.expiresAt) {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }
@@ -3142,28 +3158,46 @@ function AdminLogin() {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [loginError, setLoginError] = useState("");
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   if (isAdminAuthenticated()) {
     return <Navigate to="/control/dashboard" replace />;
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setLoginError("");
+    setIsSubmitting(true);
 
-    if (String(credentials.email ?? "").trim().toLowerCase() !== ADMIN_EMAIL || credentials.password !== ADMIN_PASSWORD) {
-      setLoginError("Invalid admin email or password.");
-      return;
+    try {
+      const result = await apiRequest("/api/admin/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: String(credentials.email ?? "").trim(),
+          password: credentials.password
+        })
+      });
+
+      // Token is valid — store it with expiry for client-side session check
+      // Backend enforces auth on every request regardless of this value
+      const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+      localStorage.setItem(
+        ADMIN_SESSION_KEY,
+        JSON.stringify({
+          authenticated: true,
+          email: String(credentials.email ?? "").trim().toLowerCase(),
+          token: result.token,
+          expiresAt: Date.now() + EIGHT_HOURS_MS,
+          signedInAt: new Date().toISOString()
+        })
+      );
+
+      navigate("/control/dashboard", { replace: true });
+    } catch (err) {
+      setLoginError(err.message || "Invalid admin email or password.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    localStorage.setItem(
-      ADMIN_SESSION_KEY,
-      JSON.stringify({
-        authenticated: true,
-        email: ADMIN_EMAIL,
-        signedInAt: new Date().toISOString()
-      })
-    );
-
-    navigate("/control/dashboard", { replace: true });
   };
 
   return (
@@ -3199,8 +3233,8 @@ function AdminLogin() {
 
         {loginError && <p className="field-error center-error">{loginError}</p>}
 
-        <button className="purple-btn" type="submit">
-          ENTER CONTROL
+        <button className="purple-btn" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "AUTHENTICATING..." : "ENTER CONTROL"}
         </button>
 
         <Link className="admin-link" to="/">

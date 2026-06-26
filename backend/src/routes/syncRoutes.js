@@ -3,6 +3,7 @@ const Event = require("../models/Event");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { syncEventIncomers } = require("../services/googleSheetsSync");
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 const router = express.Router();
 
@@ -43,6 +44,7 @@ router.get(
 // Manual sync endpoint for Admin Portal
 router.post(
   "/admin/events/:id/sync",
+  requireAdmin,
   asyncHandler(async (req, res) => {
     try {
       const stats = await syncEventIncomers(req.params.id);

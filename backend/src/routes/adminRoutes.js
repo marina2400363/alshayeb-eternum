@@ -4,6 +4,7 @@ const Attendee = require("../models/Attendee");
 const SiteSettings = require("../models/SiteSettings");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
+const { requireAdmin } = require("../middleware/requireAdmin");
 const { sendStatusEmail } = require("../utils/email");
 const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
@@ -11,6 +12,9 @@ const Event = require("../models/Event");
 const { syncEventExportSheet } = require("../services/googleSheetsExportSync");
 
 const router = express.Router();
+
+// Apply admin auth to every route in this file.
+router.use(requireAdmin);
 
 const DEFAULT_SITE_SETTINGS = {
   outcomerSelection: {

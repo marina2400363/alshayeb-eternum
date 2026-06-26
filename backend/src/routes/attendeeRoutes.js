@@ -6,6 +6,7 @@ const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
+const { requireAdmin } = require("../middleware/requireAdmin");
 const Event = require("../models/Event");
 
 const router = express.Router();
@@ -26,8 +27,10 @@ function buildPublicQuery(query) {
   return filters;
 }
 
+// Admin-only: list all attendees. Public users must not enumerate the database.
 router.get(
   "/",
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const attendees = await Attendee.find(buildPublicQuery(req.query)).sort({ createdAt: -1 });
 
@@ -58,10 +61,16 @@ router.get(
       return;
     }
 
+    // Strip the QR token from the public lookup — the ticket page renders
+    // it from the same response the user receives after registration/tracking.
+    // Exposing it here would let anyone with a known phone number steal a ticket.
+    const publicAttendee = serializeAttendee(attendee);
+    delete publicAttendee.qrToken;
+
     res.json({
       success: true,
       found: true,
-      attendee: serializeAttendee(attendee)
+      attendee: publicAttendee
     });
   })
 );
@@ -105,8 +114,10 @@ router.post(
           eventName: req.body.eventName || req.body.prom || req.body.event,
           attendeeType,
           accessType,
-          status: req.body.status || "approved",
-          paymentStatus: req.body.paymentStatus || "not_required"
+          // SECURITY: status and paymentStatus are NEVER accepted from the request body
+          // on this public endpoint. They are always forced to safe defaults.
+          status: "pending",
+          paymentStatus: "not_required"
         }
       },
       {
