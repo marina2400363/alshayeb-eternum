@@ -2542,6 +2542,7 @@ function PublicWebsite() {
     const venue          = "ALSHAYEB ETERNUM";
     const school         = safeValue(foundClient.schoolOrOriginProm || foundClient.university || foundClient.school || foundClient.School, "—");
     const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname || guestName.split(" ")[0], "—");
+    const eventNameDisp  = safeValue(foundClient.eventName || (foundClient.event && typeof foundClient.event === 'object' ? foundClient.event.name : foundClient.event), "N/A");
 
     const ticketPromEvent   = findPromEvent(foundClient.eventName || foundClient.event || foundClient.Venue || venue);
     const rawDateTime       = eventDateTimeValue(ticketPromEvent) || foundClient.PromDateTime || foundClient.eventDate || null;
@@ -2639,6 +2640,7 @@ function PublicWebsite() {
             { icon: "school",     label: "SCHOOL",         val: school.toUpperCase() },
             { icon: "phone",      label: "PHONE NUMBER",   val: guestPhone },
             { icon: "id",         label: "ID",             val: qrId.toUpperCase() },
+            { icon: "star",       label: "EVENT NAME",     val: eventNameDisp.toUpperCase() },
             { icon: "crown",      label: "ACCESS TYPE",    val: accessType.toUpperCase(), color: "#00b2ff" },
             { icon: "shield",     label: "STATUS",         val: isUsed ? "USED" : "UNUSED", color: isUsed ? "#ff3366" : "#00b2ff", dot: true },
             { icon: "cal",        label: "DATE",           val: eventDateDisp },
@@ -2652,6 +2654,7 @@ function PublicWebsite() {
                 {icon === "school"     && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>}
                 {icon === "phone"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
                 {icon === "id"         && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-12c0 1.1.9 2 2 2s2-.9 2-2-.9-2-2-2-2 .9-2 2zm-4 7c0-2.21 1.79-4 4-4s4 1.79 4 4"/></svg>}
+                {icon === "star"       && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
                 {icon === "crown"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M2 4l4 8 6-4 6 4 4-8"/><path d="M4 17h16"/><path d="M4 20h16"/></svg>}
                 {icon === "shield"     && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>}
                 {icon === "cal"        && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,178,255,0.5)" strokeWidth="1.3" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
