@@ -41,6 +41,24 @@ router.get(
   })
 );
 
+// Public-only: return a minimal list of approved guests for the frontend marquee
+router.get(
+  "/public-list",
+  asyncHandler(async (req, res) => {
+    const attendees = await Attendee.find({ status: "approved" }, "name eventName -_id")
+      .sort({ createdAt: -1 })
+      .limit(300);
+
+    res.json({
+      success: true,
+      attendees: attendees.map(a => ({
+        name: a.name,
+        event: a.eventName
+      }))
+    });
+  })
+);
+
 router.get(
   "/lookup",
   asyncHandler(async (req, res) => {

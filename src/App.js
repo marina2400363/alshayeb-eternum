@@ -43,7 +43,9 @@ async function apiRequest(path, options = {}) {
   const isJsonRequest = hasBody && !isFormData;
 
   // Attach JWT token for all /api/admin requests automatically
-  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export");
+  // Also attach for /api/events if it's a mutating request (POST, PUT, DELETE)
+  const isMutatingEvent = path.startsWith("/api/events") && options.method && options.method !== "GET";
+  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export") || isMutatingEvent;
   let adminToken = "";
   if (isAdminPath) {
     try {
@@ -749,6 +751,8 @@ function PublicWebsite() {
   const [guestListCount, setGuestListCount] = useState(137);
   const [globalInstapayLink, setGlobalInstapayLink] = useState(null);
   const [now, setNow] = useState(Date.now());
+  const [guests, setGuests] = useState([]);
+  const [eventsError, setEventsError] = useState("");
   const [trackedRegistration, setTrackedRegistration] = useState(null);
   const [lookupFailed, setLookupFailed] = useState(false);
 
@@ -857,8 +861,9 @@ function PublicWebsite() {
   const loadGuests = useCallback(() => {
     setLoading(true);
 
-    apiRequest("/api/attendees?status=approved")
-      .then(() => {
+    apiRequest("/api/attendees/public-list")
+      .then((result) => {
+        setGuests(result.attendees || []);
         setLoading(false);
       })
       .catch((error) => {
@@ -874,6 +879,7 @@ function PublicWebsite() {
   useEffect(() => {
     apiRequest("/api/events")
       .then((result) => {
+        setEventsError("");
         const backendEvents = Array.isArray(result.events) && result.events.length
           ? result.events.map((event) => ({
               id: event._id || event.id || event.slug,
@@ -896,18 +902,14 @@ function PublicWebsite() {
       .catch((error) => {
         console.log("Event load failed:", error);
         setLiveEvents([]);
+        if (error.status === 401) {
+          setEventsError("Authentication required to fetch events. Please contact support.");
+        } else {
+          setEventsError("Failed to fetch events from the server.");
+        }
       });
 
-    apiRequest("/api/admin/site-settings")
-      .then((result) => {
-        setOutcomerSelection({
-          ...DEFAULT_OUTCOMER_SELECTION,
-          ...(result.settings?.outcomerSelection || {})
-        });
-      })
-      .catch((error) => {
-        console.log("Site settings load failed:", error);
-      });
+    // outcomerSelection is now fetched from /api/settings/public below
 
     apiRequest("/api/settings/public")
       .then((result) => {
@@ -917,6 +919,12 @@ function PublicWebsite() {
         }
         if (result.instapayLink) {
           setGlobalInstapayLink(result.instapayLink);
+        }
+        if (result.outcomerSelection) {
+          setOutcomerSelection({
+            ...DEFAULT_OUTCOMER_SELECTION,
+            ...result.outcomerSelection
+          });
         }
       })
       .catch((error) => {
