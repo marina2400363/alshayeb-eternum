@@ -1709,35 +1709,66 @@ function PublicWebsite() {
           <p>Choose the experience<br/>you wish to request access to.</p>
         </div>
 
-        <div className="outcomer-destination-list">
+        <div className="premium-event-list">
           {displayEvents.map((event, index) => {
             const rawStatus = (event.status || "AVAILABLE").toUpperCase();
             const isSoldOut = rawStatus === "SOLD_OUT" || rawStatus === "SOLD OUT";
             const isUnavailable = rawStatus === "CLOSED" || rawStatus === "UNAVAILABLE" || rawStatus === "NOT AVAILABLE";
             const isAvailable = !isSoldOut && !isUnavailable;
+            const displayStatus = isSoldOut ? "Sold Out" : isUnavailable ? "Not Available" : "Available";
 
             return (
-              <div key={event.id} className={`outcomer-dest-card ${!isAvailable ? 'disabled' : ''}`}>
-                <div className="outcomer-dest-number">{String(event.displayOrder && event.displayOrder !== 999 ? event.displayOrder : index + 1).padStart(2, "0")}</div>
-                <div className="outcomer-dest-divider" />
-                <div className="outcomer-dest-info">
-                  <h3>{event.name || "NO NAME FOUND"}</h3>
-                  <span className="outcomer-dest-date">{event.date || "NO DATE"}</span>
-                  <span className="outcomer-dest-venue">{event.venue || "NO VENUE"}</span>
+              <div key={event.id} className={`premium-event-card ${!isAvailable ? 'disabled' : ''}`}>
+                <div className="premium-event-image-container">
+                  <div className={`premium-event-status-badge ${!isAvailable ? 'unavailable' : ''}`}>
+                    {displayStatus}
+                  </div>
+                  <img 
+                    src={event.bannerImageUrl || "/homepage-background-spade.png"} 
+                    alt={event.name} 
+                    className="premium-event-banner" 
+                  />
                 </div>
-                <button
-                  type="button"
-                  className="outcomer-dest-btn"
-                  disabled={!isAvailable}
-                  onClick={() => {
-                    if (isAvailable) {
-                      setSelectedEvent(event);
-                      setPage("register");
-                    }
-                  }}
-                >
-                  {isSoldOut ? "SOLD OUT" : isUnavailable ? "NOT AVAILABLE" : "REQUEST ACCESS"}
-                </button>
+                <div className="premium-event-details">
+                  <div className="premium-event-header">
+                    <span className="premium-event-number">{String(event.displayOrder && event.displayOrder !== 999 ? event.displayOrder : index + 1).padStart(2, "0")}</span>
+                    <span className="premium-event-prom-badge">PROM</span>
+                  </div>
+                  <h3 className="premium-event-title">{event.name}</h3>
+                  {event.tagline && <p className="premium-event-tagline">{event.tagline}</p>}
+                  {event.description && <p className="premium-event-desc">{event.description}</p>}
+                  
+                  <div className="premium-event-divider"></div>
+                  
+                  <div className="premium-event-meta">
+                    <div className="premium-event-meta-row">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      <span>{event.date || "TBD"}</span>
+                    </div>
+                    <div className="premium-event-meta-row">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
+                      </svg>
+                      <span>{event.venue || "ALSHAYEB ETERNUM"}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="premium-event-action-btn"
+                    disabled={!isAvailable}
+                    onClick={() => {
+                      if (isAvailable) {
+                        setSelectedEvent(event);
+                        setPage("register");
+                      }
+                    }}
+                  >
+                    {isSoldOut ? "SOLD OUT" : isUnavailable ? "NOT AVAILABLE" : "REQUEST ACCESS"}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -3488,8 +3519,12 @@ function EventsPage() {
     googleSheetId: "",
     exportGoogleSheetId: "",
     schools: "",
-    displayOrder: ""
+    displayOrder: "",
+    bannerImageUrl: "",
+    tagline: "",
+    description: ""
   });
+  const [bannerFile, setBannerFile] = useState(null);
 
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(null);
@@ -3509,8 +3544,12 @@ function EventsPage() {
         googleSheetId: event.googleSheetId || "",
         exportGoogleSheetId: event.exportGoogleSheetId || "",
         schools: (event.schools || []).join(", "),
-        displayOrder: event.displayOrder !== undefined && event.displayOrder !== null && event.displayOrder !== 999 ? event.displayOrder : ""
+        displayOrder: event.displayOrder !== undefined && event.displayOrder !== null && event.displayOrder !== 999 ? event.displayOrder : "",
+        bannerImageUrl: event.bannerImageUrl || "",
+        tagline: event.tagline || "",
+        description: event.description || ""
       });
+      setBannerFile(null);
     } else {
       setEditingEvent(null);
       setFormData({
@@ -3525,8 +3564,12 @@ function EventsPage() {
         googleSheetId: "",
         exportGoogleSheetId: "",
         schools: "",
-        displayOrder: ""
+        displayOrder: "",
+        bannerImageUrl: "",
+        tagline: "",
+        description: ""
       });
+      setBannerFile(null);
     }
     setIsModalOpen(true);
   };
@@ -3548,6 +3591,24 @@ function EventsPage() {
         method,
         body: JSON.stringify(payload)
       });
+      
+      if (json.success && bannerFile) {
+        const uploadData = new FormData();
+        uploadData.append("bannerImage", bannerFile);
+        
+        const uploadRes = await fetch(`/api/events/${json.event._id}/banner`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${sessionStorage.getItem("adminToken")}`
+          },
+          body: uploadData
+        });
+        
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error("Banner upload failed: " + errText);
+        }
+      }
       
       setIsModalOpen(false);
       setRefreshKey(k => k + 1);
@@ -3688,6 +3749,23 @@ function EventsPage() {
               <div className="form-group">
                 <label>Export Google Sheet ID (For Confirmed Outcomers)</label>
                 <input value={formData.exportGoogleSheetId} onChange={e => setFormData({...formData, exportGoogleSheetId: e.target.value})} placeholder="Live sync target sheet ID" />
+              </div>
+              <div className="form-group">
+                <label>Tagline (e.g. NO BEGINNING. NO END.)</label>
+                <input value={formData.tagline} onChange={e => setFormData({...formData, tagline: e.target.value})} placeholder="Blue subtitle on event card" />
+              </div>
+              <div className="form-group">
+                <label>Description (Short)</label>
+                <textarea rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Gray descriptive text" style={{width: '100%', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.2)'}}></textarea>
+              </div>
+              <div className="form-group">
+                <label>Banner Image URL (Existing or Cloudinary URL)</label>
+                <input value={formData.bannerImageUrl} onChange={e => setFormData({...formData, bannerImageUrl: e.target.value})} placeholder="https://res.cloudinary.com/..." />
+              </div>
+              <div className="form-group">
+                <label>Or Upload New Banner Image (Saved on Submit)</label>
+                <input type="file" accept="image/*" onChange={e => setBannerFile(e.target.files[0])} />
+                {bannerFile && <div style={{marginTop: 5, fontSize: 12, color: '#00b2ff'}}>Image selected for upload on save.</div>}
               </div>
               
               <div className="admin-modal-actions">

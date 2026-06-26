@@ -62,6 +62,18 @@ const eventSchema = new mongoose.Schema(
       skippedCount: { type: Number, default: 0 },
       errorCount: { type: Number, default: 0 }
     },
+    bannerImageUrl: {
+      type: String,
+      trim: true
+    },
+    tagline: {
+      type: String,
+      trim: true
+    },
+    description: {
+      type: String,
+      trim: true
+    },
 
     capacity: {
       type: Number,

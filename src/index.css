@@ -13,3 +13,206 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* =========================================================
+   PREMIUM EVENT CARDS (UI Redesign)
+   ========================================================= */
+
+.premium-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.premium-event-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(0, 178, 255, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.premium-event-card:hover:not(.disabled) {
+  border-color: rgba(0, 178, 255, 0.4);
+  box-shadow: 0 10px 40px rgba(0, 178, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.premium-event-card.disabled {
+  opacity: 0.6;
+  filter: grayscale(0.5);
+}
+
+.premium-event-image-container {
+  position: relative;
+  width: 100%;
+  /* Mobile aspect ratio close to 4:5 */
+  aspect-ratio: 4 / 5;
+  background: #000;
+  overflow: hidden;
+}
+
+.premium-event-banner {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.premium-event-status-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(0, 255, 128, 0.15);
+  border: 1px solid rgba(0, 255, 128, 0.3);
+  color: #00ff80;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 20px;
+  letter-spacing: 1px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+.premium-event-status-badge.unavailable {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.premium-event-details {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.premium-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.premium-event-number {
+  font-family: 'Space Mono', monospace;
+  color: #00b2ff;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.premium-event-prom-badge {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  letter-spacing: 1.5px;
+  border-radius: 4px;
+}
+
+.premium-event-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 2px;
+  margin: 0 0 0.2rem 0;
+  text-transform: uppercase;
+}
+
+.premium-event-tagline {
+  color: #00b2ff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem 0;
+}
+
+.premium-event-desc {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.premium-event-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.1), transparent);
+  margin: 1rem 0;
+}
+
+.premium-event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.premium-event-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.premium-event-meta-row svg {
+  color: #00b2ff;
+}
+
+.premium-event-action-btn {
+  margin-top: auto;
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(0, 178, 255, 0.1) 0%, rgba(0, 178, 255, 0.02) 100%);
+  border: 1px solid rgba(0, 178, 255, 0.4);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.premium-event-action-btn:hover:not(:disabled) {
+  background: rgba(0, 178, 255, 0.15);
+  border-color: rgba(0, 178, 255, 0.8);
+  box-shadow: 0 0 15px rgba(0, 178, 255, 0.2);
+}
+
+.premium-event-action-btn:disabled {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+}
+
+/* Desktop layout: Side by side */
+@media (min-width: 768px) {
+  .premium-event-card {
+    flex-direction: row;
+  }
+  
+  .premium-event-image-container {
+    width: 40%;
+    /* Keep it square on desktop */
+    aspect-ratio: 1 / 1;
+  }
+  
+  .premium-event-details {
+    width: 60%;
+    padding: 2rem;
+  }
+}
