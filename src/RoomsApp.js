@@ -1088,7 +1088,7 @@ export default function RoomsApp() {
                   <div className="rooms-rd-section-content" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
                       <div className="rooms-rd-label">HOTEL</div>
-                      <div className="rooms-rd-value" style={{ fontSize: '0.6rem' }}>{reservation.hotelId?.name}</div>
+                      <div className="rooms-rd-value" style={{ fontSize: '0.6rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>{reservation.hotelId?.name}</div>
                       <div className="rooms-rd-stars">
                         <svg className="rooms-rd-star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                         <svg className="rooms-rd-star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -1150,7 +1150,7 @@ export default function RoomsApp() {
                       </div>
                       <div className="rooms-rd-field" style={{ flex: 1.5, minWidth: 0 }}>
                         <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>EMAIL ADDRESS</div>
-                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.55rem', fontWeight: 400}}>{reservation.emailAddress}</div>
+                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.55rem', fontWeight: 400, whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: '1.4'}}>{reservation.emailAddress}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: '0.5rem' }}>
