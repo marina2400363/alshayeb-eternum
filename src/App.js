@@ -4788,12 +4788,13 @@ function AdminRooms() {
                 <h3 className="admin-panel-title">Manage Reservations</h3>
                 <div className="admin-table-container">
                   <table className="admin-table">
-                    <thead><tr><th>ID</th><th>Guest</th><th>Phone</th><th>Hotel/Room</th><th>Dates</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Guest</th><th>Nat. ID</th><th>Phone</th><th>Hotel/Room</th><th>Dates</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                       {reservations.map(r => (
                         <tr key={r._id}>
                           <td>{r.reservationId}</td>
                           <td>{r.fullName}</td>
+                          <td>{r.nationalId}</td>
                           <td>{r.phoneNumber}</td>
                           <td>{r.hotelId?.name} - {r.roomTypeId?.name}</td>
                           <td>{new Date(r.checkInDate).toLocaleDateString()} to {new Date(r.checkOutDate).toLocaleDateString()}</td>

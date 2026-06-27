@@ -43,9 +43,9 @@ router.get(
 router.post(
   "/reservations",
   asyncHandler(async (req, res) => {
-    const { hotelId, roomTypeId, fullName, phoneNumber, emailAddress, checkInDate, checkOutDate } = req.body;
+    const { hotelId, roomTypeId, fullName, phoneNumber, nationalId, emailAddress, checkInDate, checkOutDate } = req.body;
 
-    if (!hotelId || !roomTypeId || !fullName || !phoneNumber || !checkInDate || !checkOutDate) {
+    if (!hotelId || !roomTypeId || !fullName || !phoneNumber || !nationalId || !checkInDate || !checkOutDate) {
       throw apiError("Please provide all required fields.");
     }
 
@@ -79,6 +79,7 @@ router.post(
       roomTypeId,
       fullName,
       phoneNumber,
+      nationalId,
       emailAddress,
       checkInDate: checkIn,
       checkOutDate: checkOut,

@@ -36,6 +36,17 @@ const roomReservationSchema = new mongoose.Schema(
       type: String,
       default: "Egyptian"
     },
+    nationalId: {
+      type: String,
+      required: [true, "National ID is required"],
+      trim: true,
+      validate: {
+        validator: function(v) {
+          return /^\d{14}$/.test(v);
+        },
+        message: props => `${props.value} is not a valid 14-digit National ID!`
+      }
+    },
     checkInDate: {
       type: Date,
       required: true

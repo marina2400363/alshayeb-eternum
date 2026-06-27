@@ -107,7 +107,7 @@ export default function RoomsApp() {
   const [selectedDates, setSelectedDates] = useState({ checkIn: "", checkOut: "" });
   const [stayDuration, setStayDuration] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [guestDetails, setGuestDetails] = useState({ fullName: "", phoneNumber: "", emailAddress: "", nationality: "Egyptian" });
+  const [guestDetails, setGuestDetails] = useState({ fullName: "", phoneNumber: "", nationalId: "", emailAddress: "", nationality: "Egyptian" });
   const [paymentProof, setPaymentProof] = useState(null);
   const [reservation, setReservation] = useState(null);
 
@@ -173,6 +173,7 @@ export default function RoomsApp() {
           roomTypeId: selectedRoom._id,
           fullName: guestDetails.fullName,
           phoneNumber: guestDetails.phoneNumber,
+          nationalId: guestDetails.nationalId,
           emailAddress: guestDetails.emailAddress,
           checkInDate: selectedDates.checkIn,
           checkOutDate: selectedDates.checkOut
@@ -490,53 +491,80 @@ export default function RoomsApp() {
 
           {step === "guest" && (
             <div className="rooms-step-container">
-              <RoomsSharedHeader step={step} handleBack={handleBack} title="GUEST DETAILS" subtitle="Enter your contact information" />
+              <RoomsSharedHeader step={step} handleBack={handleBack} title="ROOM DETAILS" subtitle="Please enter the primary guest details" />
               
               <div className="rooms-details-form-container">
                 
-                <div className="rooms-detail-box">
-                  <div className="rooms-detail-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <div className="guest-detail-card">
+                  <div className="guest-detail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                   </div>
-                  <div className="rooms-detail-content">
-                    <label className="rooms-detail-label">FULL NAME</label>
-                    <input type="text" className="rooms-detail-input" value={guestDetails.fullName} onChange={e => setGuestDetails({...guestDetails, fullName: e.target.value})} placeholder="Enter full name" />
-                  </div>
-                </div>
-
-                <div className="rooms-detail-box">
-                  <div className="rooms-detail-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                  </div>
-                  <div className="rooms-detail-content">
-                    <label className="rooms-detail-label">PHONE NUMBER</label>
-                    <input type="tel" className="rooms-detail-input" value={guestDetails.phoneNumber} onChange={e => setGuestDetails({...guestDetails, phoneNumber: e.target.value})} placeholder="+20 10 1234 5678" />
+                  <div className="guest-detail-divider"></div>
+                  <div className="guest-detail-content">
+                    <label className="guest-detail-label">FULL NAME</label>
+                    <input type="text" className="guest-detail-input" value={guestDetails.fullName} onChange={e => setGuestDetails({...guestDetails, fullName: e.target.value})} placeholder="Enter full name" />
                   </div>
                 </div>
 
-                <div className="rooms-detail-box">
-                  <div className="rooms-detail-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <div className="guest-detail-card">
+                  <div className="guest-detail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                   </div>
-                  <div className="rooms-detail-content">
-                    <label className="rooms-detail-label">EMAIL ADDRESS</label>
-                    <input type="email" className="rooms-detail-input" value={guestDetails.emailAddress} onChange={e => setGuestDetails({...guestDetails, emailAddress: e.target.value})} placeholder="Enter email address" />
+                  <div className="guest-detail-divider"></div>
+                  <div className="guest-detail-content">
+                    <label className="guest-detail-label">PHONE NUMBER</label>
+                    <input type="tel" className="guest-detail-input" value={guestDetails.phoneNumber} onChange={e => setGuestDetails({...guestDetails, phoneNumber: e.target.value})} placeholder="+20 10 1234 5678" />
                   </div>
                 </div>
 
-                <div className="rooms-detail-box">
-                  <div className="rooms-detail-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="4"></line><line x1="8" y1="2" x2="8" y2="4"></line><circle cx="9" cy="11" r="2"></circle><line x1="15" y1="11" x2="17" y2="11"></line><line x1="15" y1="14" x2="17" y2="14"></line><path d="M5 18h8"></path></svg>
+                <div className="guest-detail-card">
+                  <div className="guest-detail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   </div>
-                  <div className="rooms-detail-content">
-                    <label className="rooms-detail-label">NATIONALITY</label>
-                    <input type="text" className="rooms-detail-input" value="Egypt" disabled readOnly />
+                  <div className="guest-detail-divider"></div>
+                  <div className="guest-detail-content">
+                    <label className="guest-detail-label">NATIONAL ID</label>
+                    <input 
+                      type="text" 
+                      className={`guest-detail-input ${guestDetails.nationalId && guestDetails.nationalId.length !== 14 ? 'input-error' : ''}`}
+                      value={guestDetails.nationalId} 
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 14);
+                        setGuestDetails({...guestDetails, nationalId: val});
+                      }} 
+                      placeholder="Enter 14-digit National ID" 
+                    />
+                    {guestDetails.nationalId && guestDetails.nationalId.length > 0 && guestDetails.nationalId.length !== 14 && (
+                      <span className="guest-detail-error">Must be exactly 14 digits</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="guest-detail-card">
+                  <div className="guest-detail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                  </div>
+                  <div className="guest-detail-divider"></div>
+                  <div className="guest-detail-content">
+                    <label className="guest-detail-label">EMAIL ADDRESS</label>
+                    <input type="email" className="guest-detail-input" value={guestDetails.emailAddress} onChange={e => setGuestDetails({...guestDetails, emailAddress: e.target.value})} placeholder="Enter email address" />
+                  </div>
+                </div>
+
+                <div className="guest-detail-card">
+                  <div className="guest-detail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="4"></line><line x1="8" y1="2" x2="8" y2="4"></line><circle cx="9" cy="11" r="2"></circle><line x1="15" y1="11" x2="17" y2="11"></line><line x1="15" y1="14" x2="17" y2="14"></line><path d="M5 18h8"></path></svg>
+                  </div>
+                  <div className="guest-detail-divider"></div>
+                  <div className="guest-detail-content">
+                    <label className="guest-detail-label">NATIONALITY</label>
+                    <div className="guest-detail-value">Egyptian</div>
                   </div>
                 </div>
 
                 <button 
-                  className="rooms-next-btn" 
-                  disabled={!guestDetails.fullName || !guestDetails.phoneNumber || !guestDetails.emailAddress || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.emailAddress)}
+                  className="guest-next-btn" 
+                  disabled={!guestDetails.fullName || !guestDetails.phoneNumber || !guestDetails.emailAddress || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.emailAddress) || guestDetails.nationalId.length !== 14}
                   onClick={() => {
                     handleNext("payment");
                   }}
@@ -1047,6 +1075,8 @@ export default function RoomsApp() {
                         <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>{reservation.fullName}</div>
                         <div className="rooms-rd-label" style={{marginTop: '0.8rem'}}>NATIONALITY</div>
                         <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>{reservation.nationality || "Egyptian"}</div>
+                        <div className="rooms-rd-label" style={{marginTop: '0.8rem'}}>NATIONAL ID</div>
+                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>{reservation.nationalId || "-"}</div>
                       </div>
                       <div className="rooms-rd-field" style={{alignSelf: 'flex-start'}}>
                         <div className="rooms-rd-label">PHONE NUMBER</div>
