@@ -457,8 +457,8 @@ export default function RoomsApp() {
                             <div className="rooms-hotel-badge-na">NOT AVAILABLE</div>
                           )}
                           <div className="rooms-hotel-price">
-                            <span className="rooms-price-label">Price per night</span>
-                            <span className="rooms-price-amount">{Number(r.pricePerNight).toLocaleString()} EGP</span>
+                            <span className="price-label">Price per night</span>
+                            <span className="price-value">{Number(r.pricePerNight).toLocaleString()} EGP</span>
                           </div>
                           {isAvailable && (
                             <button className="rooms-btn-select" onClick={() => { setSelectedRoom(r); handleNext("guest"); }}>

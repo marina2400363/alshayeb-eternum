@@ -444,9 +444,7 @@
 .rooms-top-nav {
   display: flex;
   align-items: center;
-  position: relative;
   margin-bottom: 2.5rem;
-  padding: 0 40px;
 }
 
 .rooms-nav-back {
@@ -454,10 +452,6 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 50%;
   cursor: pointer;
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
   width: 40px;
   height: 40px;
   padding: 0;
@@ -465,11 +459,13 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 
 .rooms-nav-brand {
   flex: 1;
   text-align: center;
+  margin-left: -40px;
 }
 
 /* Progress Bar */
@@ -891,7 +887,8 @@
 }
 
 .rooms-capacity {
-  font-size: 0.8rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
