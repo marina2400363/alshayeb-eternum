@@ -468,35 +468,99 @@ export default function RoomsApp() {
           )}
 
           {step === "payment" && (
-            <div className="rooms-step">
-              <button className="rooms-back-button" onClick={() => handleBack("guest")}>← Back</button>
-              <h2 className="rooms-step-title">Payment & Summary</h2>
+            <div className="rooms-step-container">
+              <RoomsSharedHeader step={step} handleBack={handleBack} title="PAYMENT" subtitle="Complete your reservation" />
               
-              <div className="rooms-summary-card">
-                <h3>Reservation Summary</h3>
-                <div className="rooms-summary-row"><span>Hotel:</span> <span>{selectedHotel?.name}</span></div>
-                <div className="rooms-summary-row"><span>Room:</span> <span>{selectedRoom?.name}</span></div>
-                <div className="rooms-summary-row"><span>Check-in:</span> <span>{selectedDates.checkIn}</span></div>
-                <div className="rooms-summary-row"><span>Check-out:</span> <span>{selectedDates.checkOut}</span></div>
-                <div className="rooms-summary-row"><span>Duration:</span> <span>{stayDuration} night(s)</span></div>
-                <div className="rooms-summary-row"><span>Price/Night:</span> <span>{selectedRoom?.pricePerNight} EGP</span></div>
-                <div className="rooms-summary-divider"></div>
-                <div className="rooms-summary-total"><span>Total Amount:</span> <span>{stayDuration * (selectedRoom?.pricePerNight || 0)} EGP</span></div>
-              </div>
-
-              <div className="rooms-payment-instructions" style={{ marginTop: '2rem' }}>
-                <p>Please pay the total amount via Instapay to the following address:</p>
-                <div className="rooms-instapay-box">
-                  alshayeb@instapay
+              <div className="rooms-payment-container">
+                <div className="rooms-summary-card">
+                  <div className="rooms-card-header-small">RESERVATION SUMMARY</div>
+                  
+                  <div className="rooms-summary-list">
+                    <div className="rooms-summary-item">
+                      <span className="rooms-summary-label">Hotel</span>
+                      <span className="rooms-summary-value highlight" style={{textTransform: 'uppercase'}}>{selectedHotel?.name}</span>
+                    </div>
+                    <div className="rooms-summary-item">
+                      <span className="rooms-summary-label">Room Type</span>
+                      <span className="rooms-summary-value" style={{textTransform: 'uppercase'}}>{selectedRoom?.name}</span>
+                    </div>
+                    <div className="rooms-summary-item">
+                      <span className="rooms-summary-label">Nights</span>
+                      <span className="rooms-summary-value">{stayDuration} Night{stayDuration > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="rooms-summary-item">
+                      <span className="rooms-summary-label">Dates</span>
+                      <span className="rooms-summary-value">
+                        {selectedDates.checkIn ? new Date(selectedDates.checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''} – {selectedDates.checkOut ? new Date(selectedDates.checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+                      </span>
+                    </div>
+                    
+                    <div className="rooms-summary-divider" style={{margin: '0.5rem 0'}}></div>
+                    
+                    <div className="rooms-summary-item">
+                      <span className="rooms-summary-label">Room Price ({selectedRoom?.pricePerNight} EGP x {stayDuration} Nights)</span>
+                      <span className="rooms-summary-value">{(selectedRoom?.pricePerNight * stayDuration).toLocaleString()} EGP</span>
+                    </div>
+                    
+                    <div className="rooms-summary-divider" style={{margin: '0.5rem 0'}}></div>
+                    
+                    <div className="rooms-summary-total-row">
+                      <span className="rooms-summary-total-label">Total Amount</span>
+                      <span className="rooms-summary-total-value">{(selectedRoom?.pricePerNight * stayDuration).toLocaleString()} EGP</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="rooms-button-group" style={{marginTop: "2rem"}}>
-                <a href="instapay://pay?pa=alshayeb@instapay" className="eternum-button secondary" target="_blank" rel="noopener noreferrer">
-                  GO TO INSTAPAY
-                </a>
-                <button className="eternum-button primary" onClick={submitReservation} disabled={loading}>
-                  {loading ? "PROCESSING..." : "I HAVE MADE THE PAYMENT"}
+                <div className="rooms-payment-card">
+                  <div className="rooms-card-header-small">PAYMENT METHOD</div>
+                  
+                  <div className="rooms-payment-method-box">
+                    <div className="rooms-payment-method-left">
+                      <div className="rooms-instapay-icon">INSTA<br/>PAY</div>
+                      <div className="rooms-payment-method-text">
+                        <span className="rooms-payment-method-title">INSTAPAY</span>
+                        <span className="rooms-payment-method-subtitle">Fast, secure and easy payments</span>
+                      </div>
+                    </div>
+                    <div className="rooms-radio-selected">
+                      <div className="rooms-radio-selected-inner"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="rooms-card-header-small" style={{marginTop: '2rem'}}>PAYMENT INSTRUCTIONS</div>
+                  
+                  <div className="rooms-payment-instructions-list">
+                    <div className="rooms-instruction-item">
+                      <div className="rooms-instruction-number">1</div>
+                      <div className="rooms-instruction-text">Open your InstaPay app.</div>
+                    </div>
+                    <div className="rooms-instruction-item">
+                      <div className="rooms-instruction-number">2</div>
+                      <div className="rooms-instruction-text">Send the total amount to complete your reservation.</div>
+                    </div>
+                    <div className="rooms-instruction-item">
+                      <div className="rooms-instruction-number">3</div>
+                      <div className="rooms-instruction-text">Upload the payment screenshot in the next step.</div>
+                    </div>
+                  </div>
+
+                  <a href="instapay://pay?pa=alshayeb@instapay" className="rooms-go-instapay-btn" target="_blank" rel="noopener noreferrer">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '0.5rem'}}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    GO TO INSTAPAY
+                  </a>
+                </div>
+
+                <div className="rooms-secure-badge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  Your payment is secure and encrypted
+                </div>
+
+                <button 
+                  className="rooms-confirm-payment-btn" 
+                  onClick={submitReservation} 
+                  disabled={loading}
+                >
+                  {loading ? "PROCESSING..." : "I HAVE MADE THE PAYMENT"} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </button>
               </div>
             </div>
