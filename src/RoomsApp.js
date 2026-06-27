@@ -676,14 +676,19 @@ export default function RoomsApp() {
 
           {step === "proof" && (
             <div className="rooms-step-container">
-              <RoomsSharedHeader step={step} handleBack={handleBack} title="UPLOAD PAYMENT PROOF" subtitle="Upload your Instapay payment screenshot" />
+              <RoomsSharedHeader 
+                step={step} 
+                handleBack={handleBack} 
+                title={<span style={{whiteSpace: 'nowrap'}}>UPLOAD PAYMENT PROOF</span>} 
+                subtitle={<>Please upload a clear screenshot<br/>after completing the payment</>} 
+              />
               
               <div className="rooms-upload-card">
                 <div 
                   className="rooms-upload-dashed-area"
                   onClick={() => document.getElementById('proof-upload').click()}
                 >
-                  <svg className="rooms-upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="rooms-upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
                     <polyline points="16 11 12 7 8 11"></polyline>
                     <line x1="12" y1="7" x2="12" y2="15"></line>
@@ -727,7 +732,9 @@ export default function RoomsApp() {
               </div>
 
               <div className="rooms-info-card">
-                <div className="rooms-info-icon">i</div>
+                <div className="rooms-info-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </div>
                 <div className="rooms-info-content">
                   <div className="rooms-info-title">Make sure the screenshot includes:</div>
                   <ul className="rooms-info-list">
@@ -740,16 +747,20 @@ export default function RoomsApp() {
               </div>
 
               <button 
-                className="rooms-confirm-payment-btn" 
+                className="rooms-upload-proof-btn" 
                 onClick={submitProof}
                 disabled={loading || !paymentProof}
               >
-                {loading ? "UPLOADING..." : "SUBMIT PAYMENT PROOF"} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                {loading ? "UPLOADING..." : "I HAVE UPLOADED THE PROOF"} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
               </button>
 
-              <div className="rooms-secure-badge">
+              <div className="rooms-secure-badge" style={{marginBottom: '2rem'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 Your information is secure and encrypted
+              </div>
+              
+              <div className="rooms-bottom-spade">
+                <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Eternum Spade" />
               </div>
             </div>
           )}

@@ -1383,21 +1383,21 @@
 
 /* --- Upload Proof Page Styling --- */
 .rooms-upload-card {
-  background: rgba(4, 10, 30, 0.4);
-  border: 1px solid rgba(26, 86, 255, 0.2);
-  border-radius: 16px;
-  padding: 2rem;
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.15);
+  border-radius: 8px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1rem;
+  box-shadow: inset 0 0 20px rgba(26, 86, 255, 0.05), 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .rooms-upload-dashed-area {
-  border: 2px dashed rgba(26, 86, 255, 0.4);
-  border-radius: 12px;
+  border: 1px dashed rgba(26, 86, 255, 0.3);
+  border-radius: 8px;
   width: 100%;
   padding: 3rem 1rem;
   display: flex;
@@ -1412,88 +1412,98 @@
 .rooms-upload-dashed-area:hover, .rooms-upload-dashed-area.drag-over {
   background: rgba(26, 86, 255, 0.08);
   border-color: #1a56ff;
-  box-shadow: 0 0 15px rgba(26, 86, 255, 0.2);
+  box-shadow: inset 0 0 15px rgba(26, 86, 255, 0.1);
 }
 
 .rooms-upload-icon {
   color: #1a56ff;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 8px rgba(26, 86, 255, 0.5));
 }
 
 .rooms-upload-title {
   color: #1a56ff;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 1.1rem;
-  letter-spacing: 1px;
+  font-size: 13px;
+  letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
   text-transform: uppercase;
 }
 
 .rooms-upload-subtitle {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
   margin-bottom: 2rem;
 }
 
 .rooms-upload-formats {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
   text-align: center;
   line-height: 1.5;
 }
 
 .rooms-info-card {
-  background: rgba(4, 10, 30, 0.4);
-  border: 1px solid rgba(26, 86, 255, 0.2);
-  border-radius: 16px;
-  padding: 1.5rem;
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.15);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: inset 0 0 20px rgba(26, 86, 255, 0.05), 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .rooms-info-icon {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  border: 1px solid #1a56ff;
-  border-radius: 50%;
+  color: #1a56ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1a56ff;
-  font-size: 1rem;
-  font-weight: 500;
 }
 
 .rooms-info-content {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.8rem;
 }
 
 .rooms-info-title {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
 }
 
 .rooms-info-list {
-  list-style-type: disc;
+  list-style-type: none;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
-  margin-left: 1.2rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  margin: 0;
   padding: 0;
 }
 
 .rooms-info-list li {
-  margin-bottom: 0.3rem;
+  position: relative;
+  margin-bottom: 0.4rem;
+  padding-left: 1rem;
+}
+
+.rooms-info-list li::before {
+  content: '•';
+  color: rgba(255, 255, 255, 0.4);
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .rooms-file-selected {
   color: white;
-  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1501,6 +1511,40 @@
 
 .rooms-file-selected svg {
   color: #1a56ff;
+}
+
+.rooms-upload-proof-btn {
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.3);
+  border-radius: 8px;
+  padding: 1.25rem;
+  color: #1a56ff;
+  font-family: 'Michroma', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-shadow: inset 0 0 10px rgba(26, 86, 255, 0.05);
+}
+
+.rooms-upload-proof-btn:hover {
+  background: rgba(26, 86, 255, 0.1);
+  border-color: #1a56ff;
+}
+
+.rooms-upload-proof-btn:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* --- Submitted Page Styling --- */
