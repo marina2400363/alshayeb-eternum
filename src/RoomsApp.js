@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import RoomsDatePicker from "./RoomsDatePicker";
 
 const LOCAL_API_URL = "http://127.0.0.1:5000";
 const PROD_API_URL = "https://eternum-production.up.railway.app";
@@ -304,55 +305,63 @@ export default function RoomsApp() {
           )}
 
           {step === "dates" && (
-            <div className="rooms-step">
-              <button className="rooms-back-button" onClick={() => handleBack("hotels")}>← Back</button>
-              <h2 className="rooms-step-title">Choose Dates</h2>
-              <div className="rooms-form-group">
-                <label>Check-in Date</label>
-                <input 
-                  type="date" 
-                  className="eternum-input" 
-                  value={selectedDates.checkIn} 
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={e => {
-                    const newDates = { ...selectedDates, checkIn: e.target.value };
-                    setSelectedDates(newDates);
-                    setStayDuration(calculateDuration(newDates.checkIn, newDates.checkOut));
-                  }} 
+            <div className="rooms-step-container">
+              <RoomsSharedHeader step={step} handleBack={handleBack} title="CHOOSE DATES" subtitle="Select your check-in and check-out dates" />
+              
+              <div className="rooms-dates-container">
+                <div className="rooms-dates-summary">
+                  <div className="rooms-dates-box">
+                    <span className="rooms-dates-label">CHECK-IN</span>
+                    <span className="rooms-dates-value">
+                      {selectedDates.checkIn ? new Date(selectedDates.checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Select Date'}
+                    </span>
+                  </div>
+                  <div className="rooms-dates-divider">→</div>
+                  <div className="rooms-dates-box">
+                    <span className="rooms-dates-label">CHECK-OUT</span>
+                    <span className="rooms-dates-value">
+                      {selectedDates.checkOut ? new Date(selectedDates.checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Select Date'}
+                    </span>
+                  </div>
+                </div>
+
+                <RoomsDatePicker 
+                  checkIn={selectedDates.checkIn} 
+                  checkOut={selectedDates.checkOut} 
+                  onChange={(inDate, outDate) => {
+                    setSelectedDates({ checkIn: inDate, checkOut: outDate });
+                    setStayDuration(calculateDuration(inDate, outDate));
+                  }}
                 />
+
+                <div className="rooms-stay-summary">
+                  {stayDuration > 0 ? (
+                    <>
+                      <span className="stay-duration-highlight">{stayDuration} Night{stayDuration > 1 ? 's' : ''}</span>
+                      <span className="stay-duration-dates">
+                        • {new Date(selectedDates.checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} – {new Date(selectedDates.checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="stay-duration-empty">Select dates to view stay duration</span>
+                  )}
+                </div>
+
+                <button 
+                  className="eternum-button primary rooms-continue-btn" 
+                  disabled={stayDuration <= 0}
+                  onClick={() => {
+                    if (stayDuration > 0) {
+                      loadRoomTypes(selectedHotel._id);
+                      handleNext("rooms");
+                    } else {
+                      setError("Check-out date must be after check-in date.");
+                    }
+                  }}
+                >
+                  CONTINUE
+                </button>
               </div>
-              <div className="rooms-form-group">
-                <label>Check-out Date</label>
-                <input 
-                  type="date" 
-                  className="eternum-input" 
-                  value={selectedDates.checkOut} 
-                  min={selectedDates.checkIn || new Date().toISOString().split("T")[0]}
-                  onChange={e => {
-                    const newDates = { ...selectedDates, checkOut: e.target.value };
-                    setSelectedDates(newDates);
-                    setStayDuration(calculateDuration(newDates.checkIn, newDates.checkOut));
-                  }} 
-                />
-              </div>
-              {stayDuration > 0 && (
-                <div className="rooms-duration-badge">Stay Duration: {stayDuration} night(s)</div>
-              )}
-              <button 
-                className="eternum-button primary" 
-                style={{marginTop: "1rem"}}
-                disabled={stayDuration <= 0}
-                onClick={() => {
-                  if (stayDuration > 0) {
-                    loadRoomTypes(selectedHotel._id);
-                    handleNext("rooms");
-                  } else {
-                    setError("Check-out date must be after check-in date.");
-                  }
-                }}
-              >
-                CONTINUE
-              </button>
             </div>
           )}
 
