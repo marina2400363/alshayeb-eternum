@@ -1941,6 +1941,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 
 .rooms-res-total-col {
@@ -1949,6 +1950,7 @@
   gap: 0.1rem;
   align-items: flex-start;
   text-align: left;
+  flex-shrink: 0;
 }
 
 .rooms-res-total-label {
@@ -1983,6 +1985,8 @@
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .rooms-res-view-btn:hover {
