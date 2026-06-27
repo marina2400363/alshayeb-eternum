@@ -434,42 +434,55 @@ export default function RoomsApp() {
 
           {step === "rooms" && (
             <div className="rooms-step-container">
-              <RoomsSharedHeader step={step} handleBack={handleBack} title="CHOOSE ROOM" subtitle="Select your preferred room type" />
+              <RoomsSharedHeader step={step} handleBack={handleBack} title="CHOOSE YOUR ROOM" subtitle="Select your preferred room to continue" />
               
               {loading ? <p className="rooms-loading">Loading room types...</p> : (
                 <div className="rooms-list-container">
                   {roomTypes.map(r => {
                     const isAvailable = r.status === 'available';
                     return (
-                      <div key={r._id} className="rooms-hotel-card">
-                        <div className="rooms-hotel-info">
-                          <h3 className="rooms-hotel-name">{r.name}</h3>
-                          <div className="rooms-type-meta">
-                            <span className="rooms-capacity">Capacity: {r.capacity}</span>
-                            {r.breakfastIncluded && <span className="rooms-breakfast-badge">Breakfast Included</span>}
-                          </div>
+                      <div key={r._id} className="room-selection-card">
+                        <div className="room-selection-header">
+                          <h3 className="room-selection-name">{r.name}</h3>
+                          <div className="room-selection-radio"></div>
                         </div>
-                        
-                        <div className="rooms-hotel-divider"></div>
-                        
-                        <div className="rooms-hotel-action">
-                          {!isAvailable && (
-                            <div className="rooms-hotel-badge-na">NOT AVAILABLE</div>
-                          )}
-                          <div className="rooms-hotel-price">
-                            <span className="price-label">Price per night</span>
-                            <span className="price-value">{Number(r.pricePerNight).toLocaleString()} EGP</span>
+                        <div className="room-selection-divider"></div>
+                        <div className="room-selection-body">
+                          <div className="room-selection-info">
+                            <div className="room-selection-label">DESCRIPTION</div>
+                            <div className="room-selection-desc">{r.description || "A private room for one person"}</div>
+                            <div className="room-selection-label price-label-margin">PRICE</div>
+                            <div className="room-selection-price">{Number(r.pricePerNight).toLocaleString()} EGP</div>
                           </div>
-                          {isAvailable && (
-                            <button className="rooms-btn-select" onClick={() => { setSelectedRoom(r); handleNext("guest"); }}>
-                              SELECT
-                            </button>
-                          )}
+                          <div className="room-selection-action">
+                            {isAvailable ? (
+                              <button className="room-selection-btn" onClick={() => { setSelectedRoom(r); handleNext("guest"); }}>
+                                SELECT
+                              </button>
+                            ) : (
+                              <div className="rooms-hotel-badge-na" style={{marginTop:'auto'}}>NOT AVAILABLE</div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                   {roomTypes.length === 0 && <p className="rooms-empty-msg">No room types available for this hotel.</p>}
+                  
+                  {roomTypes.length > 0 && (
+                    <div className="room-selection-info-card">
+                      <div className="room-info-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="11" stroke="#1a56ff" strokeWidth="1.5"/>
+                          <path d="M12 7V8M12 11V17" stroke="#1a56ff" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <div className="room-info-text">
+                        Room preferences are subject to availability.<br/>
+                        You can review your selection in the next step.
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

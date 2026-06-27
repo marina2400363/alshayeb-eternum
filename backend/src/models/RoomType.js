@@ -12,6 +12,11 @@ const roomTypeSchema = new mongoose.Schema(
       required: [true, "Room type name is required"],
       trim: true
     },
+    description: {
+      type: String,
+      trim: true,
+      default: ""
+    },
     capacity: {
       type: Number,
       required: true,

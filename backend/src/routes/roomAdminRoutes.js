@@ -75,12 +75,13 @@ router.get(
 router.post(
   "/room-types",
   asyncHandler(async (req, res) => {
-    const { hotelId, name, capacity, breakfastIncluded, pricePerNight, status, displayOrder } = req.body;
+    const { hotelId, name, description, capacity, breakfastIncluded, pricePerNight, status, displayOrder } = req.body;
     if (!hotelId || !name || pricePerNight === undefined) throw apiError("Hotel, Name, and Price are required.");
     
     const roomType = await RoomType.create({
       hotelId,
       name,
+      description,
       capacity: Number(capacity) || 2,
       breakfastIncluded: Boolean(breakfastIncluded),
       pricePerNight: Number(pricePerNight),
@@ -94,12 +95,13 @@ router.post(
 router.put(
   "/room-types/:id",
   asyncHandler(async (req, res) => {
-    const { hotelId, name, capacity, breakfastIncluded, pricePerNight, status, displayOrder } = req.body;
+    const { hotelId, name, description, capacity, breakfastIncluded, pricePerNight, status, displayOrder } = req.body;
     const roomType = await RoomType.findByIdAndUpdate(
       req.params.id,
       {
         hotelId,
         name,
+        description,
         capacity: Number(capacity) || 2,
         breakfastIncluded: Boolean(breakfastIncluded),
         pricePerNight: Number(pricePerNight),

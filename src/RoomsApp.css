@@ -875,36 +875,118 @@
 .rooms-list-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
   width: 100%;
 }
 
-.rooms-type-meta {
+.room-selection-card {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 0.5rem;
+  flex-direction: column;
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 0.25rem;
+  box-shadow: inset 0 0 20px rgba(26, 86, 255, 0.05), 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-.rooms-capacity {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+.room-selection-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.3rem;
+  margin-bottom: 0.8rem;
 }
 
-.rooms-breakfast-badge {
+.room-selection-name {
   font-family: 'Michroma', sans-serif;
-  font-size: 0.6rem;
-  background: rgba(26, 86, 255, 0.15);
-  color: #1a56ff;
-  border: 1px solid rgba(26, 86, 255, 0.3);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
+  font-size: 17px;
+  color: #fff;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  font-weight: 400;
+}
+
+.room-selection-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.room-selection-divider {
+  width: 35%;
+  height: 1px;
+  background: rgba(26, 86, 255, 0.2);
+  margin-bottom: 1.5rem;
+}
+
+.room-selection-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.room-selection-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.room-selection-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1a56ff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+}
+
+.room-selection-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+  margin-bottom: 1.25rem;
+  font-weight: 400;
+}
+
+.price-label-margin {
+  margin-bottom: 0.5rem;
+}
+
+.room-selection-price {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.room-selection-action {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.room-selection-btn {
+  background: transparent;
+  border: 1px solid rgba(26, 86, 255, 0.5);
+  color: #1a56ff;
+  font-family: 'Michroma', sans-serif;
+  font-size: 15px;
+  padding: 0.65rem 2.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: all 0.3s ease;
+}
+
+.room-selection-btn:hover {
+  background: rgba(26, 86, 255, 0.1);
+  border-color: #1a56ff;
 }
 
 .rooms-empty-msg {
@@ -916,6 +998,32 @@
   padding: 2rem;
   border: 1px dashed rgba(255, 255, 255, 0.2);
   border-radius: 12px;
+}
+
+.room-selection-info-card {
+  display: flex;
+  align-items: center;
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.15);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-top: 0.5rem;
+  gap: 1rem;
+}
+
+.room-info-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.room-info-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 /* --- Guest Details specific styling --- */
