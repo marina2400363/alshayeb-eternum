@@ -1015,9 +1015,7 @@ export default function RoomsApp() {
                       </div>
                     )}
                     
-                    <div className="rooms-bottom-spade" style={{marginTop: '3rem', marginBottom: '2rem'}}>
-                      <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Eternum Spade" />
-                    </div>
+
                   </div>
                 </>
               )}
