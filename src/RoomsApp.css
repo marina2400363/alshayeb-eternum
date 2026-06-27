@@ -1580,16 +1580,17 @@
 .rooms-submitted-title {
   font-family: 'Michroma', sans-serif;
   color: white;
-  font-size: 1.5rem;
-  letter-spacing: 3px;
-  margin-bottom: 1rem;
+  font-size: 26px;
+  letter-spacing: 0.1em;
+  font-weight: 400;
+  margin-bottom: 0.8rem;
 }
 
 .rooms-submitted-subtitle {
   font-family: 'Michroma', sans-serif;
   color: #1a56ff;
-  font-size: 0.85rem;
-  letter-spacing: 1px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   margin-bottom: 1.5rem;
   line-height: 1.4;
@@ -1617,21 +1618,22 @@
 }
 
 .rooms-submitted-desc {
+  font-family: 'Inter', sans-serif;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  font-size: 13px;
   text-align: center;
   line-height: 1.6;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   padding: 0 1rem;
 }
 
 .rooms-status-card {
-  background: rgba(4, 10, 30, 0.4);
-  border: 1px solid rgba(26, 86, 255, 0.2);
-  border-radius: 16px;
-  padding: 2rem 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.15);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: inset 0 0 20px rgba(26, 86, 255, 0.05), 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .rooms-status-header {
@@ -1642,16 +1644,17 @@
 .rooms-status-label {
   font-family: 'Michroma', sans-serif;
   color: #1a56ff;
-  font-size: 0.7rem;
-  letter-spacing: 2px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
 }
 
 .rooms-status-value {
   font-family: 'Michroma', sans-serif;
   color: white;
-  font-size: 1.1rem;
-  letter-spacing: 2px;
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  font-weight: 400;
 }
 
 .rooms-status-item {
@@ -1682,31 +1685,36 @@
 }
 
 .rooms-status-text-label {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
 }
 
 .rooms-status-text-value {
+  font-family: 'Inter', sans-serif;
   color: #1a56ff;
-  font-size: 0.9rem;
+  font-size: 13px;
 }
 
 .rooms-view-reservations-btn {
-  background: transparent;
-  border: 1px solid rgba(26, 86, 255, 0.5);
-  border-radius: 12px;
-  padding: 1.2rem;
-  color: white;
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.3);
+  border-radius: 8px;
+  padding: 1.25rem;
+  color: #1a56ff;
   font-family: 'Michroma', sans-serif;
-  font-size: 0.8rem;
-  letter-spacing: 2px;
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.8rem;
   transition: all 0.3s ease;
   width: 100%;
+  box-shadow: inset 0 0 10px rgba(26, 86, 255, 0.05);
   margin-top: 1rem;
 }
 

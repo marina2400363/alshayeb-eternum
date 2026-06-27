@@ -87,8 +87,8 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
       </div>
 
       <div className="rooms-step-header">
-        <div className="rooms-step-indicator-text">STEP {currentStepData.num} OF 5</div>
-        <h2 className="rooms-step-title">{title}</h2>
+        {title && <div className="rooms-step-indicator-text">STEP {currentStepData.num} OF 5</div>}
+        {title && <h2 className="rooms-step-title">{title}</h2>}
         {subtitle && <p className="rooms-step-subtitle">{subtitle}</p>}
       </div>
     </>
@@ -768,7 +768,7 @@ export default function RoomsApp() {
               
               <div className="rooms-submitted-illustration">
                 <div className="rooms-submitted-glow-circle">
-                  <svg className="rooms-submitted-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="rooms-submitted-icon" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                     <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                     <polyline points="9 14 11 16 15 12"></polyline>
@@ -811,15 +811,19 @@ export default function RoomsApp() {
                   </div>
                   <div className="rooms-status-text">
                     <span className="rooms-status-text-label">We will notify you via</span>
-                    <span className="rooms-status-text-value">SMS & Email</span>
+                    <span className="rooms-status-text-value">Email</span>
                   </div>
                 </div>
               </div>
 
               <div className="rooms-info-card" style={{marginBottom: '1rem'}}>
-                <div className="rooms-info-icon" style={{color: 'rgba(255, 255, 255, 0.6)', borderColor: 'rgba(255, 255, 255, 0.2)'}}>i</div>
+                <div className="rooms-info-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </div>
                 <div className="rooms-info-content" style={{paddingTop: '2px'}}>
-                  <div className="rooms-status-text-label">You can track your booking status anytime from the "My Reservations" page.</div>
+                  <div className="rooms-info-title" style={{fontWeight: 400, color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.5'}}>
+                    You can track your booking status anytime<br/>from the "My Reservations" page.
+                  </div>
                 </div>
               </div>
 
@@ -829,6 +833,10 @@ export default function RoomsApp() {
               >
                 VIEW MY RESERVATIONS <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft: '4px'}}><polyline points="9 18 15 12 9 6"></polyline></svg>
               </button>
+              
+              <div className="rooms-bottom-spade" style={{marginTop: '2.5rem', marginBottom: '2rem'}}>
+                <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Eternum Spade" />
+              </div>
             </div>
           )}
 
