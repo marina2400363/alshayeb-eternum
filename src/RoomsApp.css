@@ -2054,9 +2054,9 @@
 }
 
 .rooms-rd-status-label {
-  font-family: 'Michroma', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: #1a56ff;
-  font-size: 0.65rem;
+  font-size: 0.5rem;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -2064,13 +2064,14 @@
 .rooms-rd-status-value {
   font-family: 'Michroma', sans-serif;
   color: white;
-  font-size: 0.9rem;
-  letter-spacing: 2px;
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
 }
 
 .rooms-rd-status-desc {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.8rem;
+  font-size: 0.65rem;
+  font-family: 'Inter', sans-serif;
   margin-top: 0.2rem;
 }
 
@@ -2114,10 +2115,11 @@
 }
 
 .rooms-rd-id-label {
-  font-family: 'Michroma', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.7rem;
+  font-size: 0.5rem;
   letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .rooms-rd-id-value {
@@ -2125,8 +2127,8 @@
   align-items: center;
   gap: 0.5rem;
   font-family: 'Michroma', sans-serif;
-  color: #1a56ff;
-  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
   letter-spacing: 1px;
 }
 

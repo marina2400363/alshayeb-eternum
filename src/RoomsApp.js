@@ -1085,10 +1085,10 @@ export default function RoomsApp() {
                   <div className="rooms-rd-section-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>
                   </div>
-                  <div className="rooms-rd-section-content" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="rooms-rd-field" style={{ flex: 1 }}>
+                  <div className="rooms-rd-section-content" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
                       <div className="rooms-rd-label">HOTEL</div>
-                      <div className="rooms-rd-value">{reservation.hotelId?.name}</div>
+                      <div className="rooms-rd-value" style={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.hotelId?.name}</div>
                       <div className="rooms-rd-stars">
                         <svg className="rooms-rd-star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                         <svg className="rooms-rd-star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -1097,10 +1097,10 @@ export default function RoomsApp() {
                         <svg className="rooms-rd-star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                       </div>
                     </div>
-                    <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', margin: '0 1.5rem' }}></div>
-                    <div className="rooms-rd-field" style={{ flex: 1 }}>
+                    <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', margin: '0 1rem' }}></div>
+                    <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
                       <div className="rooms-rd-label">ROOM TYPE</div>
-                      <div className="rooms-rd-value">{formatRoomName(reservation.roomTypeId?.name)}</div>
+                      <div className="rooms-rd-value" style={{ fontSize: '0.7rem', fontFamily: "'Inter', sans-serif" }}>{formatRoomName(reservation.roomTypeId?.name)}</div>
                       <div className="rooms-rd-subvalue">{reservation.roomTypeId?.breakfastIncluded ? "With Breakfast" : "No Breakfast"}</div>
                     </div>
                   </div>
@@ -1112,22 +1112,22 @@ export default function RoomsApp() {
                   </div>
                   <div className="rooms-rd-section-content">
                     <div className="rooms-rd-label" style={{marginBottom: '1rem'}}>STAY DATES</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div className="rooms-rd-field" style={{ flex: 1 }}>
-                        <div className="rooms-rd-label">CHECK-IN</div>
-                        <div className="rooms-rd-value">{checkInDate.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase()}</div>
-                        <div className="rooms-rd-subvalue">{checkInDate.toLocaleDateString('en-GB', {weekday: 'long'})}</div>
+                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                      <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>CHECK-IN</div>
+                        <div className="rooms-rd-value" style={{ fontSize: '0.65rem' }}>{checkInDate.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase()}</div>
+                        <div className="rooms-rd-subvalue" style={{ fontSize: '0.55rem' }}>{checkInDate.toLocaleDateString('en-GB', {weekday: 'long'})}</div>
                       </div>
-                      <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', margin: '0 1rem', alignSelf: 'center' }}></div>
-                      <div className="rooms-rd-field" style={{ flex: 1 }}>
-                        <div className="rooms-rd-label">CHECK-OUT</div>
-                        <div className="rooms-rd-value">{checkOutDate.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase()}</div>
-                        <div className="rooms-rd-subvalue">{checkOutDate.toLocaleDateString('en-GB', {weekday: 'long'})}</div>
+                      <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
+                      <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0, paddingLeft: '0.5rem' }}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>CHECK-OUT</div>
+                        <div className="rooms-rd-value" style={{ fontSize: '0.65rem' }}>{checkOutDate.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase()}</div>
+                        <div className="rooms-rd-subvalue" style={{ fontSize: '0.55rem' }}>{checkOutDate.toLocaleDateString('en-GB', {weekday: 'long'})}</div>
                       </div>
-                      <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', margin: '0 1rem', alignSelf: 'center' }}></div>
-                      <div className="rooms-rd-field" style={{ flex: 1 }}>
-                        <div className="rooms-rd-label">STAY DURATION</div>
-                        <div className="rooms-rd-value">{reservation.stayDuration} NIGHTS</div>
+                      <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
+                      <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0, paddingLeft: '0.5rem' }}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>STAY DURATION</div>
+                        <div className="rooms-rd-value" style={{ fontSize: '0.65rem' }}>{reservation.stayDuration} NIGHTS</div>
                       </div>
                     </div>
                   </div>
@@ -1139,29 +1139,29 @@ export default function RoomsApp() {
                   </div>
                   <div className="rooms-rd-section-content">
                     <div className="rooms-rd-label" style={{marginBottom: '1rem'}}>GUEST DETAILS</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '1rem', marginBottom: '1rem' }}>
-                      <div className="rooms-rd-field">
-                        <div className="rooms-rd-label">FULL NAME</div>
-                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>{reservation.fullName}</div>
+                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>FULL NAME</div>
+                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.65rem', fontWeight: 400}}>{reservation.fullName}</div>
                       </div>
-                      <div className="rooms-rd-field">
-                        <div className="rooms-rd-label">PHONE NUMBER</div>
-                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>{reservation.phoneNumber}</div>
+                      <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>PHONE NUMBER</div>
+                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.65rem', fontWeight: 400}}>{reservation.phoneNumber}</div>
                       </div>
-                      <div className="rooms-rd-field" style={{overflow: 'hidden'}}>
-                        <div className="rooms-rd-label">EMAIL ADDRESS</div>
-                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.8rem', textOverflow: 'ellipsis', overflow: 'hidden'}}>{reservation.emailAddress}</div>
+                      <div className="rooms-rd-field" style={{ flex: 1.2, minWidth: 0, overflow: 'hidden' }}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>EMAIL ADDRESS</div>
+                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.65rem', fontWeight: 400, textOverflow: 'ellipsis', overflow: 'hidden'}}>{reservation.emailAddress}</div>
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '1rem' }}>
-                      <div className="rooms-rd-field">
-                        <div className="rooms-rd-label">NATIONALITY</div>
-                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>{reservation.nationality || "Egyptian"}</div>
+                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: '0.5rem' }}>
+                      <div className="rooms-rd-field" style={{ width: '30%' }}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>NATIONALITY</div>
+                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.65rem', fontWeight: 400}}>{reservation.nationality || "Egyptian"}</div>
                       </div>
                       {reservation.nationalId && (
-                        <div className="rooms-rd-field">
-                          <div className="rooms-rd-label">NATIONAL ID</div>
-                          <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>{reservation.nationalId}</div>
+                        <div className="rooms-rd-field" style={{ width: '30%' }}>
+                          <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>NATIONAL ID</div>
+                          <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.65rem', fontWeight: 400}}>{reservation.nationalId}</div>
                         </div>
                       )}
                     </div>
@@ -1175,20 +1175,20 @@ export default function RoomsApp() {
                   <div className="rooms-rd-section-content">
                     <div className="rooms-rd-label" style={{marginBottom: '1rem'}}>PRICE SUMMARY</div>
                     
-                    <div className="rooms-rd-price-row">
-                      <div className="rooms-rd-label">PRICE PER NIGHT</div>
-                      <div className="rooms-rd-value">{(reservation.totalAmount / reservation.stayDuration).toLocaleString()} EGP</div>
+                    <div className="rooms-rd-price-row" style={{marginBottom: '0.4rem'}}>
+                      <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>PRICE PER NIGHT</div>
+                      <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.7rem', fontWeight: 500}}>{(reservation.totalAmount / reservation.stayDuration).toLocaleString()} EGP</div>
                     </div>
-                    <div className="rooms-rd-price-row">
-                      <div className="rooms-rd-label">NIGHTS</div>
-                      <div className="rooms-rd-value">{reservation.stayDuration}</div>
+                    <div className="rooms-rd-price-row" style={{marginBottom: '0.4rem'}}>
+                      <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>NIGHTS</div>
+                      <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.7rem', fontWeight: 500}}>{reservation.stayDuration}</div>
                     </div>
                     
-                    <div className="rooms-rd-price-divider"></div>
+                    <div className="rooms-rd-price-divider" style={{margin: '0.8rem 0'}}></div>
                     
                     <div className="rooms-rd-price-row" style={{marginBottom: 0}}>
-                      <div className="rooms-rd-label">TOTAL AMOUNT</div>
-                      <div className="rooms-rd-total-amount">{reservation.totalAmount?.toLocaleString()} EGP</div>
+                      <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>TOTAL AMOUNT</div>
+                      <div className="rooms-rd-total-amount" style={{fontSize: '0.9rem'}}>{reservation.totalAmount?.toLocaleString()} EGP</div>
                     </div>
                   </div>
                 </div>
@@ -1199,19 +1199,19 @@ export default function RoomsApp() {
                   </div>
                   <div className="rooms-rd-section-content">
                     <div className="rooms-rd-label" style={{marginBottom: '1rem'}}>PAYMENT STATUS</div>
-                    <div style={{ display: 'flex', gap: '2rem' }}>
-                      <div className="rooms-rd-field" style={{flex: 1}}>
-                        <div className="rooms-rd-label">PAYMENT METHOD</div>
-                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif"}}>Instapay</div>
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem' }}>
+                      <div className="rooms-rd-field" style={{flex: 1, minWidth: 0}}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>PAYMENT METHOD</div>
+                        <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.65rem'}}>Instapay</div>
                       </div>
                       <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
-                      <div className="rooms-rd-field" style={{flex: 1.5}}>
-                        <div className="rooms-rd-label">PAYMENT PROOF</div>
-                        <div className="rooms-rd-proof-status">
-                          Uploaded <svg className="rooms-rd-proof-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                      <div className="rooms-rd-field" style={{flex: 1.5, minWidth: 0}}>
+                        <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>PAYMENT PROOF</div>
+                        <div className="rooms-rd-proof-status" style={{fontSize: '0.65rem'}}>
+                          Uploaded <svg className="rooms-rd-proof-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                         </div>
-                        <div className="rooms-rd-label" style={{marginTop: '0.8rem'}}>SUBMITTED ON</div>
-                        <div className="rooms-rd-subvalue" style={{marginTop: 0}}>{new Date(reservation.createdAt || reservation.checkInDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase()} • {new Date(reservation.createdAt || reservation.checkInDate).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}</div>
+                        <div className="rooms-rd-label" style={{marginTop: '0.6rem', fontSize: '0.45rem'}}>SUBMITTED ON</div>
+                        <div className="rooms-rd-subvalue" style={{marginTop: 0, fontSize: '0.55rem'}}>{new Date(reservation.createdAt || reservation.checkInDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase()} • {new Date(reservation.createdAt || reservation.checkInDate).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}</div>
                       </div>
                     </div>
                   </div>
