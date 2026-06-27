@@ -187,6 +187,59 @@ export default function RoomsApp() {
     }
   };
 
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error("Canvas is empty"));
+                return;
+              }
+              const compressedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            "image/jpeg",
+            0.7
+          );
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
   const submitProof = async () => {
     if (!paymentProof) {
       setError("Please select a file to upload.");
@@ -195,8 +248,11 @@ export default function RoomsApp() {
     setLoading(true);
     setError("");
     try {
+      // Compress the image before uploading to significantly reduce latency
+      const compressedFile = await compressImage(paymentProof);
+      
       const formData = new FormData();
-      formData.append("paymentProof", paymentProof);
+      formData.append("paymentProof", compressedFile);
       await apiFetch(`/api/rooms/reservations/${reservation._id}/proof`, {
         method: "POST",
         body: formData
