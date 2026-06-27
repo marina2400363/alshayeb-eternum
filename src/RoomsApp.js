@@ -45,15 +45,17 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
     { id: "payment", num: 5, label: "PAYMENT", back: "guest" }
   ];
 
-  const currentStepIndex = steps.findIndex(s => s.id === step);
+  const mappedStep = step === "proof" ? "payment" : step;
+  const currentStepIndex = steps.findIndex(s => s.id === mappedStep);
   if (currentStepIndex === -1) return null;
 
   const currentStepData = steps[currentStepIndex];
+  const backStep = step === "proof" ? "payment" : currentStepData.back;
 
   return (
     <>
       <div className="rooms-top-nav">
-        <button className="rooms-nav-back" onClick={() => handleBack(currentStepData.back)}>
+        <button className="rooms-nav-back" onClick={() => handleBack(backStep)}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
