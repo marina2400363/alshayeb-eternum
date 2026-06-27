@@ -679,8 +679,8 @@ export default function RoomsApp() {
               <RoomsSharedHeader 
                 step={step} 
                 handleBack={handleBack} 
-                title={<span style={{whiteSpace: 'nowrap'}}>UPLOAD PAYMENT PROOF</span>} 
-                subtitle={<>Please upload a clear screenshot<br/>after completing the payment</>} 
+                title={<span style={{whiteSpace: 'nowrap', fontSize: '20px'}}>UPLOAD PAYMENT PROOF</span>} 
+                subtitle={<span style={{fontFamily: "'Inter', sans-serif", letterSpacing: '0'}}>Please upload a clear screenshot<br/>after completing the payment</span>} 
               />
               
               <div className="rooms-upload-card">
@@ -688,10 +688,10 @@ export default function RoomsApp() {
                   className="rooms-upload-dashed-area"
                   onClick={() => document.getElementById('proof-upload').click()}
                 >
-                  <svg className="rooms-upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="rooms-upload-icon" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
-                    <polyline points="16 11 12 7 8 11"></polyline>
-                    <line x1="12" y1="7" x2="12" y2="15"></line>
+                    <polyline points="15 12 12 9 9 12"></polyline>
+                    <line x1="12" y1="9" x2="12" y2="16"></line>
                   </svg>
                   
                   {paymentProof ? (
@@ -759,9 +759,6 @@ export default function RoomsApp() {
                 Your information is secure and encrypted
               </div>
               
-              <div className="rooms-bottom-spade">
-                <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Eternum Spade" />
-              </div>
             </div>
           )}
 
