@@ -567,27 +567,82 @@ export default function RoomsApp() {
           )}
 
           {step === "proof" && (
-            <div className="rooms-step">
-              <h2 className="rooms-step-title">Upload Payment Proof</h2>
-              <p style={{marginBottom: "2rem", textAlign: "center", color: "var(--eternum-text-dim)"}}>
-                Please upload a screenshot of your successful Instapay transaction.
-              </p>
-              <div className="rooms-form-group">
-                <input 
-                  type="file" 
-                  accept="image/png, image/jpeg, image/jpg, application/pdf" 
-                  onChange={e => setPaymentProof(e.target.files[0])}
-                  className="rooms-file-input"
-                />
+            <div className="rooms-step-container">
+              <RoomsSharedHeader step={step} handleBack={handleBack} title="UPLOAD PAYMENT PROOF" subtitle="Upload your Instapay payment screenshot" />
+              
+              <div className="rooms-upload-card">
+                <div 
+                  className="rooms-upload-dashed-area"
+                  onClick={() => document.getElementById('proof-upload').click()}
+                >
+                  <svg className="rooms-upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+                    <polyline points="16 11 12 7 8 11"></polyline>
+                    <line x1="12" y1="7" x2="12" y2="15"></line>
+                  </svg>
+                  
+                  {paymentProof ? (
+                    <div className="rooms-file-selected">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                      {paymentProof.name}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="rooms-upload-title">TAP TO UPLOAD</div>
+                      <div className="rooms-upload-subtitle">or drag and drop your screenshot here</div>
+                      <div className="rooms-upload-formats">
+                        Accepted formats: JPG, PNG<br/>
+                        Max file size: 10MB
+                      </div>
+                    </>
+                  )}
+
+                  <input 
+                    type="file" 
+                    id="proof-upload"
+                    accept="image/png, image/jpeg, image/jpg" 
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          setError("File size exceeds 10MB. Please choose a smaller image.");
+                          setPaymentProof(null);
+                        } else {
+                          setError("");
+                          setPaymentProof(file);
+                        }
+                      }
+                    }}
+                    style={{display: 'none'}}
+                  />
+                </div>
               </div>
+
+              <div className="rooms-info-card">
+                <div className="rooms-info-icon">i</div>
+                <div className="rooms-info-content">
+                  <div className="rooms-info-title">Make sure the screenshot includes:</div>
+                  <ul className="rooms-info-list">
+                    <li>Payment amount</li>
+                    <li>Transaction status</li>
+                    <li>Date and time</li>
+                    <li>Sender name / mobile number</li>
+                  </ul>
+                </div>
+              </div>
+
               <button 
-                className="eternum-button primary" 
+                className="rooms-confirm-payment-btn" 
                 onClick={submitProof}
                 disabled={loading || !paymentProof}
-                style={{marginTop: "1rem"}}
               >
-                {loading ? "UPLOADING..." : "SUBMIT PROOF"}
+                {loading ? "UPLOADING..." : "SUBMIT PAYMENT PROOF"} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
               </button>
+
+              <div className="rooms-secure-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Your information is secure and encrypted
+              </div>
             </div>
           )}
 
