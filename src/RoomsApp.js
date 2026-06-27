@@ -855,12 +855,8 @@ export default function RoomsApp() {
 
               {myReservationsList.length === 0 ? (
                 <>
-                  <div style={{display: 'flex', justifyContent: 'center', margin: '2rem 0 3rem'}}>
-                    <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Spade" style={{width: '100px', filter: 'drop-shadow(0 0 20px rgba(26, 86, 255, 0.4))'}} />
-                  </div>
-                  
-                  <div style={{width: '100%'}}>
-                    <div style={{fontFamily: "'Michroma', sans-serif", fontSize: '11px', color: '#1a56ff', letterSpacing: '0.05em', marginBottom: '1rem'}}>ENTER YOUR PHONE NUMBER</div>
+                  <div style={{width: '100%', marginTop: '1.5rem'}}>
+                    <div style={{fontFamily: "'Michroma', sans-serif", fontSize: '11px', color: '#1a56ff', letterSpacing: '0.05em', marginBottom: '1rem', textAlign: 'center'}}>ENTER YOUR PHONE NUMBER</div>
                     <div style={{marginBottom: '1.5rem', background: 'rgba(4, 9, 20, 0.6)', border: '1px solid rgba(26, 86, 255, 0.3)', borderRadius: '8px', padding: '0', display: 'flex', alignItems: 'center', height: '60px', boxShadow: 'inset 0 0 10px rgba(26, 86, 255, 0.05)'}}>
                       <div style={{display: 'flex', alignItems: 'center', padding: '0 1rem', height: '100%', borderRight: '1px solid rgba(255, 255, 255, 0.1)', color: 'white', fontFamily: "'Inter', sans-serif", fontSize: '14px', gap: '4px'}}>
                         +20
