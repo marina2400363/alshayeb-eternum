@@ -1890,14 +1890,14 @@
 
 .rooms-res-room-type {
   color: rgba(255, 255, 255, 0.6);
+  font-family: 'Inter', sans-serif;
   font-size: 0.8rem;
 }
 
 /* Stay Info Grid */
 .rooms-res-stay-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
+  display: flex;
+  justify-content: space-between;
   padding: 1.5rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -1923,15 +1923,17 @@
 
 .rooms-res-stay-value {
   color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-family: 'Michroma', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .rooms-res-stay-label {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.7rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
 }
 
 /* Bottom Row */
@@ -1949,15 +1951,16 @@
 
 .rooms-res-total-label {
   color: rgba(255, 255, 255, 0.5);
-  font-family: 'Michroma', sans-serif;
-  font-size: 0.55rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
   letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .rooms-res-total-value {
   color: #1a56ff;
   font-family: 'Michroma', sans-serif;
-  font-size: 1rem;
+  font-size: 16px;
   text-shadow: 0 0 10px rgba(26, 86, 255, 0.3);
   letter-spacing: 1px;
 }

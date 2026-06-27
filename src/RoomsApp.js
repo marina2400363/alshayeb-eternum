@@ -913,19 +913,25 @@ export default function RoomsApp() {
                   <div className="rooms-list">
                     {myReservationsList
                       .filter(res => {
+                        const statLower = res.reservationStatus?.toLowerCase() || "pending";
+                        const revStatuses = ["pending", "pending_review", "under_verification", "under review", "verification"];
+                        
                         if (filterTab === "ALL") return true;
-                        if (filterTab === "UNDER REVIEW" && res.reservationStatus === "pending") return true;
-                        if (filterTab === "CONFIRMED" && res.reservationStatus === "confirmed") return true;
-                        if (filterTab === "DECLINED" && res.reservationStatus === "declined") return true;
+                        if (filterTab === "UNDER REVIEW" && revStatuses.includes(statLower)) return true;
+                        if (filterTab === "CONFIRMED" && statLower === "confirmed") return true;
+                        if (filterTab === "DECLINED" && statLower === "declined") return true;
                         return false;
                       })
                       .map(res => {
-                        const statusMap = {
-                          "pending": { class: "under-review", label: "UNDER REVIEW" },
-                          "confirmed": { class: "confirmed", label: "CONFIRMED" },
-                          "declined": { class: "declined", label: "DECLINED" }
-                        };
-                        const statusObj = statusMap[res.reservationStatus] || { class: "under-review", label: res.reservationStatus };
+                        const statLower = res.reservationStatus?.toLowerCase() || "pending";
+                        const isUnderReview = ["pending", "pending_review", "under_verification", "under review", "verification"].includes(statLower);
+                        
+                        let statusObj = { class: "under-review", label: "UNDER REVIEW" };
+                        if (statLower === "confirmed") {
+                          statusObj = { class: "confirmed", label: "CONFIRMED" };
+                        } else if (statLower === "declined") {
+                          statusObj = { class: "declined", label: "DECLINED" };
+                        }
                         
                         const checkInDate = new Date(res.checkInDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase();
                         const checkOutDate = new Date(res.checkOutDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase();
@@ -995,11 +1001,23 @@ export default function RoomsApp() {
                           </div>
                         );
                       })}
-                    {myReservationsList.filter(res => filterTab === "ALL" ? true : filterTab === "UNDER REVIEW" ? res.reservationStatus === "pending" : filterTab === "CONFIRMED" ? res.reservationStatus === "confirmed" : res.reservationStatus === "declined").length === 0 && (
+                    {myReservationsList.filter(res => {
+                        const statLower = res.reservationStatus?.toLowerCase() || "pending";
+                        const revStatuses = ["pending", "pending_review", "under_verification", "under review", "verification"];
+                        if (filterTab === "ALL") return true;
+                        if (filterTab === "UNDER REVIEW" && revStatuses.includes(statLower)) return true;
+                        if (filterTab === "CONFIRMED" && statLower === "confirmed") return true;
+                        if (filterTab === "DECLINED" && statLower === "declined") return true;
+                        return false;
+                    }).length === 0 && (
                       <div style={{textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: '2rem 0'}}>
                         No reservations found for {filterTab}.
                       </div>
                     )}
+                    
+                    <div className="rooms-bottom-spade" style={{marginTop: '3rem', marginBottom: '2rem'}}>
+                      <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Eternum Spade" />
+                    </div>
                   </div>
                 </>
               )}
