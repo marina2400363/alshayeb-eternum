@@ -211,33 +211,86 @@ export default function RoomsApp() {
           )}
 
           {step === "hotels" && (
-            <div className="rooms-step">
-              <button className="rooms-back-button" onClick={() => handleBack("home")}>← Back</button>
-              <h2 className="rooms-step-title">Choose Hotel</h2>
-              {loading ? <p className="rooms-loading">Loading hotels...</p> : (
-                <div className="rooms-list">
-                  {hotels.map(h => (
-                    <div key={h._id} className="rooms-card">
-                      <div className="rooms-card-header">
-                        <span className={`rooms-badge ${h.status === 'available' ? 'rooms-badge-available' : 'rooms-badge-unavailable'}`}>
-                          {h.status === 'available' ? 'Available' : 'Unavailable'}
-                        </span>
+            <div className="rooms-step-container">
+              <div className="rooms-top-nav">
+                <button className="rooms-nav-back" onClick={() => handleBack("home")}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <div className="rooms-nav-brand">
+                  <div className="brand-alshayeb">ALSHAYEB</div>
+                  <div className="brand-subtitle">ROOM REGISTRATION</div>
+                </div>
+              </div>
+
+              <div className="rooms-progress-container">
+                <div className="rooms-progress-line"></div>
+                <div className="rooms-progress-steps">
+                  {[
+                    { num: 1, label: "HOTEL", active: true },
+                    { num: 2, label: "DATES", active: false },
+                    { num: 3, label: "ROOM", active: false },
+                    { num: 4, label: "DETAILS", active: false },
+                    { num: 5, label: "EXTRAS", active: false },
+                    { num: 6, label: "PAYMENT", active: false }
+                  ].map(s => (
+                    <div className={`rooms-progress-step ${s.active ? 'active' : ''}`} key={s.num}>
+                      <div className="rooms-progress-circle">
+                         {s.active && <div className="rooms-progress-dot"></div>}
                       </div>
-                      <h3 className="rooms-card-title">{h.name}</h3>
-                      <p className="rooms-card-desc">{h.description}</p>
-                      {h.startingPrice > 0 && <p className="rooms-card-price">Starting from {h.startingPrice} EGP</p>}
-                      <button 
-                        className="eternum-button primary" 
-                        disabled={h.status !== 'available'}
-                        onClick={() => { setSelectedHotel(h); handleNext("dates"); }}
-                      >
-                        SELECT
-                      </button>
+                      <div className="rooms-progress-num">{s.num}</div>
+                      <div className="rooms-progress-label">{s.label}</div>
                     </div>
                   ))}
-                  {hotels.length === 0 && <p>No hotels available at the moment.</p>}
+                </div>
+              </div>
+
+              <div className="rooms-step-header">
+                <div className="rooms-step-indicator-text">STEP 1 OF 6</div>
+                <h2 className="rooms-step-title">CHOOSE YOUR HOTEL</h2>
+                <p className="rooms-step-subtitle">Select your preferred hotel to continue</p>
+              </div>
+
+              {loading ? <p className="rooms-loading">Loading hotels...</p> : (
+                <div className="rooms-hotel-list">
+                  {hotels.map(h => {
+                    const isAvailable = h.status === 'available';
+                    return (
+                      <div key={h._id} className="rooms-hotel-card">
+                        <div className="rooms-hotel-info">
+                          <h3 className="rooms-hotel-name">{h.name}</h3>
+                        </div>
+                        
+                        <div className="rooms-hotel-divider"></div>
+                        
+                        <div className="rooms-hotel-action">
+                          {!isAvailable && (
+                            <div className="rooms-hotel-badge-na">NOT AVAILABLE</div>
+                          )}
+                          <div className="rooms-hotel-price">
+                            <span className="price-label">Price starts from</span>
+                            <span className="price-value">{h.startingPrice ? `${h.startingPrice.toLocaleString()} EGP` : '---'}</span>
+                          </div>
+                          {isAvailable && (
+                            <button 
+                              className="rooms-btn-select" 
+                              onClick={() => { setSelectedHotel(h); handleNext("dates"); }}
+                            >
+                              SELECT
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {hotels.length === 0 && <p className="rooms-empty">No hotels available at the moment.</p>}
                 </div>
               )}
+
+              <div className="rooms-bottom-spade">
+                <img src="/homepage-background-spade.png" alt="spade" />
+              </div>
             </div>
           )}
 
