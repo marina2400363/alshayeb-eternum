@@ -1043,7 +1043,7 @@ export default function RoomsApp() {
             };
 
             return (
-              <div className="rooms-step-container">
+              <div className="rooms-step-container" style={{ maxWidth: '450px' }}>
                 <RoomsSharedHeader step="my-reservations" handleBack={handleBack} />
 
                 <div className="rooms-myres-header">

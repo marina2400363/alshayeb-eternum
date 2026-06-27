@@ -2005,8 +2005,8 @@
 /* --- Reservation Details Styling --- */
 .rooms-rd-status-card {
   border-radius: 16px;
-  padding: 2rem 1.5rem;
-  margin-bottom: 1rem;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 0.8rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2064,7 +2064,7 @@
 .rooms-rd-status-value {
   font-family: 'Michroma', sans-serif;
   color: white;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   letter-spacing: 2px;
 }
 
@@ -2075,8 +2075,8 @@
 }
 
 .rooms-rd-status-icon-box {
-  width: 70px;
-  height: 70px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -2106,11 +2106,11 @@
   background: rgba(4, 10, 30, 0.4);
   border: 1px solid rgba(26, 86, 255, 0.2);
   border-radius: 8px;
-  padding: 1rem 1.5rem;
+  padding: 0.8rem 1.2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
 }
 
 .rooms-rd-id-label {
@@ -2144,19 +2144,19 @@
 .rooms-rd-section-card {
   background: rgba(4, 10, 30, 0.4);
   border: 1px solid rgba(26, 86, 255, 0.2);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 0.8rem;
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: stretch;
 }
 
 .rooms-rd-section-icon {
-  width: 50px;
-  height: 50px;
-  min-width: 50px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
   background: rgba(26, 86, 255, 0.05);
   border: 1px solid rgba(26, 86, 255, 0.2);
   display: flex;
@@ -2194,23 +2194,26 @@
 .rooms-rd-label {
   font-family: 'Inter', sans-serif;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   letter-spacing: 1.5px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .rooms-rd-value {
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-family: 'Michroma', sans-serif;
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .rooms-rd-subvalue {
   font-family: 'Inter', sans-serif;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   margin-top: 0.2rem;
+  white-space: nowrap;
 }
 
 .rooms-rd-stars {
@@ -2242,8 +2245,9 @@
 .rooms-rd-total-amount {
   color: #1a56ff;
   font-family: 'Michroma', sans-serif;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 /* Payment Proof Status */
