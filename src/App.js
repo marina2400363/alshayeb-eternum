@@ -4435,7 +4435,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<div className="eternum-global-bg"><PublicWebsite /><PublicHamburgerMenu /></div>} />
-        <Route path="/rooms" element={<div className="eternum-global-bg"><RoomsApp /><PublicHamburgerMenu /></div>} />
+        <Route path="/rooms" element={<div className="eternum-global-bg"><RoomsApp /></div>} />
         <Route path="/control" element={<AdminLogin />} />
         <Route
           path="/control/dashboard"
