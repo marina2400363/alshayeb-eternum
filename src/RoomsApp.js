@@ -366,34 +366,43 @@ export default function RoomsApp() {
           )}
 
           {step === "rooms" && (
-            <div className="rooms-step">
-              <button className="rooms-back-button" onClick={() => handleBack("dates")}>← Back</button>
-              <h2 className="rooms-step-title">Choose Room Type</h2>
+            <div className="rooms-step-container">
+              <RoomsSharedHeader step={step} handleBack={handleBack} title="CHOOSE ROOM" subtitle="Select your preferred room type" />
+              
               {loading ? <p className="rooms-loading">Loading room types...</p> : (
-                <div className="rooms-list">
-                  {roomTypes.map(r => (
-                    <div key={r._id} className="rooms-card">
-                      <div className="rooms-card-header">
-                        <span className={`rooms-badge ${r.status === 'available' ? 'rooms-badge-available' : 'rooms-badge-unavailable'}`}>
-                          {r.status === 'available' ? 'Available' : 'Unavailable'}
-                        </span>
-                        {r.breakfastIncluded && <span className="rooms-badge rooms-badge-breakfast">Breakfast Included</span>}
+                <div className="rooms-list-container">
+                  {roomTypes.map(r => {
+                    const isAvailable = r.status === 'available';
+                    return (
+                      <div key={r._id} className="rooms-hotel-card">
+                        <div className="rooms-hotel-info">
+                          <h3 className="rooms-hotel-name">{r.name}</h3>
+                          <div className="rooms-type-meta">
+                            <span className="rooms-capacity">Capacity: {r.capacity}</span>
+                            {r.breakfastIncluded && <span className="rooms-breakfast-badge">Breakfast Included</span>}
+                          </div>
+                        </div>
+                        
+                        <div className="rooms-hotel-divider"></div>
+                        
+                        <div className="rooms-hotel-action">
+                          {!isAvailable && (
+                            <div className="rooms-hotel-badge-na">NOT AVAILABLE</div>
+                          )}
+                          <div className="rooms-hotel-price">
+                            <span className="rooms-price-label">Price per night</span>
+                            <span className="rooms-price-amount">{Number(r.pricePerNight).toLocaleString()} EGP</span>
+                          </div>
+                          {isAvailable && (
+                            <button className="rooms-btn-select" onClick={() => { setSelectedRoom(r); handleNext("guest"); }}>
+                              SELECT
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <h3 className="rooms-card-title">{r.name}</h3>
-                      <div className="rooms-card-details">
-                        <span>Capacity: {r.capacity}</span>
-                        <span>{r.pricePerNight} EGP / night</span>
-                      </div>
-                      <button 
-                        className="eternum-button primary" 
-                        disabled={r.status !== 'available'}
-                        onClick={() => { setSelectedRoom(r); handleNext("guest"); }}
-                      >
-                        SELECT
-                      </button>
-                    </div>
-                  ))}
-                  {roomTypes.length === 0 && <p>No room types available for this hotel.</p>}
+                    );
+                  })}
+                  {roomTypes.length === 0 && <p className="rooms-empty-msg">No room types available for this hotel.</p>}
                 </div>
               )}
             </div>
