@@ -45,12 +45,12 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
     { id: "payment", num: 5, label: "PAYMENT", back: "guest" }
   ];
 
-  const mappedStep = step === "proof" ? "payment" : step;
+  const mappedStep = step === "proof" ? "payment" : step === "submitted" ? "payment" : step;
   const currentStepIndex = steps.findIndex(s => s.id === mappedStep);
   if (currentStepIndex === -1) return null;
 
   const currentStepData = steps[currentStepIndex];
-  const backStep = step === "proof" ? "payment" : currentStepData.back;
+  const backStep = step === "proof" ? "payment" : step === "submitted" ? "home" : currentStepData.back;
 
   return (
     <>
@@ -649,13 +649,71 @@ export default function RoomsApp() {
           )}
 
           {step === "submitted" && (
-            <div className="rooms-step" style={{textAlign: 'center'}}>
-              <h2 className="rooms-step-title" style={{color: "var(--eternum-primary)", marginTop: "2rem"}}>Reservation Pending</h2>
-              <p style={{marginBottom: "2rem", color: "var(--eternum-text-dim)"}}>
-                Your reservation ({reservation?.reservationId}) is under review. Our team will verify your payment and update the status shortly.
-              </p>
-              <button className="eternum-button primary" onClick={() => handleNext("home")}>
-                RETURN HOME
+            <div className="rooms-step-container">
+              <RoomsSharedHeader step={step} handleBack={handleBack} />
+              
+              <div className="rooms-submitted-illustration">
+                <div className="rooms-submitted-glow-circle">
+                  <svg className="rooms-submitted-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    <polyline points="9 14 11 16 15 12"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <div className="rooms-submitted-header">
+                <div className="rooms-submitted-title">THANK YOU!</div>
+                <div className="rooms-submitted-subtitle">YOUR PAYMENT PROOF HAS<br/>BEEN RECEIVED</div>
+              </div>
+
+              <div className="rooms-submitted-divider"></div>
+
+              <div className="rooms-submitted-desc">
+                Your booking request is now under review.<br/>
+                You will be notified once your payment<br/>
+                has been verified.
+              </div>
+
+              <div className="rooms-status-card">
+                <div className="rooms-status-header">
+                  <div className="rooms-status-label">STATUS</div>
+                  <div className="rooms-status-value">UNDER REVIEW</div>
+                </div>
+
+                <div className="rooms-status-item" style={{borderTop: '1px solid rgba(255, 255, 255, 0.05)'}}>
+                  <div className="rooms-status-icon-container">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  </div>
+                  <div className="rooms-status-text">
+                    <span className="rooms-status-text-label">Expected verification time</span>
+                    <span className="rooms-status-text-value">Within 24 hours</span>
+                  </div>
+                </div>
+
+                <div className="rooms-status-item">
+                  <div className="rooms-status-icon-container">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                  </div>
+                  <div className="rooms-status-text">
+                    <span className="rooms-status-text-label">We will notify you via</span>
+                    <span className="rooms-status-text-value">SMS & Email</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rooms-info-card" style={{marginBottom: '1rem'}}>
+                <div className="rooms-info-icon" style={{color: 'rgba(255, 255, 255, 0.6)', borderColor: 'rgba(255, 255, 255, 0.2)'}}>i</div>
+                <div className="rooms-info-content" style={{paddingTop: '2px'}}>
+                  <div className="rooms-status-text-label">You can track your booking status anytime from the "My Reservations" page.</div>
+                </div>
+              </div>
+
+              <button 
+                className="rooms-view-reservations-btn" 
+                onClick={() => handleNext("my-reservations")}
+              >
+                VIEW MY RESERVATIONS <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft: '4px'}}><polyline points="9 18 15 12 9 6"></polyline></svg>
               </button>
             </div>
           )}
