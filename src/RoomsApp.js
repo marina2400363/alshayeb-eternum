@@ -624,7 +624,7 @@ export default function RoomsApp() {
                   
                   <div className="rooms-payment-method-box">
                     <div className="rooms-payment-method-left">
-                      <div className="rooms-instapay-icon">INSTA<br/>PAY</div>
+                      <div className="rooms-instapay-icon">INSTAPAY</div>
                       <div className="rooms-payment-method-text">
                         <span className="rooms-payment-method-title">INSTAPAY</span>
                         <span className="rooms-payment-method-subtitle">Fast, secure and easy payments</span>
