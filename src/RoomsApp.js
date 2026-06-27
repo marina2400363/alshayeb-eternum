@@ -833,10 +833,6 @@ export default function RoomsApp() {
               >
                 VIEW MY RESERVATIONS <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft: '4px'}}><polyline points="9 18 15 12 9 6"></polyline></svg>
               </button>
-              
-              <div className="rooms-bottom-spade" style={{marginTop: '2.5rem', marginBottom: '2rem'}}>
-                <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Eternum Spade" />
-              </div>
             </div>
           )}
 
