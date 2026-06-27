@@ -1985,6 +1985,8 @@
   gap: 0.5rem;
   transition: all 0.3s ease;
   white-space: nowrap;
+  width: max-content;
+  flex: 0 0 auto;
 }
 
 .rooms-res-view-btn:hover {
