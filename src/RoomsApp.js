@@ -688,10 +688,10 @@ export default function RoomsApp() {
                   className="rooms-upload-dashed-area"
                   onClick={() => document.getElementById('proof-upload').click()}
                 >
-                  <svg className="rooms-upload-icon" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
-                    <polyline points="15 12 12 9 9 12"></polyline>
-                    <line x1="12" y1="9" x2="12" y2="16"></line>
+                  <svg className="rooms-upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 18h11a4 4 0 0 0 0-8h-.5A7 7 0 0 0 5 11.5 4.5 4.5 0 0 0 7 18z"></path>
+                    <polyline points="9.5 11.5 12 9 14.5 11.5"></polyline>
+                    <line x1="12" y1="9" x2="12" y2="15"></line>
                   </svg>
                   
                   {paymentProof ? (
