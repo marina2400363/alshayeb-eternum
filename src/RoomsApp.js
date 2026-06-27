@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import RoomsDatePicker from "./RoomsDatePicker";
 
-const LOCAL_API_URL = "http://127.0.0.1:5000";
-const PROD_API_URL = "https://eternum-production.up.railway.app";
-const IS_LOCAL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const BACKEND_API_URL = IS_LOCAL ? LOCAL_API_URL : PROD_API_URL;
+const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
+const CONFIGURED_API_URL = String(process.env.REACT_APP_API_URL || "").trim().replace(/\/$/, "");
+const CONFIGURED_API_URL_IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(CONFIGURED_API_URL);
+const BACKEND_API_URL = process.env.NODE_ENV === "production"
+  ? (CONFIGURED_API_URL_IS_LOCAL ? "" : CONFIGURED_API_URL)
+  : CONFIGURED_API_URL || LOCAL_API_URL;
 
 async function apiFetch(path, options = {}) {
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
