@@ -409,38 +409,41 @@ export default function RoomsApp() {
           )}
 
           {step === "guest" && (
-            <div className="rooms-step">
-              <button className="rooms-back-button" onClick={() => handleBack("rooms")}>← Back</button>
-              <h2 className="rooms-step-title">Guest Details</h2>
-              <div className="rooms-form-group">
-                <label>Full Name</label>
-                <input type="text" className="eternum-input" value={guestDetails.fullName} onChange={e => setGuestDetails({...guestDetails, fullName: e.target.value})} placeholder="Enter your full name" />
+            <div className="rooms-step-container">
+              <RoomsSharedHeader step={step} handleBack={handleBack} title="GUEST DETAILS" subtitle="Enter your contact information" />
+              
+              <div className="rooms-details-form">
+                <div className="rooms-input-group">
+                  <label className="rooms-input-label">FULL NAME</label>
+                  <input type="text" className="rooms-input-field" value={guestDetails.fullName} onChange={e => setGuestDetails({...guestDetails, fullName: e.target.value})} placeholder="Enter your full name" />
+                </div>
+                
+                <div className="rooms-input-group">
+                  <label className="rooms-input-label">PHONE NUMBER</label>
+                  <input type="tel" className="rooms-input-field" value={guestDetails.phoneNumber} onChange={e => setGuestDetails({...guestDetails, phoneNumber: e.target.value})} placeholder="01XXXXXXXXX" />
+                </div>
+
+                <div className="rooms-input-group">
+                  <label className="rooms-input-label">EMAIL ADDRESS</label>
+                  <input type="email" className="rooms-input-field" value={guestDetails.emailAddress} onChange={e => setGuestDetails({...guestDetails, emailAddress: e.target.value})} placeholder="you@example.com" />
+                </div>
+
+                <div className="rooms-input-group">
+                  <label className="rooms-input-label">NATIONALITY</label>
+                  <input type="text" className="rooms-input-field fixed-field" value="Egyptian" disabled readOnly />
+                </div>
+
+                <button 
+                  className="eternum-button primary rooms-continue-btn" 
+                  style={{marginTop: "1.5rem"}}
+                  disabled={!guestDetails.fullName || !guestDetails.phoneNumber || !guestDetails.emailAddress || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.emailAddress)}
+                  onClick={() => {
+                    handleNext("payment");
+                  }}
+                >
+                  CONTINUE TO PAYMENT
+                </button>
               </div>
-              <div className="rooms-form-group">
-                <label>Phone Number</label>
-                <input type="tel" className="eternum-input" value={guestDetails.phoneNumber} onChange={e => setGuestDetails({...guestDetails, phoneNumber: e.target.value})} placeholder="01XXXXXXXXX" />
-              </div>
-              <div className="rooms-form-group">
-                <label>Email Address</label>
-                <input type="email" className="eternum-input" value={guestDetails.emailAddress} onChange={e => setGuestDetails({...guestDetails, emailAddress: e.target.value})} placeholder="you@example.com" />
-              </div>
-              <div className="rooms-form-group">
-                <label>Nationality</label>
-                <input type="text" className="eternum-input" value="Egyptian" disabled style={{opacity: 0.7}} />
-              </div>
-              <button 
-                className="eternum-button primary" 
-                style={{marginTop: "1rem"}}
-                onClick={() => {
-                  if (!guestDetails.fullName || !guestDetails.phoneNumber) {
-                    setError("Full Name and Phone Number are required.");
-                    return;
-                  }
-                  handleNext("payment");
-                }}
-              >
-                PROCEED TO PAYMENT
-              </button>
             </div>
           )}
 
