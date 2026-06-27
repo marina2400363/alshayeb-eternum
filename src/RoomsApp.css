@@ -454,6 +454,8 @@
   cursor: pointer;
   position: absolute;
   left: 0;
+  top: 50%;
+  transform: translateY(-50%);
   padding: 0;
   display: flex;
   align-items: center;
@@ -501,7 +503,7 @@
   height: 20px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  background: #030614;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -526,7 +528,7 @@
   font-family: var(--font-outfit), sans-serif;
   font-size: 0.65rem;
   color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .rooms-progress-step.active .rooms-progress-num {
@@ -535,7 +537,7 @@
 
 .rooms-progress-label {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.45rem;
+  font-size: 0.4rem;
   color: rgba(255, 255, 255, 0.5);
   letter-spacing: 0.05rem;
 }
@@ -551,65 +553,65 @@
 }
 
 .rooms-step-indicator-text {
-  font-family: var(--font-outfit), sans-serif;
-  font-size: 0.6rem;
+  font-family: var(--font-michroma), sans-serif;
+  font-size: 0.65rem;
   color: #1a56ff;
-  letter-spacing: 0.1rem;
+  letter-spacing: 0.05rem;
   text-transform: uppercase;
   margin-bottom: 0.8rem;
 }
 
 .rooms-step-title {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   color: #fff;
-  letter-spacing: 0.1rem;
+  letter-spacing: 0.05rem;
   margin-bottom: 0.6rem;
-  font-weight: 400;
+  font-weight: 300;
 }
 
 .rooms-step-subtitle {
   font-family: var(--font-outfit), sans-serif;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 300;
 }
 
 /* Hotel Cards */
 .rooms-hotel-card {
   display: flex;
-  background: rgba(4, 10, 30, 0.6);
-  border: 1px solid rgba(26, 86, 255, 0.2);
-  border-radius: 8px;
-  padding: 1.5rem 1.2rem;
+  background: rgba(4, 10, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 1.8rem 1.5rem;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
 }
 
 .rooms-hotel-info {
-  flex: 1;
+  flex: 1.1;
   padding-right: 1rem;
 }
 
 .rooms-hotel-name {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #fff;
-  letter-spacing: 0.1rem;
-  line-height: 1.5;
+  letter-spacing: 0.05rem;
+  line-height: 1.4;
   text-transform: uppercase;
   font-weight: 400;
 }
 
 .rooms-hotel-divider {
   width: 1px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 0 1.2rem;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 1.5rem 0 0;
 }
 
 .rooms-hotel-action {
-  flex: 1;
+  flex: 0.9;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -619,46 +621,56 @@
 .rooms-hotel-badge-na {
   font-family: var(--font-outfit), sans-serif;
   font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.3rem 0.6rem;
-  border-radius: 2px;
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
   letter-spacing: 0.05rem;
   margin-bottom: 0.8rem;
+  width: 100%;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .rooms-hotel-price {
   display: flex;
   flex-direction: column;
   margin-bottom: 0.8rem;
+  width: 100%;
 }
 
 .price-label {
   font-family: var(--font-outfit), sans-serif;
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0.3rem;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.4rem;
 }
 
 .price-value {
   font-family: var(--font-outfit), sans-serif;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   color: #fff;
-  font-weight: 400;
-  letter-spacing: 0.05rem;
+  font-weight: 300;
+  letter-spacing: 0.02rem;
 }
 
 .rooms-btn-select {
   background: transparent;
-  border: 1px solid #1a56ff;
+  border: 1px solid rgba(26, 86, 255, 0.5);
   color: #1a56ff;
   font-family: var(--font-michroma), sans-serif;
   font-size: 0.65rem;
   padding: 0.6rem 2rem;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  letter-spacing: 0.1rem;
+  letter-spacing: 0.05rem;
   width: 100%;
+  transition: all 0.3s ease;
+}
+
+.rooms-btn-select:hover {
+  background: rgba(26, 86, 255, 0.1);
+  border-color: #1a56ff;
 }
 
 .rooms-bottom-spade {

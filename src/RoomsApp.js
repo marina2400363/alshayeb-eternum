@@ -44,7 +44,8 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
     { id: "dates", num: 2, label: "DATES", back: "hotels" },
     { id: "rooms", num: 3, label: "ROOM", back: "dates" },
     { id: "guest", num: 4, label: "DETAILS", back: "rooms" },
-    { id: "payment", num: 5, label: "PAYMENT", back: "guest" }
+    { id: "extras", num: 5, label: "EXTRAS", back: "guest" },
+    { id: "payment", num: 6, label: "PAYMENT", back: "guest" }
   ];
 
   const mappedStep = step === "proof" ? "payment" : step === "submitted" ? "payment" : step;
@@ -87,7 +88,7 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
       </div>
 
       <div className="rooms-step-header">
-        <div className="rooms-step-indicator-text">STEP {currentStepData.num} OF 5</div>
+        <div className="rooms-step-indicator-text">STEP {currentStepData.num} OF 6</div>
         <h2 className="rooms-step-title">{title}</h2>
         {subtitle && <p className="rooms-step-subtitle">{subtitle}</p>}
       </div>
