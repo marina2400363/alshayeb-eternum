@@ -460,12 +460,15 @@
   justify-content: center;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .rooms-nav-brand {
   flex: 1;
   text-align: center;
   margin-left: -40px;
+  pointer-events: none;
 }
 
 /* Progress Bar */
