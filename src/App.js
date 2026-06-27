@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import "./App.css";
+import "./RoomsApp.css";
+import RoomsApp from "./RoomsApp";
 import AnimatedBackground from "./AnimatedBackground";
 
 const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
@@ -3190,6 +3192,13 @@ function isAdminAuthenticated() {
   }
 }
 
+function ProtectedRoomsAdminRoute({ children }) {
+  if (!isAdminAuthenticated()) {
+    return <Navigate to="/rooms-control" replace />;
+  }
+  return children;
+}
+
 function ProtectedAdminRoute({ children }) {
   if (!isAdminAuthenticated()) {
     return <Navigate to="/control" replace />;
@@ -4387,6 +4396,16 @@ const PublicHamburgerMenu = () => {
           >
             HOME
           </button>
+          <a
+            className="floating-menu-item"
+            href="/rooms"
+            onClick={(e) => {
+              // Standard link behavior unless they are already in React router
+              setIsOpen(false);
+            }}
+          >
+            ROOMS
+          </a>
           <a 
             className="floating-menu-item"
             href="https://www.instagram.com/alshayebexperience?igsh=bGY0dmxvZXAwd3dr" 
@@ -4416,6 +4435,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<div className="eternum-global-bg"><PublicWebsite /><PublicHamburgerMenu /></div>} />
+        <Route path="/rooms" element={<div className="eternum-global-bg"><RoomsApp /><PublicHamburgerMenu /></div>} />
         <Route path="/control" element={<AdminLogin />} />
         <Route
           path="/control/dashboard"
@@ -4481,9 +4501,375 @@ function App() {
             </ProtectedAdminRoute>
           }
         />
+        <Route path="/rooms-control" element={<RoomsAdminLogin />} />
+        <Route
+          path="/rooms-control/dashboard"
+          element={
+            <ProtectedRoomsAdminRoute>
+              <AdminRooms />
+            </ProtectedRoomsAdminRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+
+
+function RoomsAdminLogin() {
+  const navigate = useNavigate();
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [loginError, setLoginError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (isAdminAuthenticated()) {
+    return <Navigate to="/rooms-control/dashboard" replace />;
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoginError("");
+    setIsSubmitting(true);
+    try {
+      const result = await apiRequest("/api/admin/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: String(credentials.email ?? "").trim(),
+          password: credentials.password
+        })
+      });
+      const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+      localStorage.setItem(
+        ADMIN_SESSION_KEY,
+        JSON.stringify({
+          authenticated: true,
+          email: String(credentials.email ?? "").trim().toLowerCase(),
+          token: result.token,
+          expiresAt: Date.now() + EIGHT_HOURS_MS,
+          signedInAt: new Date().toISOString()
+        })
+      );
+      navigate("/rooms-control/dashboard", { replace: true });
+    } catch (err) {
+      setLoginError(err.message || "Invalid admin email or password.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="app-shell admin-page admin-bg tone-gold">
+      <AnimatedBackground />
+      <motion.form className="cosmic-card tone-card admin-login-card" {...pageMotion} onSubmit={handleSubmit}>
+        <div className="ring small-ring"></div>
+        <h3>ALSHAYEB</h3>
+        <h1 className="brand-title">ROOMS CONTROL</h1>
+        <p className="muted">ROOMS ADMIN ACCESS</p>
+        <input className={loginError ? "error-input" : ""} type="email" placeholder="Admin email" value={credentials.email} onChange={(e) => { setCredentials(p => ({...p, email: e.target.value})); setLoginError(""); }} />
+        <input className={loginError ? "error-input" : ""} type="password" placeholder="Password" value={credentials.password} onChange={(e) => { setCredentials(p => ({...p, password: e.target.value})); setLoginError(""); }} />
+        {loginError && <p className="field-error center-error">{loginError}</p>}
+        <button className="purple-btn" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "AUTHENTICATING..." : "ENTER ROOMS CONTROL"}
+        </button>
+        <Link className="admin-link" to="/">
+          BACK TO PUBLIC SITE
+        </Link>
+      </motion.form>
+    </div>
+  );
+}
+
+function RoomsAdminLayout({ children, view, setView }) {
+  const navigate = useNavigate();
+  const navItems = [
+    { label: "Hotels", id: "hotels" },
+    { label: "Room Types", id: "roomTypes" },
+    { label: "Reservations", id: "reservations" }
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    navigate("/rooms-control", { replace: true });
+  };
+
+  return (
+    <div className="admin-control-page admin-bg tone-gold">
+      <AnimatedBackground />
+      <motion.div className="admin-control-shell" {...pageMotion}>
+        <aside className="admin-sidebar">
+          <div>
+            <span>ALSHAYEB</span>
+            <h1>ROOMS</h1>
+          </div>
+          <nav>
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setView && setView(item.id)}
+                className={view === item.id ? "active-admin-link" : "admin-sidebar-btn"}
+              >
+                {item.label}
+              </button>
+            ))}
+            <Link to="/">Public Site</Link>
+            <button className="admin-logout-btn" onClick={handleLogout}>
+              Logout
+            </button>
+          </nav>
+        </aside>
+        <main className="admin-content-area">{children}</main>
+      </motion.div>
+    </div>
+  );
+}
+
+// --- ROOMS ADMIN ---
+function AdminRooms() {
+  const [hotels, setHotels] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('hotels');
+
+  // Modals
+  const [hotelModalOpen, setHotelModalOpen] = useState(false);
+  const [editingHotel, setEditingHotel] = useState(null);
+  const [hotelForm, setHotelForm] = useState({ name: '', description: '', status: 'available', startingPrice: 0, displayOrder: 999 });
+
+  const [roomTypeModalOpen, setRoomTypeModalOpen] = useState(false);
+  const [editingRoomType, setEditingRoomType] = useState(null);
+  const [roomTypeForm, setRoomTypeForm] = useState({ hotelId: '', name: '', capacity: 2, breakfastIncluded: false, pricePerNight: 0, status: 'available', displayOrder: 999 });
+
+  const [proofModalOpen, setProofModalOpen] = useState(false);
+  const [viewingProof, setViewingProof] = useState(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [hRes, rtRes, rRes] = await Promise.all([
+        apiRequest('/api/admin/rooms/hotels'),
+        apiRequest('/api/admin/rooms/room-types'),
+        apiRequest('/api/admin/rooms/reservations')
+      ]);
+      setHotels(hRes.hotels || []);
+      setRoomTypes(rtRes.roomTypes || []);
+      setReservations(rRes.reservations || []);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to load rooms data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const saveHotel = async (e) => {
+    e.preventDefault();
+    try {
+      const url = editingHotel ? `/api/admin/rooms/hotels/${editingHotel._id}` : '/api/admin/rooms/hotels';
+      await apiRequest(url, { method: editingHotel ? 'PUT' : 'POST', body: JSON.stringify(hotelForm) });
+      setHotelModalOpen(false);
+      loadData();
+    } catch(err) { alert(err.message); }
+  };
+
+  const deleteHotel = async (id) => {
+    if (!window.confirm("Are you sure? This deletes the hotel and all its room types.")) return;
+    try {
+      await apiRequest(`/api/admin/rooms/hotels/${id}`, { method: 'DELETE' });
+      loadData();
+    } catch(err) { alert(err.message); }
+  };
+
+  const saveRoomType = async (e) => {
+    e.preventDefault();
+    try {
+      const url = editingRoomType ? `/api/admin/rooms/room-types/${editingRoomType._id}` : '/api/admin/rooms/room-types';
+      await apiRequest(url, { method: editingRoomType ? 'PUT' : 'POST', body: JSON.stringify(roomTypeForm) });
+      setRoomTypeModalOpen(false);
+      loadData();
+    } catch(err) { alert(err.message); }
+  };
+
+  const deleteRoomType = async (id) => {
+    if (!window.confirm("Delete this room type?")) return;
+    try {
+      await apiRequest(`/api/admin/rooms/room-types/${id}`, { method: 'DELETE' });
+      loadData();
+    } catch(err) { alert(err.message); }
+  };
+
+  const updateReservationStatus = async (id, status, paymentStatus) => {
+    if (!window.confirm(`Are you sure you want to change this reservation to ${status}?`)) return;
+    try {
+      await apiRequest(`/api/admin/rooms/reservations/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ reservationStatus: status, paymentStatus })
+      });
+      loadData();
+    } catch(err) { alert(err.message); }
+  };
+
+  return (
+    <RoomsAdminLayout view={view} setView={setView}>
+      <AdminHeader eyebrow="ROOMS CONTROL" title="Rooms Administration" />
+      <div className="admin-tabs" style={{ display: 'none', gap: '1rem', marginBottom: '2rem' }}>
+        <button className={view === 'hotels' ? 'admin-tab active' : 'admin-tab'} onClick={() => setView('hotels')}>Hotels</button>
+        <button className={view === 'roomTypes' ? 'admin-tab active' : 'admin-tab'} onClick={() => setView('roomTypes')}>Room Types</button>
+        <button className={view === 'reservations' ? 'admin-tab active' : 'admin-tab'} onClick={() => setView('reservations')}>Reservations</button>
+      </div>
+
+      <div className="admin-panel">
+        {loading ? <p>Loading...</p> : (
+          <>
+            {view === 'hotels' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <h3 className="admin-panel-title">Manage Hotels</h3>
+                  <button className="eternum-button primary small" onClick={() => { setEditingHotel(null); setHotelForm({ name: '', description: '', status: 'available', startingPrice: 0, displayOrder: 999 }); setHotelModalOpen(true); }}>+ Add Hotel</button>
+                </div>
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead><tr><th>Name</th><th>Status</th><th>Starting Price</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {hotels.map(h => (
+                        <tr key={h._id}>
+                          <td>{h.name}</td>
+                          <td>{h.status}</td>
+                          <td>{h.startingPrice} EGP</td>
+                          <td>
+                            <button className="action-button edit" onClick={() => { setEditingHotel(h); setHotelForm(h); setHotelModalOpen(true); }}>Edit</button>
+                            <button className="action-button danger" onClick={() => deleteHotel(h._id)}>Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {view === 'roomTypes' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <h3 className="admin-panel-title">Manage Room Types</h3>
+                  <button className="eternum-button primary small" onClick={() => { setEditingRoomType(null); setRoomTypeForm({ hotelId: hotels[0]?._id || '', name: '', capacity: 2, breakfastIncluded: false, pricePerNight: 0, status: 'available', displayOrder: 999 }); setRoomTypeModalOpen(true); }}>+ Add Room Type</button>
+                </div>
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead><tr><th>Hotel</th><th>Name</th><th>Capacity</th><th>Price</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {roomTypes.map(rt => {
+                        const h = hotels.find(ht => ht._id === rt.hotelId);
+                        return (
+                        <tr key={rt._id}>
+                          <td>{h ? h.name : 'Unknown'}</td>
+                          <td>{rt.name}</td>
+                          <td>{rt.capacity}</td>
+                          <td>{rt.pricePerNight} EGP</td>
+                          <td>
+                            <button className="action-button edit" onClick={() => { setEditingRoomType(rt); setRoomTypeForm(rt); setRoomTypeModalOpen(true); }}>Edit</button>
+                            <button className="action-button danger" onClick={() => deleteRoomType(rt._id)}>Delete</button>
+                          </td>
+                        </tr>
+                      )})}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {view === 'reservations' && (
+              <div>
+                <h3 className="admin-panel-title">Manage Reservations</h3>
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead><tr><th>ID</th><th>Guest</th><th>Phone</th><th>Hotel/Room</th><th>Dates</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {reservations.map(r => (
+                        <tr key={r._id}>
+                          <td>{r.reservationId}</td>
+                          <td>{r.fullName}</td>
+                          <td>{r.phoneNumber}</td>
+                          <td>{r.hotelId?.name} - {r.roomTypeId?.name}</td>
+                          <td>{new Date(r.checkInDate).toLocaleDateString()} to {new Date(r.checkOutDate).toLocaleDateString()}</td>
+                          <td>{r.totalAmount} EGP</td>
+                          <td>
+                            <div style={{fontSize:'0.8rem', marginBottom:'0.2rem', textTransform:'capitalize'}}>Res: {r.reservationStatus.replace('_', ' ')}</div>
+                            <div style={{fontSize:'0.8rem', textTransform:'capitalize'}}>Pay: {r.paymentStatus.replace('_', ' ')}</div>
+                          </td>
+                          <td style={{display:'flex', gap:'0.5rem', flexDirection:'column'}}>
+                            {r.paymentProofUrl && (
+                              <button className="action-button edit" onClick={() => { setViewingProof(r.paymentProofUrl); setProofModalOpen(true); }}>View Proof</button>
+                            )}
+                            {r.reservationStatus === 'pending_review' && (
+                              <>
+                                <button className="action-button success" onClick={() => updateReservationStatus(r._id, 'confirmed', 'verified')}>Confirm</button>
+                                <button className="action-button danger" onClick={() => updateReservationStatus(r._id, 'declined', 'rejected')}>Decline</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {hotelModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 className="modal-title">{editingHotel ? "Edit Hotel" : "Create Hotel"}</h2>
+            <form onSubmit={saveHotel}>
+              <div className="form-group"><label>Name</label><input type="text" value={hotelForm.name} onChange={e => setHotelForm({...hotelForm, name: e.target.value})} required className="eternum-input" /></div>
+              <div className="form-group"><label>Description</label><textarea value={hotelForm.description} onChange={e => setHotelForm({...hotelForm, description: e.target.value})} className="eternum-input" /></div>
+              <div className="form-group"><label>Starting Price</label><input type="number" value={hotelForm.startingPrice} onChange={e => setHotelForm({...hotelForm, startingPrice: e.target.value})} className="eternum-input" /></div>
+              <div className="form-group"><label>Status</label><select value={hotelForm.status} onChange={e => setHotelForm({...hotelForm, status: e.target.value})} className="eternum-input"><option value="available">Available</option><option value="fully_booked">Fully Booked</option><option value="hidden">Hidden</option><option value="not_available">Not Available</option></select></div>
+              <div className="modal-actions"><button type="button" className="eternum-button secondary" onClick={() => setHotelModalOpen(false)}>Cancel</button><button type="submit" className="eternum-button primary">Save Hotel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {roomTypeModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 className="modal-title">{editingRoomType ? "Edit Room Type" : "Create Room Type"}</h2>
+            <form onSubmit={saveRoomType}>
+              <div className="form-group"><label>Hotel</label><select value={roomTypeForm.hotelId} onChange={e => setRoomTypeForm({...roomTypeForm, hotelId: e.target.value})} required className="eternum-input"><option value="">Select Hotel</option>{hotels.map(h => <option key={h._id} value={h._id}>{h.name}</option>)}</select></div>
+              <div className="form-group"><label>Name</label><input type="text" value={roomTypeForm.name} onChange={e => setRoomTypeForm({...roomTypeForm, name: e.target.value})} required className="eternum-input" /></div>
+              <div className="form-group"><label>Capacity</label><input type="number" value={roomTypeForm.capacity} onChange={e => setRoomTypeForm({...roomTypeForm, capacity: e.target.value})} required className="eternum-input" /></div>
+              <div className="form-group"><label>Price Per Night</label><input type="number" value={roomTypeForm.pricePerNight} onChange={e => setRoomTypeForm({...roomTypeForm, pricePerNight: e.target.value})} required className="eternum-input" /></div>
+              <div className="form-group"><label style={{display:'flex', gap:'0.5rem', alignItems:'center'}}><input type="checkbox" checked={roomTypeForm.breakfastIncluded} onChange={e => setRoomTypeForm({...roomTypeForm, breakfastIncluded: e.target.checked})} /> Breakfast Included</label></div>
+              <div className="form-group"><label>Status</label><select value={roomTypeForm.status} onChange={e => setRoomTypeForm({...roomTypeForm, status: e.target.value})} className="eternum-input"><option value="available">Available</option><option value="fully_booked">Fully Booked</option><option value="hidden">Hidden</option><option value="not_available">Not Available</option></select></div>
+              <div className="modal-actions"><button type="button" className="eternum-button secondary" onClick={() => setRoomTypeModalOpen(false)}>Cancel</button><button type="submit" className="eternum-button primary">Save Room Type</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {proofModalOpen && (
+        <div className="modal-overlay" onClick={() => setProofModalOpen(false)}>
+          <div className="modal-content" style={{maxWidth: '800px', background: 'var(--eternum-bg)'}} onClick={e => e.stopPropagation()}>
+            <h2 className="modal-title" style={{marginBottom:'1rem'}}>Payment Proof</h2>
+            <div style={{textAlign:'center'}}>
+              <img src={viewingProof} alt="Payment Proof" style={{maxWidth:'100%', maxHeight:'60vh', borderRadius:'8px', objectFit:'contain'}} />
+            </div>
+            <div className="modal-actions" style={{marginTop:'2rem'}}>
+              <button type="button" className="eternum-button secondary" onClick={() => setProofModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </RoomsAdminLayout>
   );
 }
 

@@ -77,7 +77,12 @@ app.use("/api/export", exportRoutes);
 app.use("/api/outcomers", outcomerRoutes);
 app.use("/api/scanner", requireAdmin, scannerRoutes);
 
+const roomRoutes = require("./routes/roomRoutes");
+const roomAdminRoutes = require("./routes/roomAdminRoutes");
+
 app.use("/api/settings", settingsRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/admin/rooms", requireAdmin, roomAdminRoutes);
 app.use("/api", syncRoutes);
 
 app.use(notFound);
