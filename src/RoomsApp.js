@@ -49,10 +49,14 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
 
   const mappedStep = step === "proof" ? "payment" : step === "submitted" ? "payment" : step;
   const currentStepIndex = steps.findIndex(s => s.id === mappedStep);
-  if (currentStepIndex === -1) return null;
-
-  const currentStepData = steps[currentStepIndex];
-  const backStep = step === "proof" ? "payment" : step === "submitted" ? "home" : currentStepData.back;
+  const isStandalone = currentStepIndex === -1;
+  const currentStepData = isStandalone ? null : steps[currentStepIndex];
+  
+  const backStep = step === "proof" ? "payment" : 
+                   step === "submitted" ? "home" : 
+                   step === "my-reservations" ? "home" : 
+                   step === "reservation-details" ? "my-reservations" : 
+                   isStandalone ? "home" : currentStepData.back;
 
   return (
     <>
@@ -68,29 +72,33 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
         </div>
       </div>
 
-      <div className="rooms-progress-container">
-        <div className="rooms-progress-line"></div>
-        <div className="rooms-progress-steps">
-          {steps.map((s, idx) => {
-            const isActive = idx === currentStepIndex;
-            return (
-              <div className={`rooms-progress-step ${isActive ? 'active' : ''}`} key={s.num}>
-                <div className="rooms-progress-circle">
-                   {isActive && <div className="rooms-progress-dot"></div>}
+      {!isStandalone && (
+        <div className="rooms-progress-container">
+          <div className="rooms-progress-line"></div>
+          <div className="rooms-progress-steps">
+            {steps.map((s, idx) => {
+              const isActive = idx === currentStepIndex;
+              return (
+                <div className={`rooms-progress-step ${isActive ? 'active' : ''}`} key={s.num}>
+                  <div className="rooms-progress-circle">
+                     {isActive && <div className="rooms-progress-dot"></div>}
+                  </div>
+                  <div className="rooms-progress-num">{s.num}</div>
+                  <div className="rooms-progress-label">{s.label}</div>
                 </div>
-                <div className="rooms-progress-num">{s.num}</div>
-                <div className="rooms-progress-label">{s.label}</div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="rooms-step-header">
-        {title && <div className="rooms-step-indicator-text">STEP {currentStepData.num} OF 5</div>}
-        {title && <h2 className="rooms-step-title">{title}</h2>}
-        {subtitle && <p className="rooms-step-subtitle">{subtitle}</p>}
-      </div>
+      {title && (
+        <div className="rooms-step-header">
+          {!isStandalone && <div className="rooms-step-indicator-text">STEP {currentStepData.num} OF 5</div>}
+          <h2 className="rooms-step-title">{title}</h2>
+          {subtitle && <p className="rooms-step-subtitle">{subtitle}</p>}
+        </div>
+      )}
     </>
   );
 };
@@ -838,36 +846,62 @@ export default function RoomsApp() {
 
           {step === "my-reservations" && (
             <div className="rooms-step-container">
-              <RoomsSharedHeader step={step} handleBack={handleBack} />
-
-              <div className="rooms-myres-header">
-                <div className="rooms-myres-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                    <path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path>
-                  </svg>
-                </div>
-                <div className="rooms-myres-title-group">
-                  <div className="rooms-myres-title">MY RESERVATIONS</div>
-                  <div className="rooms-myres-subtitle">View and track all your bookings</div>
-                </div>
-              </div>
+              <RoomsSharedHeader 
+                step={step} 
+                handleBack={handleBack} 
+                title={myReservationsList.length === 0 ? "MY RESERVATIONS" : undefined}
+                subtitle={myReservationsList.length === 0 ? <span style={{fontFamily: "'Inter', sans-serif", letterSpacing: '0', fontSize: '13px', color: 'rgba(255,255,255,0.7)', textTransform: 'none', lineHeight: '1.5'}}>Enter your phone number to view<br/>your reservations</span> : undefined}
+              />
 
               {myReservationsList.length === 0 ? (
-                <div className="rooms-lookup-box">
-                  <p style={{color: 'rgba(255,255,255,0.7)', marginBottom: '1rem', fontSize: '0.9rem'}}>Please enter the phone number you used for booking to view your reservations.</p>
-                  <div style={{display: 'flex', gap: '1rem', flexDirection: 'column'}}>
-                    <input type="tel" className="rooms-input" style={{width: '100%'}} value={lookupPhone} onChange={e => setLookupPhone(e.target.value)} placeholder="01XXXXXXXXX" />
-                    <button className="rooms-confirm-payment-btn" onClick={lookupReservations} disabled={loading}>
-                      {loading ? "SEARCHING..." : "LOOKUP RESERVATIONS"}
-                    </button>
+                <>
+                  <div style={{display: 'flex', justifyContent: 'center', margin: '2rem 0 3rem'}}>
+                    <img src={process.env.PUBLIC_URL + "/spade-reference.png"} alt="Spade" style={{width: '100px', filter: 'drop-shadow(0 0 20px rgba(26, 86, 255, 0.4))'}} />
                   </div>
-                </div>
+                  
+                  <div style={{width: '100%'}}>
+                    <div style={{fontFamily: "'Michroma', sans-serif", fontSize: '11px', color: '#1a56ff', letterSpacing: '0.05em', marginBottom: '1rem'}}>ENTER YOUR PHONE NUMBER</div>
+                    <div style={{marginBottom: '1.5rem', background: 'rgba(4, 9, 20, 0.6)', border: '1px solid rgba(26, 86, 255, 0.3)', borderRadius: '8px', padding: '0', display: 'flex', alignItems: 'center', height: '60px', boxShadow: 'inset 0 0 10px rgba(26, 86, 255, 0.05)'}}>
+                      <div style={{display: 'flex', alignItems: 'center', padding: '0 1rem', height: '100%', borderRight: '1px solid rgba(255, 255, 255, 0.1)', color: 'white', fontFamily: "'Inter', sans-serif", fontSize: '14px', gap: '4px'}}>
+                        +20
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: '#1a56ff'}}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </div>
+                      <input 
+                        type="tel" 
+                        style={{flex: 1, height: '100%', background: 'transparent', border: 'none', color: 'white', fontFamily: "'Inter', sans-serif", fontSize: '15px', padding: '0 1rem', outline: 'none'}} 
+                        value={lookupPhone} 
+                        onChange={e => setLookupPhone(e.target.value)} 
+                        placeholder="Phone number" 
+                      />
+                    </div>
+                    
+                    <button className="rooms-upload-proof-btn" onClick={lookupReservations} disabled={loading} style={{width: '100%'}}>
+                      {loading ? "SEARCHING..." : "VIEW MY RESERVATIONS"}
+                    </button>
+                    
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem', color: 'rgba(255, 255, 255, 0.6)', fontFamily: "'Inter', sans-serif", fontSize: '12px'}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      Your information is secure and encrypted
+                    </div>
+                  </div>
+                </>
               ) : (
                 <>
+                  <div className="rooms-myres-header">
+                    <div className="rooms-myres-icon">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                        <path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path>
+                      </svg>
+                    </div>
+                    <div className="rooms-myres-title-group">
+                      <div className="rooms-myres-title">MY RESERVATIONS</div>
+                      <div className="rooms-myres-subtitle">View and track all your bookings</div>
+                    </div>
+                  </div>
                   <div className="rooms-myres-tabs">
                     {["ALL", "UNDER REVIEW", "CONFIRMED"].map(tab => (
                       <div 
