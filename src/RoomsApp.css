@@ -1946,15 +1946,18 @@
 .rooms-res-total-col {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.1rem;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .rooms-res-total-label {
   color: rgba(255, 255, 255, 0.5);
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 1px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .rooms-res-total-value {
@@ -1963,6 +1966,7 @@
   font-size: 16px;
   text-shadow: 0 0 10px rgba(26, 86, 255, 0.3);
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .rooms-res-view-btn {
