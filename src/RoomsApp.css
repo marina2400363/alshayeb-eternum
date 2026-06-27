@@ -303,21 +303,21 @@
 
 .brand-alshayeb {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 1.5rem;
-  letter-spacing: 0.6rem;
+  font-size: 1.6rem;
+  letter-spacing: 0.5rem;
   color: #fff;
-  font-weight: 300;
-  margin-left: 0.6rem;
+  font-weight: 400;
+  margin-left: 0.5rem;
 }
 
 .brand-subtitle {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.65rem;
-  letter-spacing: 0.2rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.15rem;
   color: rgba(255, 255, 255, 0.5);
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
   text-transform: uppercase;
-  margin-left: 0.2rem;
+  margin-left: 0.15rem;
 }
 
 .rooms-homepage-spade-container {
@@ -451,16 +451,20 @@
 
 .rooms-nav-back {
   background: transparent;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
   cursor: pointer;
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
 }
 
 .rooms-nav-brand {
@@ -500,35 +504,35 @@
 }
 
 .rooms-progress-circle {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .rooms-progress-step.active .rooms-progress-circle {
-  border-color: #1a56ff;
-  background: #030614;
-  box-shadow: 0 0 15px 2px rgba(26, 86, 255, 0.4);
+  border-color: rgba(26, 86, 255, 0.8);
+  background: rgba(26, 86, 255, 0.1);
+  box-shadow: 0 0 12px 2px rgba(26, 86, 255, 0.4);
 }
 
 .rooms-progress-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #1a56ff;
   box-shadow: 0 0 8px 1px rgba(26, 86, 255, 0.8);
 }
 
 .rooms-progress-num {
-  font-family: var(--font-outfit), sans-serif;
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-michroma), sans-serif;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.4);
   margin-bottom: 4px;
 }
 
@@ -538,9 +542,10 @@
 
 .rooms-progress-label {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.4rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.45rem;
+  color: rgba(255, 255, 255, 0.4);
   letter-spacing: 0.05rem;
+  text-transform: uppercase;
 }
 
 .rooms-progress-step.active .rooms-progress-label {
@@ -557,62 +562,65 @@
   font-family: var(--font-michroma), sans-serif;
   font-size: 0.65rem;
   color: #1a56ff;
-  letter-spacing: 0.05rem;
+  letter-spacing: 0.08rem;
   text-transform: uppercase;
-  margin-bottom: 0.8rem;
+  margin-bottom: 1rem;
 }
 
 .rooms-step-title {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   color: #fff;
-  letter-spacing: 0.05rem;
-  margin-bottom: 0.6rem;
-  font-weight: 300;
+  letter-spacing: 0.08rem;
+  margin-bottom: 0.8rem;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .rooms-step-subtitle {
-  font-family: var(--font-outfit), sans-serif;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Inter', var(--font-outfit), sans-serif;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 300;
+  letter-spacing: 0.02rem;
 }
 
 /* Hotel Cards */
 .rooms-hotel-card {
   display: flex;
-  background: rgba(4, 10, 30, 0.6);
-  border: 1px solid rgba(26, 86, 255, 0.2);
+  background: rgba(4, 9, 20, 0.6);
+  border: 1px solid rgba(26, 86, 255, 0.15);
   border-radius: 8px;
-  padding: 1.5rem 1.2rem;
+  padding: 1.8rem 1.5rem;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .rooms-hotel-info {
-  flex: 1.1;
-  padding-right: 1rem;
+  flex: 1.2;
+  padding-right: 1.5rem;
 }
 
 .rooms-hotel-name {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: #fff;
-  letter-spacing: 0.05rem;
-  line-height: 1.4;
+  letter-spacing: 0.08rem;
+  line-height: 1.5;
   text-transform: uppercase;
   font-weight: 400;
 }
 
 .rooms-hotel-divider {
   width: 1px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 0 1.2rem;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 1.5rem 0 0;
 }
 
 .rooms-hotel-action {
-  flex: 0.9;
+  flex: 0.8;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -620,10 +628,10 @@
 }
 
 .rooms-hotel-badge-na {
-  font-family: var(--font-outfit), sans-serif;
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-family: var(--font-michroma), sans-serif;
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
   letter-spacing: 0.05rem;
@@ -636,35 +644,36 @@
 .rooms-hotel-price {
   display: flex;
   flex-direction: column;
-  margin-bottom: 0.8rem;
+  margin-bottom: 1rem;
   width: 100%;
 }
 
 .price-label {
-  font-family: var(--font-outfit), sans-serif;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 0.4rem;
+  font-family: 'Inter', var(--font-outfit), sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02rem;
 }
 
 .price-value {
-  font-family: var(--font-outfit), sans-serif;
-  font-size: 1.3rem;
+  font-family: var(--font-michroma), sans-serif;
+  font-size: 1.2rem;
   color: #fff;
-  font-weight: 300;
-  letter-spacing: 0.02rem;
+  font-weight: 400;
+  letter-spacing: 0.05rem;
 }
 
 .rooms-btn-select {
   background: transparent;
-  border: 1px solid rgba(26, 86, 255, 0.3);
+  border: 1px solid rgba(26, 86, 255, 0.5);
   color: #1a56ff;
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.65rem;
-  padding: 0.6rem 2rem;
+  font-size: 0.7rem;
+  padding: 0.8rem 2rem;
   border-radius: 4px;
   cursor: pointer;
-  letter-spacing: 0.1rem;
+  letter-spacing: 0.15rem;
   width: 100%;
   transition: all 0.3s ease;
 }
