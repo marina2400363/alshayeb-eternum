@@ -114,6 +114,7 @@ export default function RoomsApp() {
   // My Reservations state
   const [lookupPhone, setLookupPhone] = useState("");
   const [myReservationsList, setMyReservationsList] = useState([]);
+  const [filterTab, setFilterTab] = useState("ALL");
 
   // Fetch functions
   const loadHotels = async () => {
@@ -721,48 +722,141 @@ export default function RoomsApp() {
           )}
 
           {step === "my-reservations" && (
-            <div className="rooms-step">
-              <button className="rooms-back-button" onClick={() => handleBack("home")}>← Back</button>
-              <h2 className="rooms-step-title">My Reservations</h2>
-              <div className="rooms-form-group">
-                <label>Enter your Phone Number</label>
-                <div style={{display: 'flex', gap: '1rem'}}>
-                  <input type="tel" className="eternum-input" value={lookupPhone} onChange={e => setLookupPhone(e.target.value)} placeholder="01XXXXXXXXX" />
-                  <button className="eternum-button primary" onClick={lookupReservations} disabled={loading} style={{width: 'auto'}}>
-                    LOOKUP
-                  </button>
+            <div className="rooms-step-container">
+              <RoomsSharedHeader step={step} handleBack={handleBack} />
+
+              <div className="rooms-myres-header">
+                <div className="rooms-myres-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path>
+                  </svg>
+                </div>
+                <div className="rooms-myres-title-group">
+                  <div className="rooms-myres-title">MY RESERVATIONS</div>
+                  <div className="rooms-myres-subtitle">View and track all your bookings</div>
                 </div>
               </div>
 
-              {myReservationsList.length > 0 && (
-                <div className="rooms-list" style={{marginTop: "2rem"}}>
-                  {myReservationsList.map(res => (
-                    <div key={res._id} className="rooms-card">
-                      <div className="rooms-card-header">
-                        <span style={{fontSize: "0.8rem", color: "var(--eternum-text-dim)"}}>ID: {res.reservationId}</span>
-                        <span className={`rooms-badge ${
-                          res.reservationStatus === 'confirmed' ? 'rooms-badge-available' : 
-                          res.reservationStatus === 'declined' ? 'rooms-badge-unavailable' : 'rooms-badge-pending'
-                        }`}>
-                          {res.reservationStatus.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </div>
-                      <h3 className="rooms-card-title">{res.hotelId?.name}</h3>
-                      <p className="rooms-card-desc">{res.roomTypeId?.name}</p>
-                      <div className="rooms-card-details" style={{marginTop: '1rem'}}>
-                        <span>{new Date(res.checkInDate).toLocaleDateString()} - {new Date(res.checkOutDate).toLocaleDateString()}</span>
-                        <span>{res.totalAmount} EGP</span>
-                      </div>
-                      <button 
-                        className="eternum-button secondary" 
-                        style={{marginTop: "1rem", width: "100%"}}
-                        onClick={() => { setReservation(res); handleNext("reservation-details"); }}
-                      >
-                        VIEW DETAILS
-                      </button>
-                    </div>
-                  ))}
+              {myReservationsList.length === 0 ? (
+                <div className="rooms-lookup-box">
+                  <p style={{color: 'rgba(255,255,255,0.7)', marginBottom: '1rem', fontSize: '0.9rem'}}>Please enter the phone number you used for booking to view your reservations.</p>
+                  <div style={{display: 'flex', gap: '1rem', flexDirection: 'column'}}>
+                    <input type="tel" className="rooms-input" style={{width: '100%'}} value={lookupPhone} onChange={e => setLookupPhone(e.target.value)} placeholder="01XXXXXXXXX" />
+                    <button className="rooms-confirm-payment-btn" onClick={lookupReservations} disabled={loading}>
+                      {loading ? "SEARCHING..." : "LOOKUP RESERVATIONS"}
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="rooms-myres-tabs">
+                    {["ALL", "UNDER REVIEW", "CONFIRMED"].map(tab => (
+                      <div 
+                        key={tab} 
+                        className={`rooms-myres-tab ${filterTab === tab ? 'active' : ''}`}
+                        onClick={() => setFilterTab(tab)}
+                      >
+                        {tab}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rooms-list">
+                    {myReservationsList
+                      .filter(res => {
+                        if (filterTab === "ALL") return true;
+                        if (filterTab === "UNDER REVIEW" && res.reservationStatus === "pending") return true;
+                        if (filterTab === "CONFIRMED" && res.reservationStatus === "confirmed") return true;
+                        if (filterTab === "DECLINED" && res.reservationStatus === "declined") return true;
+                        return false;
+                      })
+                      .map(res => {
+                        const statusMap = {
+                          "pending": { class: "under-review", label: "UNDER REVIEW" },
+                          "confirmed": { class: "confirmed", label: "CONFIRMED" },
+                          "declined": { class: "declined", label: "DECLINED" }
+                        };
+                        const statusObj = statusMap[res.reservationStatus] || { class: "under-review", label: res.reservationStatus };
+                        
+                        const checkInDate = new Date(res.checkInDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase();
+                        const checkOutDate = new Date(res.checkOutDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase();
+
+                        return (
+                          <div key={res._id} className="rooms-res-card">
+                            <div className="rooms-res-top-row">
+                              <div className={`rooms-res-badge ${statusObj.class}`}>
+                                {statusObj.label}
+                              </div>
+                              <div className="rooms-res-id">ID: {res.reservationId}</div>
+                            </div>
+
+                            <div className="rooms-res-hotel-row">
+                              <div className="rooms-res-hotel-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                                  <path d="M9 22v-4h6v4"></path>
+                                  <path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path>
+                                  <path d="M12 10h.01"></path><path d="M12 14h.01"></path>
+                                  <path d="M16 10h.01"></path><path d="M16 14h.01"></path>
+                                  <path d="M8 10h.01"></path><path d="M8 14h.01"></path>
+                                </svg>
+                              </div>
+                              <div className="rooms-res-hotel-info">
+                                <div className="rooms-res-hotel-name">{res.hotelId?.name || "HOTEL NAME"}</div>
+                                <div className="rooms-res-room-type">{res.roomTypeId?.name || "Room"} • {res.roomTypeId?.breakfastIncluded ? "With Breakfast" : "No Breakfast"}</div>
+                              </div>
+                            </div>
+
+                            <div className="rooms-res-stay-grid">
+                              <div className="rooms-res-stay-item">
+                                <svg className="rooms-res-stay-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                <div className="rooms-res-stay-text">
+                                  <span className="rooms-res-stay-value">{checkInDate}</span>
+                                  <span className="rooms-res-stay-label">Check-in</span>
+                                </div>
+                              </div>
+                              <div className="rooms-res-stay-item">
+                                <svg className="rooms-res-stay-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                <div className="rooms-res-stay-text">
+                                  <span className="rooms-res-stay-value">{checkOutDate}</span>
+                                  <span className="rooms-res-stay-label">Check-out</span>
+                                </div>
+                              </div>
+                              <div className="rooms-res-stay-item">
+                                <svg className="rooms-res-stay-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                                <div className="rooms-res-stay-text">
+                                  <span className="rooms-res-stay-value">{res.stayDuration} NIGHTS</span>
+                                  <span className="rooms-res-stay-label">Stay Duration</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="rooms-res-bottom-row">
+                              <div className="rooms-res-total-col">
+                                <span className="rooms-res-total-label">TOTAL AMOUNT</span>
+                                <span className="rooms-res-total-value">{res.totalAmount?.toLocaleString()} EGP</span>
+                              </div>
+                              <button 
+                                className="rooms-res-view-btn"
+                                onClick={() => { setReservation(res); handleNext("reservation-details"); }}
+                              >
+                                VIEW DETAILS <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {myReservationsList.filter(res => filterTab === "ALL" ? true : filterTab === "UNDER REVIEW" ? res.reservationStatus === "pending" : filterTab === "CONFIRMED" ? res.reservationStatus === "confirmed" : res.reservationStatus === "declined").length === 0 && (
+                      <div style={{textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: '2rem 0'}}>
+                        No reservations found for {filterTab}.
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
