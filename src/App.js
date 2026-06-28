@@ -3351,11 +3351,11 @@ function AdminLayout({ children }) {
 function statusClass(status) {
   const normalized = String(status || "").toLowerCase();
 
-  if (normalized.includes("approved") || normalized.includes("verified") || normalized.includes("active") || normalized.includes("open") || normalized.includes("granted")) {
+  if (normalized.includes("approved") || normalized.includes("verified") || normalized.includes("active") || normalized.includes("open") || normalized.includes("granted") || normalized.includes("confirmed")) {
     return "active";
   }
 
-  if (normalized.includes("reject") || normalized.includes("invalid") || normalized.includes("closed") || normalized.includes("used")) {
+  if (normalized.includes("reject") || normalized.includes("invalid") || normalized.includes("closed") || normalized.includes("used") || normalized.includes("declined")) {
     return "used";
   }
 
@@ -4787,38 +4787,41 @@ function AdminRooms() {
             {view === 'reservations' && (
               <div>
                 <h3 className="admin-panel-title">Manage Reservations</h3>
-                <div className="admin-table-wrap">
-                  <table className="admin-table">
-                    <thead><tr><th>ID</th><th>Guest</th><th>Nat. ID</th><th>Phone</th><th>Hotel/Room</th><th>Dates</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
-                    <tbody>
-                      {reservations.map(r => (
-                        <tr key={r._id}>
-                          <td>{r.reservationId}</td>
-                          <td>{r.fullName}</td>
-                          <td>{r.nationalId}</td>
-                          <td>{r.phoneNumber}</td>
-                          <td>{r.hotelId?.name} - {r.roomTypeId?.name}</td>
-                          <td>{new Date(r.checkInDate).toLocaleDateString()} to {new Date(r.checkOutDate).toLocaleDateString()}</td>
-                          <td>{r.totalAmount} EGP</td>
-                          <td>
-                            <div style={{fontSize:'0.8rem', marginBottom:'0.2rem', textTransform:'capitalize'}}>Res: {r.reservationStatus.replace('_', ' ')}</div>
-                            <div style={{fontSize:'0.8rem', textTransform:'capitalize'}}>Pay: {r.paymentStatus.replace('_', ' ')}</div>
-                          </td>
-                          <td style={{display:'flex', gap:'0.5rem', flexDirection:'column'}}>
-                            {r.paymentProofUrl && (
-                              <button className="action-button edit" onClick={() => { setViewingProof(r.paymentProofUrl); setProofModalOpen(true); }}>View Proof</button>
-                            )}
-                            {r.reservationStatus === 'pending_review' && (
-                              <>
-                                <button className="action-button success" onClick={() => updateReservationStatus(r._id, 'confirmed', 'verified')}>Confirm</button>
-                                <button className="action-button danger" onClick={() => updateReservationStatus(r._id, 'declined', 'rejected')}>Decline</button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="payment-review-grid">
+                  {reservations.map(r => (
+                    <section className="admin-panel payment-card" key={r._id}>
+                      <div className="screenshot-preview">
+                        {r.paymentProofUrl ? (
+                          <img src={r.paymentProofUrl} alt={`${r.fullName} payment proof`} onClick={() => { setViewingProof(r.paymentProofUrl); setProofModalOpen(true); }} style={{ cursor: 'pointer' }} />
+                        ) : (
+                          <span>No screenshot uploaded.</span>
+                        )}
+                      </div>
+                      <div className="payment-info">
+                        <h3>{r.fullName}</h3>
+                        <p className="muted">{r.phoneNumber}</p>
+                        <div><span>ID</span><strong>{r.reservationId}</strong></div>
+                        <div><span>NATIONAL ID</span><strong>{r.nationalId}</strong></div>
+                        <div><span>EMAIL</span><strong>{r.emailAddress}</strong></div>
+                        <div><span>HOTEL</span><strong>{r.hotelId?.name || "N/A"}</strong></div>
+                        <div><span>ROOM</span><strong>{r.roomTypeId?.name || "N/A"}</strong></div>
+                        <div><span>CHECK-IN</span><strong>{new Date(r.checkInDate).toLocaleDateString()}</strong></div>
+                        <div><span>CHECK-OUT</span><strong>{new Date(r.checkOutDate).toLocaleDateString()}</strong></div>
+                        <div><span>DURATION</span><strong>{r.stayDuration} NIGHT(S)</strong></div>
+                        <div><span>TOTAL AMOUNT</span><strong>{r.totalAmount} EGP</strong></div>
+                        <div><span>PAYMENT STATUS</span><strong><span className={`status-badge ${statusClass(r.paymentStatus)}`}>{r.paymentStatus.replace(/_/g, ' ')}</span></strong></div>
+                        <div><span>RESERVATION STATUS</span><strong><span className={`status-badge ${statusClass(r.reservationStatus)}`}>{r.reservationStatus.replace(/_/g, ' ')}</span></strong></div>
+                      </div>
+                      <div className="table-actions payment-actions">
+                        {r.reservationStatus === 'pending_review' && (
+                          <>
+                            <button type="button" onClick={() => updateReservationStatus(r._id, 'confirmed', 'verified')}>Confirm</button>
+                            <button type="button" onClick={() => updateReservationStatus(r._id, 'declined', 'rejected')}>Decline</button>
+                          </>
+                        )}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               </div>
             )}
