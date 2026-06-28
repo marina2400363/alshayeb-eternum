@@ -58,6 +58,8 @@ router.get(
       tagline: e.tagline,
       description: e.description,
       capacity: e.capacity,
+      schools: e.schools,
+      price: e.price,
       createdAt: e.createdAt,
       updatedAt: e.updatedAt
     }));
