@@ -116,37 +116,49 @@ async function sendRoomStatusEmail(reservation, subject, message) {
   const resend = new Resend(process.env.RESEND_API_KEY);
   const htmlContent = generateRoomEmailHTML(message);
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: "ALSHAYEB Rooms <selection@alshayebexperience.com>",
-      to: [reservation.emailAddress],
-      subject: subject,
-      text: message,
-      html: htmlContent
-    });
+  let attempt = 0;
+  const maxAttempts = 3;
 
-    if (error) {
-      console.error("Resend API rejected Room email:", {
+  while (attempt < maxAttempts) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: "ALSHAYEB Rooms <selection@alshayebexperience.com>",
+        to: [reservation.emailAddress],
+        subject: subject,
+        text: message,
+        html: htmlContent
+      });
+
+      if (error) {
+        if (error.statusCode === 429 || error.message?.toLowerCase().includes('rate')) {
+          attempt++;
+          console.warn(`Rate limit hit (Rooms). Retrying attempt ${attempt}...`);
+          await new Promise(res => setTimeout(res, 1000 * attempt));
+          continue;
+        }
+        console.error("Resend API rejected Room email:", {
+          reservationId: reservation.reservationId,
+          email: reservation.emailAddress,
+          error
+        });
+        return false;
+      }
+
+      console.log("Room email sent successfully:", {
+        reservationId: reservation.reservationId,
+        email: reservation.emailAddress
+      });
+      return true;
+    } catch (error) {
+      console.error("Resend SDK unexpected error (Rooms):", {
         reservationId: reservation.reservationId,
         email: reservation.emailAddress,
-        error
+        error: error.message
       });
-      return false; // don't throw, just return false so we don't block
+      return false;
     }
-
-    console.log("Room email sent successfully:", {
-      reservationId: reservation.reservationId,
-      email: reservation.emailAddress
-    });
-    return true;
-  } catch (error) {
-    console.error("Resend SDK unexpected error (Rooms):", {
-      reservationId: reservation.reservationId,
-      email: reservation.emailAddress,
-      error: error.message
-    });
-    return false; // don't throw
   }
+  return false;
 }
 
 async function sendStatusEmail(attendee, subject, message) {
@@ -157,33 +169,45 @@ async function sendStatusEmail(attendee, subject, message) {
   const resend = new Resend(process.env.RESEND_API_KEY);
   const htmlContent = generateEmailHTML(message);
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: "ALSHAYEB Experience <selection@alshayebexperience.com>",
-      to: [attendee.email],
-      subject: subject,
-      text: message,
-      html: htmlContent
-    });
+  let attempt = 0;
+  const maxAttempts = 3;
 
-    if (error) {
-      console.error("Resend API rejected email:", {
+  while (attempt < maxAttempts) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: "ALSHAYEB Experience <selection@alshayebexperience.com>",
+        to: [attendee.email],
+        subject: subject,
+        text: message,
+        html: htmlContent
+      });
+
+      if (error) {
+        if (error.statusCode === 429 || error.message?.toLowerCase().includes('rate')) {
+          attempt++;
+          console.warn(`Rate limit hit (QR). Retrying attempt ${attempt}...`);
+          await new Promise(res => setTimeout(res, 1000 * attempt));
+          continue;
+        }
+        console.error("Resend API rejected email:", {
+          attendeeId: attendee._id,
+          email: attendee.email,
+          error
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Resend SDK unexpected error:", {
         attendeeId: attendee._id,
         email: attendee.email,
-        error
+        error: error.message
       });
-      return false; // don't throw, just return false so we don't block
+      return false;
     }
-
-    return true;
-  } catch (error) {
-    console.error("Resend SDK unexpected error:", {
-      attendeeId: attendee._id,
-      email: attendee.email,
-      error: error.message
-    });
-    return false; // don't throw
   }
+  return false;
 }
 
 module.exports = {
