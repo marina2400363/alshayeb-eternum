@@ -309,7 +309,7 @@ export default function RoomsApp() {
           {error && <div className="rooms-error-message">{error}</div>}
 
           {step === "home" && (
-            <div className="rooms-homepage" style={{ backgroundImage: 'url("/rooms-homepage-bg.jpeg")', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat', backgroundSize: 'cover' }}>
+            <div className="rooms-homepage" style={{ backgroundImage: 'url("/rooms-homepage-bg.jpeg")', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat', backgroundSize: '100% auto' }}>
               <div className="rooms-homepage-brand">
                 <div className="brand-alshayeb">ALSHAYEB</div>
                 <div className="brand-subtitle">ROOM REGISTRATION</div>
