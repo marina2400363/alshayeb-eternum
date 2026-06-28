@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import RoomsDatePicker from "./RoomsDatePicker";
 import RoomsLoadingScreen from "./RoomsLoadingScreen";
+import RoomsHamburgerMenu from "./RoomsHamburgerMenu";
 
 const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
 const CONFIGURED_API_URL = String(process.env.REACT_APP_API_URL || "").trim().replace(/\/$/, "");
@@ -305,6 +306,7 @@ export default function RoomsApp() {
 
   return (
     <div className="eternum-public-container rooms-platform">
+      <RoomsHamburgerMenu />
       <RoomsLoadingScreen isLoading={loading} />
 
 
