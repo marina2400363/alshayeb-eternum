@@ -100,13 +100,13 @@ async function syncRoomsGoogleSheet() {
     // This allows the admin to write manual notes in columns S, T, etc.
     await sheets.spreadsheets.values.clear({
       spreadsheetId: sheetId,
-      range: "Sheet1!A:R"
+      range: "A:R"
     });
 
     // Write new data into A1 (which spans up to R depending on rows structure)
     await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
-      range: "Sheet1!A1",
+      range: "A1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: rows
