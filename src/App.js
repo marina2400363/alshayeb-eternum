@@ -4732,7 +4732,7 @@ function AdminRooms() {
                   <h3 className="admin-panel-title">Manage Hotels</h3>
                   <button className="eternum-button primary small" onClick={() => { setEditingHotel(null); setHotelForm({ name: '', description: '', status: 'available', startingPrice: 0, displayOrder: 999 }); setHotelModalOpen(true); }}>+ Add Hotel</button>
                 </div>
-                <div className="admin-table-container">
+                <div className="admin-table-wrap">
                   <table className="admin-table">
                     <thead><tr><th>Name</th><th>Status</th><th>Starting Price</th><th>Actions</th></tr></thead>
                     <tbody>
@@ -4759,7 +4759,7 @@ function AdminRooms() {
                   <h3 className="admin-panel-title">Manage Room Types</h3>
                   <button className="eternum-button primary small" onClick={() => { setEditingRoomType(null); setRoomTypeForm({ hotelId: hotels[0]?._id || '', name: '', capacity: 2, breakfastIncluded: false, pricePerNight: 0, status: 'available', displayOrder: 999 }); setRoomTypeModalOpen(true); }}>+ Add Room Type</button>
                 </div>
-                <div className="admin-table-container">
+                <div className="admin-table-wrap">
                   <table className="admin-table">
                     <thead><tr><th>Hotel</th><th>Name</th><th>Capacity</th><th>Price</th><th>Actions</th></tr></thead>
                     <tbody>
@@ -4786,7 +4786,7 @@ function AdminRooms() {
             {view === 'reservations' && (
               <div>
                 <h3 className="admin-panel-title">Manage Reservations</h3>
-                <div className="admin-table-container">
+                <div className="admin-table-wrap">
                   <table className="admin-table">
                     <thead><tr><th>ID</th><th>Guest</th><th>Nat. ID</th><th>Phone</th><th>Hotel/Room</th><th>Dates</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
