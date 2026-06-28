@@ -2214,14 +2214,14 @@
 /* Grid Layouts for Content */
 .rooms-rd-grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1.5rem;
   align-items: center;
 }
 
 .rooms-rd-grid-3 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 1rem;
 }
 
@@ -2237,7 +2237,8 @@
   font-size: 0.5rem;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .rooms-rd-value {
@@ -2245,7 +2246,9 @@
   font-size: 0.75rem;
   font-family: 'Michroma', sans-serif;
   letter-spacing: 1px;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .rooms-rd-subvalue {
@@ -2253,7 +2256,8 @@
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.65rem;
   margin-top: 0.2rem;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .rooms-rd-stars {
@@ -2287,7 +2291,6 @@
   font-family: 'Michroma', sans-serif;
   font-size: 0.9rem;
   letter-spacing: 1px;
-  white-space: nowrap;
 }
 
 /* Payment Proof Status */

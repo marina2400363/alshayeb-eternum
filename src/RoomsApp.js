@@ -1126,7 +1126,7 @@ export default function RoomsApp() {
                   <div className="rooms-rd-section-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>
                   </div>
-                  <div className="rooms-rd-section-content" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="rooms-rd-section-content" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
                     <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
                       <div className="rooms-rd-label">HOTEL</div>
                       <div className="rooms-rd-value" style={{ fontSize: '0.6rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>{reservation.hotelId?.name}</div>
@@ -1138,7 +1138,7 @@ export default function RoomsApp() {
                         <svg className="rooms-rd-star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                       </div>
                     </div>
-                    <div style={{ width: '1px', height: '36px', background: 'rgba(255,255,255,0.1)', margin: '0 1rem' }}></div>
+
                     <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
                       <div className="rooms-rd-label">ROOM TYPE</div>
                       <div className="rooms-rd-value" style={{ fontSize: '0.6rem', fontFamily: "'Inter', sans-serif" }}>{formatRoomName(reservation.roomTypeId?.name)}</div>
@@ -1153,7 +1153,7 @@ export default function RoomsApp() {
                   </div>
                   <div className="rooms-rd-section-content">
                     <div className="rooms-rd-label" style={{marginBottom: '1rem'}}>STAY DATES</div>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
                       <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
                         <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>CHECK-IN</div>
                         <div className="rooms-rd-value" style={{ fontSize: '0.55rem' }}>{checkInDate.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase()}</div>
@@ -1180,7 +1180,7 @@ export default function RoomsApp() {
                   </div>
                   <div className="rooms-rd-section-content">
                     <div className="rooms-rd-label" style={{marginBottom: '1rem'}}>GUEST DETAILS</div>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
                       <div className="rooms-rd-field" style={{ flex: 1, minWidth: 0 }}>
                         <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>FULL NAME</div>
                         <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.55rem', fontWeight: 400}}>{reservation.fullName}</div>
@@ -1194,7 +1194,7 @@ export default function RoomsApp() {
                         <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.55rem', fontWeight: 400, whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: '1.4'}}>{reservation.emailAddress}</div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', gap: '1rem' }}>
                       <div className="rooms-rd-field" style={{ width: '30%' }}>
                         <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>NATIONALITY</div>
                         <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.55rem', fontWeight: 400}}>{reservation.nationality || "Egyptian"}</div>
@@ -1240,7 +1240,7 @@ export default function RoomsApp() {
                   </div>
                   <div className="rooms-rd-section-content">
                     <div className="rooms-rd-label" style={{marginBottom: '1rem'}}>PAYMENT STATUS</div>
-                    <div style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1.5rem' }}>
                       <div className="rooms-rd-field" style={{flex: 1, minWidth: 0}}>
                         <div className="rooms-rd-label" style={{ fontSize: '0.45rem' }}>PAYMENT METHOD</div>
                         <div className="rooms-rd-value" style={{fontFamily: "'Inter', sans-serif", fontSize: '0.55rem'}}>Instapay</div>
