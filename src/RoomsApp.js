@@ -347,7 +347,18 @@ export default function RoomsApp() {
                     return (
                       <div key={h._id} className="rooms-hotel-card">
                         <div className="rooms-hotel-info">
-                          <h3 className="rooms-hotel-name">{h.name}</h3>
+                          <h3 className="rooms-hotel-name">
+                            {(() => {
+                              const parts = h.name.split(' ');
+                              if (parts.length === 1) return parts[0];
+                              return (
+                                <>
+                                  <div>{parts[0]}</div>
+                                  <div>{parts.slice(1).join(' ')}</div>
+                                </>
+                              );
+                            })()}
+                          </h3>
                         </div>
                         
                         <div className="rooms-hotel-divider"></div>
@@ -375,9 +386,6 @@ export default function RoomsApp() {
                   {hotels.length === 0 && <p className="rooms-empty">No hotels available at the moment.</p>}
                 </div>
               )}
-              <div className="rooms-bottom-spade">
-                <img src="/spades.png" alt="Eternum" />
-              </div>
             </div>
           )}
 
