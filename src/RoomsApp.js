@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import RoomsDatePicker from "./RoomsDatePicker";
+import RoomsLoadingScreen from "./RoomsLoadingScreen";
 
 const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
 const CONFIGURED_API_URL = String(process.env.REACT_APP_API_URL || "").trim().replace(/\/$/, "");
@@ -302,6 +303,7 @@ export default function RoomsApp() {
 
   return (
     <div className="eternum-public-container rooms-platform">
+      <RoomsLoadingScreen isLoading={loading} />
 
 
       <div className="eternum-main-content">
@@ -340,7 +342,7 @@ export default function RoomsApp() {
             <div className="rooms-step-container">
               <RoomsSharedHeader step={step} handleBack={handleBack} title="CHOOSE YOUR HOTEL" subtitle="Select your preferred hotel to continue" />
 
-              {loading ? <p className="rooms-loading">Loading hotels...</p> : (
+              {loading ? null : (
                 <div className="rooms-hotel-list">
                   {hotels.map(h => {
                     const isAvailable = h.status === 'available';
@@ -454,7 +456,7 @@ export default function RoomsApp() {
             <div className="rooms-step-container">
               <RoomsSharedHeader step={step} handleBack={handleBack} title="CHOOSE YOUR ROOM" subtitle="Select your preferred room to continue" />
               
-              {loading ? <p className="rooms-loading">Loading room types...</p> : (
+              {loading ? null : (
                 <div className="rooms-list-container">
                   {roomTypes.map(r => {
                     const isAvailable = r.status === 'available';
@@ -717,7 +719,7 @@ export default function RoomsApp() {
                   onClick={submitReservation} 
                   disabled={loading}
                 >
-                  {loading ? "PROCESSING..." : "I HAVE MADE THE PAYMENT"} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  I HAVE MADE THE PAYMENT <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </button>
               </div>
             </div>
@@ -800,7 +802,7 @@ export default function RoomsApp() {
                 onClick={submitProof}
                 disabled={loading || !paymentProof}
               >
-                {loading ? "UPLOADING..." : "I HAVE UPLOADED THE PROOF"} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                I HAVE UPLOADED THE PROOF <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
               </button>
 
               <div className="rooms-secure-badge" style={{marginBottom: '2rem'}}>
@@ -913,7 +915,7 @@ export default function RoomsApp() {
                     </div>
                     
                     <button className="rooms-upload-proof-btn" onClick={lookupReservations} disabled={loading} style={{width: '100%'}}>
-                      {loading ? "SEARCHING..." : "VIEW MY RESERVATIONS"}
+                      VIEW MY RESERVATIONS
                     </button>
                     
                     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem', color: 'rgba(255, 255, 255, 0.6)', fontFamily: "'Inter', sans-serif", fontSize: '12px'}}>
