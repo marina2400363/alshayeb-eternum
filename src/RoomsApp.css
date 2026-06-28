@@ -342,7 +342,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: min(47vw, 225px);
+  margin-top: min(53vw, 250px);
 }
 
 .rooms-homepage-title-area {
