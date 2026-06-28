@@ -10282,3 +10282,10 @@ select:-webkit-autofill:focus {
   text-align: left;
 }
 
+
+@media (max-width: 768px) {
+  .payment-card .table-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
