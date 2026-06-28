@@ -452,8 +452,8 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 50%;
   cursor: pointer;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -464,24 +464,49 @@
   z-index: 10;
 }
 
+.rooms-nav-back svg {
+  width: 18px;
+  height: 18px;
+}
+
 .rooms-nav-brand {
   flex: 1;
   text-align: center;
-  margin-left: -40px;
+  margin-left: -32px;
   pointer-events: none;
+}
+
+.rooms-nav-brand .brand-alshayeb {
+  font-family: var(--font-michroma), sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.2rem;
+  color: #fff;
+  font-weight: 400;
+  margin-left: 0.5rem;
+}
+
+.rooms-nav-brand .brand-subtitle {
+  font-family: var(--font-michroma), sans-serif;
+  font-size: 0.45rem;
+  letter-spacing: 0.1rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+  margin-left: 0.15rem;
 }
 
 /* Progress Bar */
 .rooms-progress-container {
   position: relative;
   width: 100%;
-  margin-bottom: 3rem;
+  max-width: 320px;
+  margin: 0 auto 2.5rem auto;
   padding: 0 10px;
 }
 
 .rooms-progress-line {
   position: absolute;
-  top: 10px;
+  top: 9px;
   left: 10%;
   right: 10%;
   height: 1px;
@@ -503,15 +528,15 @@
 }
 
 .rooms-progress-circle {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .rooms-progress-step.active .rooms-progress-circle {
@@ -521,8 +546,8 @@
 }
 
 .rooms-progress-dot {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #1a56ff;
   box-shadow: 0 0 8px 1px rgba(26, 86, 255, 0.8);
@@ -530,9 +555,9 @@
 
 .rooms-progress-num {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.5rem;
   color: rgba(255, 255, 255, 0.4);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .rooms-progress-step.active .rooms-progress-num {
@@ -541,7 +566,7 @@
 
 .rooms-progress-label {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.45rem;
+  font-size: 0.4rem;
   color: rgba(255, 255, 255, 0.4);
   letter-spacing: 0.05rem;
   text-transform: uppercase;
@@ -554,31 +579,31 @@
 /* Header Text */
 .rooms-step-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .rooms-step-indicator-text {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   color: #1a56ff;
   letter-spacing: 0.08rem;
   text-transform: uppercase;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .rooms-step-title {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 26px;
+  font-size: 18px;
   color: #fff;
   letter-spacing: 0.02em;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.4rem;
   font-weight: 400;
   line-height: 1.4;
 }
 
 .rooms-step-subtitle {
   font-family: 'Inter', var(--font-outfit), sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.75);
   font-weight: 400;
   letter-spacing: 0;
@@ -590,32 +615,35 @@
   background: rgba(4, 9, 20, 0.6);
   border: 1px solid rgba(26, 86, 255, 0.15);
   border-radius: 8px;
-  padding: 1.8rem 1.5rem;
+  padding: 1.2rem 1rem;
   align-items: center;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .rooms-hotel-info {
   flex: 1.2;
-  padding-right: 1.5rem;
+  padding-right: 1rem;
 }
 
 .rooms-hotel-name {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 17px;
+  font-size: 14px;
   color: #fff;
   letter-spacing: 0.01em;
-  line-height: 1.45;
+  line-height: 1.3;
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 300;
 }
 
 .rooms-hotel-divider {
   width: 1px;
-  height: 70px;
+  height: 50px;
   background: rgba(255, 255, 255, 0.15);
-  margin: 0 1.5rem 0 0;
+  margin: 0 1rem 0 0;
 }
 
 .rooms-hotel-action {
@@ -628,10 +656,10 @@
 
 .rooms-hotel-badge-na {
   font-family: var(--font-michroma), sans-serif;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   color: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.4rem 0.8rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 4px;
   letter-spacing: 0.05rem;
   margin-bottom: 0.8rem;
@@ -643,23 +671,23 @@
 .rooms-hotel-price {
   display: flex;
   flex-direction: column;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   width: 100%;
 }
 
 .price-label {
   font-family: 'Inter', var(--font-outfit), sans-serif;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 0.5rem;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.2rem;
   font-weight: 400;
 }
 
 .price-value {
   font-family: 'Inter', var(--font-outfit), sans-serif;
-  font-size: 24px;
+  font-size: 16px;
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.15;
 }
 
@@ -668,12 +696,14 @@
   border: 1px solid rgba(26, 86, 255, 0.5);
   color: #1a56ff;
   font-family: var(--font-michroma), sans-serif;
-  font-size: 15px;
-  padding: 0.8rem 2rem;
+  font-size: 12px;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
   letter-spacing: 0.08em;
-  width: 100%;
+  width: auto;
+  min-width: 80px;
+  align-self: flex-start;
   transition: all 0.3s ease;
 }
 

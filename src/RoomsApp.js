@@ -375,8 +375,9 @@ export default function RoomsApp() {
                   {hotels.length === 0 && <p className="rooms-empty">No hotels available at the moment.</p>}
                 </div>
               )}
-
-              
+              <div className="rooms-bottom-spade">
+                <img src="/spades.png" alt="Eternum" />
+              </div>
             </div>
           )}
 
