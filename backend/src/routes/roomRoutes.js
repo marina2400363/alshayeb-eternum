@@ -139,8 +139,6 @@ router.post(
       .populate("hotelId", "name")
       .populate("roomTypeId", "name");
 
-    res.json({ success: true, reservation });
-
     // Send email asynchronously
     if (populatedReservation && populatedReservation.emailAddress) {
       const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -169,6 +167,8 @@ We will notify you once your reservation has been confirmed by our team.`;
 
     // Sync to Google Sheets asynchronously
     syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on payment proof", err));
+
+    res.json({ success: true, reservation });
   })
 );
 
