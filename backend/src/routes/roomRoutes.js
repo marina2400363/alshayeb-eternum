@@ -49,6 +49,15 @@ router.post(
       throw apiError("Please provide all required fields.");
     }
 
+    const cleanFullName = fullName.trim().replace(/\s+/g, ' ');
+    if (!/^[a-zA-Z\s]+$/.test(cleanFullName) || cleanFullName.length < 3 || cleanFullName.length > 100) {
+      throw apiError("Please enter a valid full name.");
+    }
+
+    if (!/^01\d{9}$/.test(phoneNumber)) {
+      throw apiError("Please enter a valid Egyptian mobile number.");
+    }
+
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
 

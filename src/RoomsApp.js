@@ -510,7 +510,17 @@ export default function RoomsApp() {
                   <div className="guest-detail-divider"></div>
                   <div className="guest-detail-content">
                     <label className="guest-detail-label">FULL NAME</label>
-                    <input type="text" className="guest-detail-input" value={guestDetails.fullName} onChange={e => setGuestDetails({...guestDetails, fullName: e.target.value})} placeholder="Enter full name" />
+                    <input 
+                      type="text" 
+                      className={`guest-detail-input ${guestDetails.fullName && (!/^[a-zA-Z\s]+$/.test(guestDetails.fullName.replace(/\s+/g, ' ').trim()) || guestDetails.fullName.replace(/\s+/g, ' ').trim().length < 3 || guestDetails.fullName.replace(/\s+/g, ' ').trim().length > 100) ? 'input-error' : ''}`}
+                      value={guestDetails.fullName} 
+                      onChange={e => setGuestDetails({...guestDetails, fullName: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} 
+                      onBlur={() => setGuestDetails({...guestDetails, fullName: guestDetails.fullName.replace(/\s+/g, ' ').trim()})}
+                      placeholder="Enter full name" 
+                    />
+                    {guestDetails.fullName && (!/^[a-zA-Z\s]+$/.test(guestDetails.fullName.replace(/\s+/g, ' ').trim()) || guestDetails.fullName.replace(/\s+/g, ' ').trim().length < 3 || guestDetails.fullName.replace(/\s+/g, ' ').trim().length > 100) && (
+                      <span className="guest-detail-error" style={{color: '#ff4444', fontSize: '11px', marginTop: '4px', display: 'block', fontFamily: "'Inter', sans-serif"}}>Please enter a valid full name.</span>
+                    )}
                   </div>
                 </div>
 
@@ -521,7 +531,19 @@ export default function RoomsApp() {
                   <div className="guest-detail-divider"></div>
                   <div className="guest-detail-content">
                     <label className="guest-detail-label">PHONE NUMBER</label>
-                    <input type="tel" className="guest-detail-input" value={guestDetails.phoneNumber} onChange={e => setGuestDetails({...guestDetails, phoneNumber: e.target.value})} placeholder="+20 10 1234 5678" />
+                    <input 
+                      type="tel" 
+                      className={`guest-detail-input ${guestDetails.phoneNumber && !/^01\d{9}$/.test(guestDetails.phoneNumber) ? 'input-error' : ''}`}
+                      value={guestDetails.phoneNumber} 
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setGuestDetails({...guestDetails, phoneNumber: val.slice(0, 11)});
+                      }} 
+                      placeholder="01XXXXXXXXX" 
+                    />
+                    {guestDetails.phoneNumber && !/^01\d{9}$/.test(guestDetails.phoneNumber) && (
+                      <span className="guest-detail-error" style={{color: '#ff4444', fontSize: '11px', marginTop: '4px', display: 'block', fontFamily: "'Inter', sans-serif"}}>Please enter a valid Egyptian mobile number.</span>
+                    )}
                   </div>
                 </div>
 
@@ -572,7 +594,17 @@ export default function RoomsApp() {
 
                 <button 
                   className="guest-next-btn" 
-                  disabled={!guestDetails.fullName || !guestDetails.phoneNumber || !guestDetails.emailAddress || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.emailAddress) || guestDetails.nationalId.length !== 14}
+                  disabled={
+                    !guestDetails.fullName || 
+                    !/^[a-zA-Z\s]+$/.test(guestDetails.fullName.replace(/\s+/g, ' ').trim()) || 
+                    guestDetails.fullName.replace(/\s+/g, ' ').trim().length < 3 || 
+                    guestDetails.fullName.replace(/\s+/g, ' ').trim().length > 100 ||
+                    !guestDetails.phoneNumber || 
+                    !/^01\d{9}$/.test(guestDetails.phoneNumber) ||
+                    !guestDetails.emailAddress || 
+                    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.emailAddress) || 
+                    guestDetails.nationalId.length !== 14
+                  }
                   onClick={() => {
                     handleNext("payment");
                   }}
