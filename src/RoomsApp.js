@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import RoomsDatePicker from "./RoomsDatePicker";
 import RoomsLoadingScreen from "./RoomsLoadingScreen";
 
@@ -105,7 +106,8 @@ const RoomsSharedHeader = ({ step, handleBack, title, subtitle }) => {
 };
 
 export default function RoomsApp() {
-  const [step, setStep] = useState("home"); // home, hotels, dates, rooms, guest, payment, proof, submitted, my-reservations, reservation-details
+  const [searchParams, setSearchParams] = useSearchParams();
+  const step = searchParams.get("step") || "home"; // home, hotels, dates, rooms, guest, payment, proof, submitted, my-reservations, reservation-details
   const [hotels, setHotels] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -163,12 +165,12 @@ export default function RoomsApp() {
 
   const handleNext = (nextStep) => {
     setError("");
-    setStep(nextStep);
+    setSearchParams({ step: nextStep });
   };
 
   const handleBack = (prevStep) => {
     setError("");
-    setStep(prevStep);
+    setSearchParams({ step: prevStep });
   };
 
   const submitReservation = async () => {
