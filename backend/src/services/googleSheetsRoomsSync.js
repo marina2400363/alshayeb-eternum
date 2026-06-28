@@ -27,20 +27,17 @@ function getGoogleAuth() {
  * Completely independent of the QR/Event system.
  */
 async function syncRoomsGoogleSheet() {
-  try {
     const sheetId = process.env.ROOMS_GOOGLE_SHEET_ID;
     if (!sheetId) {
-      console.log("Skipping Rooms export sync: ROOMS_GOOGLE_SHEET_ID is not configured");
-      return;
+      return { success: false, message: "ROOMS_GOOGLE_SHEET_ID is not configured in environment" };
     }
 
     if (!isGoogleConfigured()) {
-      console.log("Skipping Rooms export sync: Google Service Account not configured");
-      return;
+      return { success: false, message: "Google Service Account is not configured in environment" };
     }
 
-    // Query all reservations and populate hotel and room type
-    const reservations = await RoomReservation.find({})
+    // Query only confirmed reservations and populate hotel and room type
+    const reservations = await RoomReservation.find({ reservationStatus: 'confirmed' })
       .populate("hotelId", "name")
       .populate("roomTypeId", "name")
       .sort({ createdAt: -1 });
@@ -113,12 +110,7 @@ async function syncRoomsGoogleSheet() {
       }
     });
 
-    console.log(`Successfully synced ${reservations.length} Rooms reservations to Google Sheet.`);
-
-  } catch (err) {
-    // Catch all errors safely to prevent booking flows from blocking
-    console.error("Failed to sync Rooms Google Sheet:", err.message);
-  }
+    return { success: true, message: `Successfully synced ${reservations.length} Rooms reservations to Google Sheet.`, rowsCount: reservations.length };
 }
 
 module.exports = {
