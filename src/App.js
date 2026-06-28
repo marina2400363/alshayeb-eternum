@@ -1902,6 +1902,7 @@ function PublicWebsite() {
               <label>SCHOOL YOU'RE COMING WITH</label>
               {selectedEvent?.schools && selectedEvent.schools.length > 0 ? (
                 <select
+                  className="eternum-input"
                   name="schoolOrOriginProm"
                   value={request.schoolOrOriginProm}
                   onChange={handleRequestChange}
