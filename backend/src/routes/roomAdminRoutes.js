@@ -4,6 +4,8 @@ const RoomType = require("../models/RoomType");
 const RoomReservation = require("../models/RoomReservation");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
+const { sendRoomStatusEmail } = require("../utils/email");
+const { syncRoomsGoogleSheet } = require("../services/googleSheetsRoomsSync");
 
 const router = express.Router();
 
@@ -144,14 +146,68 @@ router.put(
     if (paymentStatus) updateData.paymentStatus = paymentStatus;
     if (reservationStatus) updateData.reservationStatus = reservationStatus;
 
+    const existingReservation = await RoomReservation.findById(req.params.id);
+    if (!existingReservation) throw apiError("Reservation not found.", 404);
+    
+    const oldStatus = existingReservation.reservationStatus;
+
     const reservation = await RoomReservation.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     ).populate("hotelId", "name").populate("roomTypeId", "name");
 
-    if (!reservation) throw apiError("Reservation not found.", 404);
     res.json({ success: true, reservation });
+
+    // Send emails asynchronously
+    if (reservationStatus && oldStatus !== reservationStatus && reservation.emailAddress) {
+      const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const formatCurrency = (amount) => Number(amount).toLocaleString('en-US');
+      
+      let subject = "";
+      let message = "";
+
+      if (reservationStatus === "confirmed") {
+        subject = "ALSHAYEB Rooms Reservation Confirmed";
+        message = `Dear ${reservation.fullName},
+
+We are thrilled to inform you that your reservation request has been officially confirmed!
+
+Reservation Details:
+• Reservation ID: ${reservation.reservationId}
+• Hotel: ${reservation.hotelId?.name || "N/A"}
+• Room Type: ${reservation.roomTypeId?.name || "N/A"}
+• Check-in: ${formatDate(reservation.checkInDate)}
+• Check-out: ${formatDate(reservation.checkOutDate)}
+• Stay Duration: ${reservation.stayDuration} night(s)
+• Total Amount: ${formatCurrency(reservation.totalAmount)} EGP
+• Status: Confirmed
+
+We look forward to welcoming you to the ALSHAYEB Experience.`;
+      } else if (reservationStatus === "declined") {
+        subject = "ALSHAYEB Rooms Reservation Update";
+        message = `Dear ${reservation.fullName},
+
+We regret to inform you that your reservation request has been declined.
+
+Reservation Details:
+• Reservation ID: ${reservation.reservationId}
+• Hotel: ${reservation.hotelId?.name || "N/A"}
+• Room Type: ${reservation.roomTypeId?.name || "N/A"}
+• Check-in: ${formatDate(reservation.checkInDate)}
+• Check-out: ${formatDate(reservation.checkOutDate)}
+• Status: Declined
+
+If you have any questions or concerns, please contact our support team.`;
+      }
+
+      if (message) {
+        sendRoomStatusEmail(reservation, subject, message).catch(err => console.error("Admin email trigger failed", err));
+      }
+    }
+
+    // Sync to Google Sheets asynchronously (trigger regardless of whether emails sent, to capture any status changes)
+    syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on admin update", err));
   })
 );
 

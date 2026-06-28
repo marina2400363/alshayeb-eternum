@@ -5,7 +5,8 @@ const RoomReservation = require("../models/RoomReservation");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const multer = require("multer");
-// const { uploadRoomPaymentProof } = require("../utils/cloudinaryUpload");
+const { sendRoomStatusEmail } = require("../utils/email");
+const { syncRoomsGoogleSheet } = require("../services/googleSheetsRoomsSync");
 
 const router = express.Router();
 
@@ -99,6 +100,9 @@ router.post(
     });
 
     res.status(201).json({ success: true, reservation });
+
+    // Sync to Google Sheets asynchronously
+    syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on creation", err));
   })
 );
 
@@ -131,7 +135,40 @@ router.post(
       throw apiError("Reservation not found", 404);
     }
 
+    const populatedReservation = await RoomReservation.findById(req.params.id)
+      .populate("hotelId", "name")
+      .populate("roomTypeId", "name");
+
     res.json({ success: true, reservation });
+
+    // Send email asynchronously
+    if (populatedReservation && populatedReservation.emailAddress) {
+      const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const formatCurrency = (amount) => Number(amount).toLocaleString('en-US');
+      
+      const subject = "ALSHAYEB Rooms Reservation Under Review";
+      const message = `Dear ${populatedReservation.fullName},
+
+We have received your payment proof via Instapay. Your reservation request is currently under review.
+
+Reservation Details:
+• Reservation ID: ${populatedReservation.reservationId}
+• Hotel: ${populatedReservation.hotelId?.name || "N/A"}
+• Room Type: ${populatedReservation.roomTypeId?.name || "N/A"}
+• Check-in: ${formatDate(populatedReservation.checkInDate)}
+• Check-out: ${formatDate(populatedReservation.checkOutDate)}
+• Stay Duration: ${populatedReservation.stayDuration} night(s)
+• Total Amount: ${formatCurrency(populatedReservation.totalAmount)} EGP
+• Date Requested: ${formatDate(populatedReservation.createdAt)}
+• Status: Under Review
+
+We will notify you once your reservation has been confirmed by our team.`;
+
+      sendRoomStatusEmail(populatedReservation, subject, message).catch(err => console.error("Email send trigger failed", err));
+    }
+
+    // Sync to Google Sheets asynchronously
+    syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on payment proof", err));
   })
 );
 
