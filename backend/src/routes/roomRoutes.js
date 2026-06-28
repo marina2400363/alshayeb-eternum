@@ -172,6 +172,19 @@ We will notify you once your reservation has been confirmed by our team.`;
   })
 );
 
+// Force Google Sheets Sync (For debugging, temporarily public)
+router.get(
+  "/force-sync",
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await syncRoomsGoogleSheet();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message, stack: error.stack });
+    }
+  })
+);
+
 // Get my reservations by phone number
 router.post(
   "/my-reservations",
