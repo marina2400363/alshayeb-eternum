@@ -4826,9 +4826,9 @@ function AdminRooms() {
       </div>
 
       {hotelModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2 className="modal-title">{editingHotel ? "Edit Hotel" : "Create Hotel"}</h2>
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <h3 className="modal-title">{editingHotel ? "Edit Hotel" : "Create Hotel"}</h3>
             <form onSubmit={saveHotel}>
               <div className="form-group"><label>Name</label><input type="text" value={hotelForm.name} onChange={e => setHotelForm({...hotelForm, name: e.target.value})} required className="eternum-input" /></div>
               <div className="form-group"><label>Description</label><textarea value={hotelForm.description} onChange={e => setHotelForm({...hotelForm, description: e.target.value})} className="eternum-input" /></div>
@@ -4841,9 +4841,9 @@ function AdminRooms() {
       )}
 
       {roomTypeModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2 className="modal-title">{editingRoomType ? "Edit Room Type" : "Create Room Type"}</h2>
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <h3 className="modal-title">{editingRoomType ? "Edit Room Type" : "Create Room Type"}</h3>
             <form onSubmit={saveRoomType}>
               <div className="form-group"><label>Hotel</label><select value={roomTypeForm.hotelId} onChange={e => setRoomTypeForm({...roomTypeForm, hotelId: e.target.value})} required className="eternum-input"><option value="">Select Hotel</option>{hotels.map(h => <option key={h._id} value={h._id}>{h.name}</option>)}</select></div>
               <div className="form-group"><label>Name</label><input type="text" value={roomTypeForm.name || ''} onChange={e => setRoomTypeForm({...roomTypeForm, name: e.target.value})} required className="eternum-input" /></div>
@@ -4859,9 +4859,9 @@ function AdminRooms() {
       )}
 
       {proofModalOpen && (
-        <div className="modal-overlay" onClick={() => setProofModalOpen(false)}>
-          <div className="modal-content" style={{maxWidth: '800px', background: 'var(--eternum-bg)'}} onClick={e => e.stopPropagation()}>
-            <h2 className="modal-title" style={{marginBottom:'1rem'}}>Payment Proof</h2>
+        <div className="admin-modal-overlay" onClick={() => setProofModalOpen(false)}>
+          <div className="admin-modal" style={{maxWidth: '800px', background: 'var(--eternum-bg)'}} onClick={e => e.stopPropagation()}>
+            <h3 className="modal-title" style={{marginBottom:'1rem'}}>Payment Proof</h3>
             <div style={{textAlign:'center'}}>
               <img src={viewingProof} alt="Payment Proof" style={{maxWidth:'100%', maxHeight:'60vh', borderRadius:'8px', objectFit:'contain'}} />
             </div>
