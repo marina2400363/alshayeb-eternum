@@ -1618,7 +1618,9 @@ button:disabled,
   gap: 10px;
 }
 
-.admin-sidebar a {
+.admin-sidebar a,
+.admin-sidebar button.admin-sidebar-btn,
+.admin-sidebar button.active-admin-link {
   display: block;
   padding: 13px 14px;
   border: 1px solid rgba(127, 157, 255, 0.18);
@@ -1630,13 +1632,15 @@ button:disabled,
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.admin-sidebar a:hover {
+.admin-sidebar a:hover,
+.admin-sidebar button.admin-sidebar-btn:hover {
   transform: none;
   border-color: rgba(213, 226, 255, 0.62);
   box-shadow: 0 0 22px rgba(127, 157, 255, 0.22);
 }
 
-.admin-sidebar a.active-admin-link {
+.admin-sidebar a.active-admin-link,
+.admin-sidebar button.active-admin-link {
   color: white;
   border-color: var(--eternum-line-bright);
   background: rgba(127, 157, 255, 0.16);

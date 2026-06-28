@@ -4615,12 +4615,12 @@ function RoomsAdminLayout({ children, view, setView }) {
               </button>
             ))}
             <Link to="/">Public Site</Link>
-            <button className="admin-logout-btn" onClick={handleLogout}>
-              Logout
+            <button className="ghost-btn admin-logout" onClick={handleLogout}>
+              LOG OUT
             </button>
           </nav>
         </aside>
-        <main className="admin-content-area">{children}</main>
+        <main className="admin-main">{children}</main>
       </motion.div>
     </div>
   );
