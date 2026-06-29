@@ -263,7 +263,7 @@ export default function RoomsApp() {
 
       img.onerror = (err) => {
         URL.revokeObjectURL(objectUrl);
-        reject(err);
+        reject(new Error("Failed to process image. Please try a different file."));
       };
 
       img.src = objectUrl;
@@ -278,9 +278,9 @@ export default function RoomsApp() {
     setLoading(true);
     setError("");
     try {
-      // If the file is already small (< 500KB), don't waste CPU compressing it
+      // If the file is already small (< 500KB) or is a PDF, don't try to compress it
       let fileToUpload = paymentProof;
-      if (paymentProof.size > 500 * 1024) {
+      if (paymentProof.size > 500 * 1024 && !paymentProof.type.includes('pdf')) {
         fileToUpload = await compressImage(paymentProof);
       }
       
