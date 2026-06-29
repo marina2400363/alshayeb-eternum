@@ -123,6 +123,13 @@ export default function RoomsApp() {
   const [paymentProof, setPaymentProof] = useState(null);
   const [reservation, setReservation] = useState(null);
 
+  useEffect(() => {
+    const requiresHotel = ["dates", "rooms", "guest", "payment", "proof", "submitted"];
+    if (requiresHotel.includes(step) && !selectedHotel) {
+      setSearchParams({ step: "hotels" });
+    }
+  }, [step, selectedHotel, setSearchParams]);
+
   // My Reservations state
   const [lookupPhone, setLookupPhone] = useState("");
   const [myReservationsList, setMyReservationsList] = useState([]);
