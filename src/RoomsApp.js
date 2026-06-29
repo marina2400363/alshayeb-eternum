@@ -17,15 +17,23 @@ async function apiFetch(path, options = {}) {
   const isJsonRequest = hasBody && !isFormData;
 
   let response;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
   try {
     response = await fetch(`${BACKEND_API_URL}${path}`, {
       ...options,
+      signal: controller.signal,
       headers: {
         ...(isJsonRequest ? { "Content-Type": "application/json" } : {}),
         ...(options.headers || {})
       }
     });
+    clearTimeout(timeoutId);
   } catch (networkError) {
+    clearTimeout(timeoutId);
+    if (networkError.name === "AbortError") {
+      throw new Error("Request timed out. Please check your internet connection and try again.");
+    }
     const error = new Error("Could not reach the backend API. Please try again in a moment.");
     error.cause = networkError;
     throw error;

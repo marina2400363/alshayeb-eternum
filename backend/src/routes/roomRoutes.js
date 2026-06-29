@@ -59,6 +59,10 @@ router.post(
       throw apiError("Please enter a valid Egyptian mobile number.");
     }
 
+    if (!/^\d{14}$/.test(nationalId)) {
+      throw apiError("National ID must be exactly 14 digits.");
+    }
+
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
 
