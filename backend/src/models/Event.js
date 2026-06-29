@@ -14,6 +14,11 @@ const eventSchema = new mongoose.Schema(
       lowercase: true,
       unique: true
     },
+    eventTypeLabel: {
+      type: String,
+      trim: true,
+      default: "PROM"
+    },
     date: {
       type: Date
     },

@@ -47,7 +47,7 @@ async function apiRequest(path, options = {}) {
   // Attach JWT token for all /api/admin requests automatically
   // Also attach for /api/events if it's a mutating request (POST, PUT, DELETE)
   const isMutatingEvent = path.startsWith("/api/events") && options.method && options.method !== "GET";
-  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export") || isMutatingEvent;
+  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export") || path.startsWith("/api/schools/admin") || isMutatingEvent;
   let adminToken = "";
   if (isAdminPath) {
     try {
@@ -748,6 +748,7 @@ function PublicWebsite() {
   const isBrowserHistoryNavigation = useRef(false);
   const [errors, setErrors] = useState({});
   const [liveEvents, setLiveEvents] = useState([]);
+
   const [selectedEvent, setSelectedEvent] = useState({});
   const [outcomerSelection, setOutcomerSelection] = useState(DEFAULT_OUTCOMER_SELECTION);
   const [guestListCount, setGuestListCount] = useState(137);
@@ -897,6 +898,7 @@ function PublicWebsite() {
               displayOrder: event.displayOrder,
               instapayLink: event.instapayLink,
               bannerImageUrl: event.bannerImageUrl,
+              eventTypeLabel: event.eventTypeLabel,
               tagline: event.tagline,
               description: event.description
             }))
@@ -936,6 +938,8 @@ function PublicWebsite() {
         console.log("Public settings load failed:", error);
         setGuestListCount(137);
       });
+
+
   }, []);
 
   useEffect(() => {
@@ -1737,7 +1741,7 @@ function PublicWebsite() {
                 <div className="premium-event-details">
                   <div className="premium-event-header">
                     <span className="premium-event-number">{String(event.displayOrder && event.displayOrder !== 999 ? event.displayOrder : index + 1).padStart(2, "0")}</span>
-                    <span className="premium-event-prom-badge">PROM</span>
+                    <span className="premium-event-prom-badge">{event.eventTypeLabel || "PROM"}</span>
                   </div>
                   <h3 className="premium-event-title">{event.name}</h3>
                   {event.tagline && <p className="premium-event-tagline">{event.tagline}</p>}
@@ -1913,12 +1917,9 @@ function PublicWebsite() {
                   ))}
                 </select>
               ) : (
-                <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-                    name="schoolOrOriginProm"
-                    placeholder="Select"
-                  value={request.schoolOrOriginProm}
-                  onChange={handleRequestChange}
-                />
+                <select className="eternum-input" disabled>
+                  <option value="">UNAVAILABLE</option>
+                </select>
               )}
             </div>
           </div>
@@ -3535,7 +3536,8 @@ function EventsPage() {
     displayOrder: "",
     bannerImageUrl: "",
     tagline: "",
-    description: ""
+    description: "",
+    eventTypeLabel: "PROM"
   });
   const [bannerFile, setBannerFile] = useState(null);
 
@@ -3560,7 +3562,8 @@ function EventsPage() {
         displayOrder: event.displayOrder !== undefined && event.displayOrder !== null && event.displayOrder !== 999 ? event.displayOrder : "",
         bannerImageUrl: event.bannerImageUrl || "",
         tagline: event.tagline || "",
-        description: event.description || ""
+        description: event.description || "",
+        eventTypeLabel: event.eventTypeLabel || "PROM"
       });
       setBannerFile(null);
     } else {
@@ -3580,7 +3583,8 @@ function EventsPage() {
         displayOrder: "",
         bannerImageUrl: "",
         tagline: "",
-        description: ""
+        description: "",
+        eventTypeLabel: "PROM"
       });
       setBannerFile(null);
     }
@@ -3713,6 +3717,10 @@ function EventsPage() {
                 <div className="form-group">
                   <label>Prefix (e.g. ORB)</label>
                   <input required value={formData.prefix} onChange={e => setFormData({...formData, prefix: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Type Label (e.g. PROM, AFTERPARTY)</label>
+                  <input value={formData.eventTypeLabel} onChange={e => setFormData({...formData, eventTypeLabel: e.target.value})} placeholder="PROM" />
                 </div>
               </div>
               <div className="form-row">
@@ -4494,6 +4502,7 @@ function App() {
             </ProtectedAdminRoute>
           }
         />
+
         <Route
           path="/control/settings"
           element={
@@ -4880,3 +4889,4 @@ function AdminRooms() {
 }
 
 export default App;
+

@@ -55,6 +55,7 @@ router.get(
       prefix: e.prefix,
       displayOrder: e.displayOrder,
       bannerImageUrl: e.bannerImageUrl,
+      eventTypeLabel: e.eventTypeLabel,
       tagline: e.tagline,
       description: e.description,
       capacity: e.capacity,
@@ -72,7 +73,7 @@ router.post(
   "/",
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder, bannerImageUrl, tagline, description } = req.body;
+    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder, bannerImageUrl, tagline, description, eventTypeLabel } = req.body;
 
     if (!name || !slug) {
       throw apiError("Event name and slug are required.");
@@ -103,6 +104,7 @@ router.post(
       capacity: capacity || 0,
       displayOrder: parsedOrder,
       bannerImageUrl,
+      eventTypeLabel,
       tagline,
       description
     });
@@ -115,7 +117,7 @@ router.put(
   "/:id",
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder, bannerImageUrl, tagline, description } = req.body;
+    const { name, slug, date, entryTime, venue, status, schools, prefix, price, googleSheetId, exportGoogleSheetId, capacity, displayOrder, bannerImageUrl, tagline, description, eventTypeLabel } = req.body;
 
     if (!prefix) {
       throw apiError("Event prefix is required for QR ID generation.");
@@ -144,6 +146,7 @@ router.put(
         capacity: capacity || 0,
         displayOrder: parsedOrder,
         bannerImageUrl,
+        eventTypeLabel,
         tagline,
         description
       },

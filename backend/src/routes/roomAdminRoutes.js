@@ -211,4 +211,17 @@ If you have any questions or concerns, please contact our support team.`;
   })
 );
 
+// Force Google Sheets Sync (For debugging)
+router.get(
+  "/force-sync",
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await syncRoomsGoogleSheet();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message, stack: error.stack });
+    }
+  })
+);
+
 module.exports = router;
