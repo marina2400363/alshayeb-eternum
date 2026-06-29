@@ -149,6 +149,13 @@ export default function RoomsApp() {
     }
   };
 
+  useEffect(() => {
+    if (step === "hotels" && hotels.length === 0) {
+      loadHotels();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   const loadRoomTypes = async (hotelId) => {
     setLoading(true);
     setError("");
