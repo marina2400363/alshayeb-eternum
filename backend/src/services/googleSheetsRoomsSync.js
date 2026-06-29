@@ -93,14 +93,7 @@ async function syncRoomsGoogleSheet() {
     const auth = getGoogleAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
-    // Clear existing data ONLY in columns A:R
-    // This allows the admin to write manual notes in columns S, T, etc.
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: sheetId,
-      range: "A:R"
-    });
-
-    // Write new data into A1 (which spans up to R depending on rows structure)
+    // Write new data into A1 (overwrites existing rows)
     await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
       range: "A1",
@@ -108,6 +101,14 @@ async function syncRoomsGoogleSheet() {
       requestBody: {
         values: rows
       }
+    });
+
+    // Clear any leftover data BELOW the newly written rows in columns A:R ONLY
+    // This allows the admin to write manual notes in columns S, T, etc.
+    const lastRow = rows.length;
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: sheetId,
+      range: `A${lastRow + 1}:R`
     });
 
     return { success: true, message: `Successfully synced ${reservations.length} Rooms reservations to Google Sheet.`, rowsCount: reservations.length };

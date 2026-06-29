@@ -103,20 +103,7 @@ async function syncEventExportSheet(eventId) {
     const auth = getGoogleAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
-    // Clear existing data (to ensure perfect sync including deletes)
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: sheetId,
-      range: "Sheet1"
-    }).catch(async (err) => {
-        // If Sheet1 is not found, try clearing without range or default
-        console.warn(`Could not clear 'Sheet1' range on ${sheetId}, attempting fallback clear.`, err.message);
-        await sheets.spreadsheets.values.clear({
-            spreadsheetId: sheetId,
-            range: "A:Z"
-        });
-    });
-
-    // Write new data
+    // Write new data into A1 (overwrites existing rows)
     await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
       range: "A1",
@@ -124,6 +111,13 @@ async function syncEventExportSheet(eventId) {
       requestBody: {
         values: rows
       }
+    });
+
+    // Clear any leftover data BELOW the newly written rows
+    const lastRow = rows.length;
+    await sheets.spreadsheets.values.clear({
+        spreadsheetId: sheetId,
+        range: `A${lastRow + 1}:Z`
     });
 
     console.log(`Successfully synced ${attendees.length} confirmed outcomers to export sheet for event ${event.name}.`);
