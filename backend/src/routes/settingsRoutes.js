@@ -34,6 +34,7 @@ router.get(
       success: true,
       guestListDisplayCount: settings.guestListDisplayCount ?? DEFAULT_GUEST_LIST_DISPLAY_COUNT,
       instapayLink: settings.instapayLink || "https://instapay.example/alshayeb",
+      roomsInstapayLink: settings.roomsInstapayLink || "instapay://pay?pa=alshayeb@instapay",
       outcomerSelection: settings.outcomerSelection || {}
     });
   })

@@ -136,8 +136,8 @@ export default function RoomsApp() {
     // Fetch global settings (like Instapay link)
     apiFetch("/api/settings/public")
       .then(res => {
-        if (res.success && res.instapayLink) {
-          setInstapayLink(res.instapayLink);
+        if (res.success && res.roomsInstapayLink) {
+          setInstapayLink(res.roomsInstapayLink);
         }
       })
       .catch(err => console.error("Failed to load settings", err));

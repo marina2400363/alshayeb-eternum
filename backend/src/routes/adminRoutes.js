@@ -59,10 +59,15 @@ function buildSettingsUpdate(body, currentSettings) {
     ? body.instapayLink.trim() 
     : currentSettings.instapayLink ?? "https://instapay.example/alshayeb";
 
+  const nextRoomsInstapayLink = typeof body.roomsInstapayLink === "string"
+    ? body.roomsInstapayLink.trim()
+    : currentSettings.roomsInstapayLink ?? "instapay://pay?pa=alshayeb@instapay";
+
   return {
     outcomerSelection: nextSelection,
     guestListDisplayCount: nextGuestCount,
-    instapayLink: nextInstapayLink
+    instapayLink: nextInstapayLink,
+    roomsInstapayLink: nextRoomsInstapayLink
   };
 }
 

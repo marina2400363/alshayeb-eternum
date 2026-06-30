@@ -30,6 +30,10 @@ const siteSettingsSchema = new mongoose.Schema(
     instapayLink: {
       type: String,
       default: "https://instapay.example/alshayeb"
+    },
+    roomsInstapayLink: {
+      type: String,
+      default: "instapay://pay?pa=alshayeb@instapay"
     }
   },
   { timestamps: true }

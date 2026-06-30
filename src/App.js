@@ -4261,6 +4261,7 @@ function SettingsPage() {
   };
   const guestListDisplayCount = data.settings?.guestListDisplayCount ?? 137;
   const instapayLinkValue = data.settings?.instapayLink ?? "https://instapay.example/alshayeb";
+  const roomsInstapayLinkValue = data.settings?.roomsInstapayLink ?? "instapay://pay?pa=alshayeb@instapay";
 
   const updateSelectionField = (field, value) => {
     setMessage("");
@@ -4298,6 +4299,17 @@ function SettingsPage() {
     }));
   };
 
+  const updateRoomsInstapayLink = (value) => {
+    setMessage("");
+    setData((prev) => ({
+      ...prev,
+      settings: {
+        ...(prev.settings || {}),
+        roomsInstapayLink: value
+      }
+    }));
+  };
+
   const saveSettings = async () => {
     setMessage("");
     const guestCountNumber = Number(guestListDisplayCount);
@@ -4313,7 +4325,8 @@ function SettingsPage() {
         body: JSON.stringify({
           outcomerSelection: selection,
           guestListDisplayCount: Math.floor(guestCountNumber),
-          instapayLink: instapayLinkValue
+          instapayLink: instapayLinkValue,
+          roomsInstapayLink: roomsInstapayLinkValue
         })
       });
       setData(result);
@@ -4345,7 +4358,8 @@ function SettingsPage() {
       </section>
       <section className="admin-panel">
         <div className="settings-grid">
-          <label><span>InstaPay Link</span><input value={instapayLinkValue} onChange={(e) => updateInstapayLink(e.target.value)} /></label>
+          <label><span>InstaPay Link (QR Events)</span><input value={instapayLinkValue} onChange={(e) => updateInstapayLink(e.target.value)} /></label>
+          <label><span>InstaPay Link (Rooms)</span><input value={roomsInstapayLinkValue} onChange={(e) => updateRoomsInstapayLink(e.target.value)} /></label>
           <label><span>Default Registration Fee</span><input defaultValue="Dynamic based on event" disabled /></label>
           <label><span>QR Reveal Time</span><input defaultValue="2026-12-31T18:00:00" /></label>
           <label><span>Venue Name</span><input defaultValue="ALSHAYEB ETERNUM" /></label>
