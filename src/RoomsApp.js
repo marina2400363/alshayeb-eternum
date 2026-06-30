@@ -130,6 +130,19 @@ export default function RoomsApp() {
     }
   }, [step, selectedHotel, setSearchParams]);
 
+  const [instapayLink, setInstapayLink] = useState("instapay://pay?pa=alshayeb@instapay");
+
+  useEffect(() => {
+    // Fetch global settings (like Instapay link)
+    apiFetch("/api/settings/public")
+      .then(res => {
+        if (res.success && res.instapayLink) {
+          setInstapayLink(res.instapayLink);
+        }
+      })
+      .catch(err => console.error("Failed to load settings", err));
+  }, []);
+
   // My Reservations state
   const [lookupPhone, setLookupPhone] = useState("");
   const [myReservationsList, setMyReservationsList] = useState([]);
@@ -721,7 +734,7 @@ export default function RoomsApp() {
                     </div>
                   </div>
 
-                  <a href="instapay://pay?pa=alshayeb@instapay" className="rooms-go-instapay-btn" target="_blank" rel="noopener noreferrer">
+                  <a href={instapayLink} className="rooms-go-instapay-btn" target="_blank" rel="noopener noreferrer">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '0.5rem'}}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                     GO TO INSTAPAY
                   </a>

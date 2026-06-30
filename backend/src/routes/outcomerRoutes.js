@@ -216,8 +216,8 @@ router.post(
       throw err;
     }
 
-    // Send application submitted email non-blocking
-    sendStatusEmail(
+    // Send application submitted email blocking on Vercel
+    await sendStatusEmail(
       attendee,
       "Your Application Has Been Received",
       "Your application has been successfully submitted.\nYour status is now under review.\nYou can track your application status anytime through the ALSHAYEB platform using your phone number.\nWe will notify you once a decision has been made."
@@ -229,6 +229,12 @@ router.post(
       registrationReceivedAt: new Date()
     };
     await attendee.save();
+
+    // Trigger export sync blocking on Vercel
+    const eventRecord = await Event.findById(req.body.eventId);
+    if (eventRecord) {
+      await syncEventExportSheet(eventRecord._id, eventRecord).catch(err => console.error("Export sync failed:", err));
+    }
 
     res.status(201).json({
       success: true,

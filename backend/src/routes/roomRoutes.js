@@ -105,8 +105,8 @@ router.post(
 
     res.status(201).json({ success: true, reservation });
 
-    // Sync to Google Sheets asynchronously
-    syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on creation", err));
+    // Sync to Google Sheets blocking on Vercel
+    await syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on creation", err));
   })
 );
 
@@ -166,11 +166,11 @@ Reservation Details:
 
 We will notify you once your reservation has been confirmed by our team.`;
 
-      sendRoomStatusEmail(populatedReservation, subject, message).catch(err => console.error("Email send trigger failed", err));
+      await sendRoomStatusEmail(populatedReservation, subject, message).catch(err => console.error("Email send trigger failed", err));
     }
 
-    // Sync to Google Sheets asynchronously
-    syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on payment proof", err));
+    // Sync to Google Sheets blocking on Vercel
+    await syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on payment proof", err));
 
     res.json({ success: true, reservation });
   })
