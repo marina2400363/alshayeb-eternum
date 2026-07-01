@@ -1,5 +1,7 @@
 const { google } = require("googleapis");
 const RoomReservation = require("../models/RoomReservation");
+const Hotel = require("../models/Hotel");
+const RoomType = require("../models/RoomType");
 
 function isGoogleConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
