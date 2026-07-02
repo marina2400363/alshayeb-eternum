@@ -24,7 +24,7 @@ function serializeAttendee(attendee) {
     applicationStatus: attendee.status,
     paymentStatus: attendee.paymentStatus,
     outcomerPhoto: attendee.outcomerPhoto || null,
-    paymentProof: attendee.paymentProof || null,
+    paymentProof: attendee.paymentProof?.url ? attendee.paymentProof : null,
     qrId: attendee.qrId || null,
     qrToken: attendee.qrToken || null,
     qrIssuedAt: attendee.qrIssuedAt || null,
