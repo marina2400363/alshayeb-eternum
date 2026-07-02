@@ -61,6 +61,7 @@ if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
+// Health Check Endpoint
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
