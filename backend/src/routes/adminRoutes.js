@@ -87,7 +87,10 @@ function buildAttendeeQuery(query) {
   }
 
   if (paymentReview) {
+    // Only show records in the Payment Review queue if they have actually uploaded a payment proof.
+    // This prevents incomplete drafts (users who abandoned the payment page) from cluttering the admin dashboard.
     filters.paymentStatus = { $in: ["pending", "under_verification", "rejected", "verified"] };
+    filters["paymentProof.url"] = { $exists: true, $ne: null };
   }
 
   if (search) {
