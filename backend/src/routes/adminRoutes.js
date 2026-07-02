@@ -105,6 +105,17 @@ function buildAttendeeQuery(query) {
     ];
   }
 
+  // GLOBAL GUARD: No outcomer should appear in ANY admin list as a real request 
+  // if they are just an incomplete draft without payment proof.
+  filters.$and = filters.$and || [];
+  filters.$and.push({
+    $or: [
+      { attendeeType: { $ne: "outcomer" } }, // Allow non-outcomers
+      { "paymentProof.url": { $exists: true, $ne: null, $ne: "" } }, // Allow outcomers with proof
+      { paymentStatus: { $in: ["verified", "approved"] } } // Allow manually verified ones just in case
+    ]
+  });
+
   return filters;
 }
 
@@ -113,13 +124,21 @@ async function dashboardStats() {
   const eventStats = [];
 
   for (const event of events) {
+    const excludeDrafts = {
+      $or: [
+        { attendeeType: { $ne: "outcomer" } },
+        { "paymentProof.url": { $exists: true, $ne: null, $ne: "" } },
+        { paymentStatus: { $in: ["verified", "approved"] } }
+      ]
+    };
+
     const [incomers, outcomers, approved, pending, rejected, total] = await Promise.all([
-      Attendee.countDocuments({ event: event._id, attendeeType: "incomer" }),
-      Attendee.countDocuments({ event: event._id, attendeeType: "outcomer" }),
-      Attendee.countDocuments({ event: event._id, status: "approved" }),
-      Attendee.countDocuments({ event: event._id, status: "pending" }),
-      Attendee.countDocuments({ event: event._id, status: "rejected" }),
-      Attendee.countDocuments({ event: event._id })
+      Attendee.countDocuments({ event: event._id, attendeeType: "incomer", ...excludeDrafts }),
+      Attendee.countDocuments({ event: event._id, attendeeType: "outcomer", ...excludeDrafts }),
+      Attendee.countDocuments({ event: event._id, status: "approved", ...excludeDrafts }),
+      Attendee.countDocuments({ event: event._id, status: "pending", ...excludeDrafts }),
+      Attendee.countDocuments({ event: event._id, status: "rejected", ...excludeDrafts }),
+      Attendee.countDocuments({ event: event._id, ...excludeDrafts })
     ]);
 
     eventStats.push({
@@ -135,11 +154,19 @@ async function dashboardStats() {
   }
 
   // Calculate globals if needed, but return eventStats
-  const totalApplications = await Attendee.countDocuments({});
-  const pendingReview = await Attendee.countDocuments({ status: "pending" });
-  const globalApproved = await Attendee.countDocuments({ status: "approved" });
-  const globalRejected = await Attendee.countDocuments({ status: "rejected" });
-  const used = await Attendee.countDocuments({ status: "used" });
+  const globalExclude = {
+    $or: [
+      { attendeeType: { $ne: "outcomer" } },
+      { "paymentProof.url": { $exists: true, $ne: null, $ne: "" } },
+      { paymentStatus: { $in: ["verified", "approved"] } }
+    ]
+  };
+
+  const totalApplications = await Attendee.countDocuments(globalExclude);
+  const pendingReview = await Attendee.countDocuments({ status: "pending", ...globalExclude });
+  const globalApproved = await Attendee.countDocuments({ status: "approved", ...globalExclude });
+  const globalRejected = await Attendee.countDocuments({ status: "rejected", ...globalExclude });
+  const used = await Attendee.countDocuments({ status: "used", ...globalExclude });
 
   return {
     eventStats,
