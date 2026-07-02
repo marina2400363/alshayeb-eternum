@@ -11,4 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Hit Sync Endpoint
-        run: curl -X GET https://www.alshayebexperience.com/api/sync/cron/sync-all
+        run: curl -X GET https://www.alshayebexperience.com/api/cron/sync-all
