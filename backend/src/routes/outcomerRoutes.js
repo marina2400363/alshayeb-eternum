@@ -9,6 +9,7 @@ const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { serializeAttendee } = require("../utils/serializers");
 const { sendStatusEmail } = require("../utils/email");
 const { uploadPaymentProof, uploadOutcomerPhoto } = require("../utils/cloudinaryUpload");
+const { syncEventExportSheet } = require("../services/googleSheetsExportSync");
 
 const router = express.Router();
 const allowedPaymentProofTypes = new Set(["image/png", "image/jpeg", "image/jpg"]);
@@ -216,25 +217,6 @@ router.post(
       throw err;
     }
 
-    // Send application submitted email blocking on Vercel
-    await sendStatusEmail(
-      attendee,
-      "Your Application Has Been Received",
-      "Your application has been successfully submitted.\nYour status is now under review.\nYou can track your application status anytime through the ALSHAYEB platform using your phone number.\nWe will notify you once a decision has been made."
-    );
-
-    // Save timestamp regardless of immediate success so we don't duplicate on retries
-    attendee.emailNotifications = {
-      ...attendee.emailNotifications,
-      registrationReceivedAt: new Date()
-    };
-    await attendee.save();
-
-    // Trigger export sync blocking on Vercel
-    const eventRecord = await Event.findById(req.body.eventId);
-    if (eventRecord) {
-      await syncEventExportSheet(eventRecord._id, eventRecord).catch(err => console.error("Export sync failed:", err));
-    }
 
     res.status(201).json({
       success: true,
@@ -279,9 +261,28 @@ router.post(
       throw apiError("Attendee was not found.", 404);
     }
 
+    // Send Under Review email ONLY after payment proof is uploaded
+    await sendStatusEmail(
+      attendee,
+      "Your Application Has Been Received",
+      "Your application has been successfully submitted.\nYour payment proof has been received and is now under review.\nYou can track your application status anytime through the ALSHAYEB platform using your phone number.\nWe will notify you once a decision has been made."
+    ).catch(err => console.error("Under review email failed:", err));
+
+    // Save email timestamp
+    attendee.emailNotifications = {
+      ...attendee.emailNotifications,
+      registrationReceivedAt: new Date()
+    };
+    await attendee.save();
+
+    // Trigger export sync
+    if (attendee.event) {
+      await syncEventExportSheet(attendee.event).catch(err => console.error("Export sync failed:", err));
+    }
+
     res.json({
       success: true,
-      message: "Payment proof placeholder saved.",
+      message: "Payment proof uploaded and under review.",
       attendee: serializeAttendee(attendee)
     });
   })
