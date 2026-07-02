@@ -2009,6 +2009,7 @@ function PublicWebsite() {
   if (page === "payment") {
     const rawFee = String(selectedEvent?.fee || "1800").replace(/EGP/i, "").trim() || "1800";
     const instapayLink = selectedEvent?.instapayLink || globalInstapayLink || null;
+    const hasProof = Boolean(request.screenshot && request.screenshotFile);
 
     return (
       <div className="pay-page">
@@ -2087,6 +2088,40 @@ function PublicWebsite() {
           </button>
         </div>
 
+        {/* Diamond divider before upload */}
+        <div className="pay-divider-row" style={{ marginTop: '28px' }}>
+          <div className="pay-divider-line"/>
+          <svg width="8" height="8" viewBox="0 0 9 9" fill="none">
+            <path d="M4.5 0.5 L8.5 4.5 L4.5 8.5 L0.5 4.5 Z" stroke="rgba(0,178,255,0.7)" strokeWidth="1" fill="none"/>
+          </svg>
+          <div className="pay-divider-line"/>
+        </div>
+
+        {/* Upload proof section — merged from upload page */}
+        <p className="upv-instruction" style={{ marginTop: '20px' }}>
+          After payment, upload a clear screenshot<br/>of your payment transaction.
+        </p>
+
+        <label className={`upv-card upv-upload-card ${errors.screenshot ? "upv-card-error" : ""}`} htmlFor="pay-upv-file-input">
+          <p className="upv-card-heading">UPLOAD PAYMENT SCREENSHOT</p>
+          <div className="upv-dropzone">
+            <svg width="52" height="52" viewBox="0 0 56 56" fill="none">
+              <rect x="2" y="2" width="52" height="52" rx="10" stroke="rgba(0,178,255,0.6)" strokeWidth="1.5" fill="rgba(0,178,255,0.06)"/>
+              <path d="M28 36V20M28 20L21 27M28 20L35 27" stroke="#00b2ff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="upv-tap-label">
+              {request.screenshot ? (
+                <span className="upv-tap-selected">{request.screenshot}</span>
+              ) : (
+                <span className="upv-tap-blue">Tap to upload</span>
+              )}
+            </p>
+            <p className="upv-format-hint">PNG, JPG or JPEG (max. 10MB)</p>
+          </div>
+          <input id="pay-upv-file-input" type="file" hidden accept="image/png,image/jpeg,image/jpg" onChange={handleScreenshotUpload} />
+        </label>
+        {errors.screenshot && <p className="upv-error">{errors.screenshot}</p>}
+
         {/* Lock notice */}
         <div className="pay-notice">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2096,14 +2131,16 @@ function PublicWebsite() {
           <p className="pay-notice-text">APPLICATIONS ARE REVIEWED<br/>ONLY AFTER PAYMENT CONFIRMATION.</p>
         </div>
 
-        {/* Completed payment button */}
-        <button className="pay-completed-btn" onClick={() => setPage("upload")}>
-          I HAVE COMPLETED PAYMENT
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        {/* Submit proof button — disabled until proof is selected */}
+        <button className="upv-submit-btn" onClick={submitRequest} disabled={isSubmitting || !hasProof}>
+          <span>{isSubmitting ? "SUBMITTING..." : "SUBMIT FOR REVIEW"}</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
           </svg>
         </button>
-        <p className="pay-receipt-sub">PROCEED TO UPLOAD RECEIPT</p>
+        {!hasProof && !isSubmitting && (
+          <p className="pay-receipt-sub">UPLOAD PAYMENT PROOF TO CONTINUE</p>
+        )}
       </div>
     );
   }

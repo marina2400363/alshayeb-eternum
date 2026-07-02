@@ -87,7 +87,8 @@ function buildAttendeeQuery(query) {
   }
 
   if (paymentReview) {
-    filters.paymentStatus = { $in: ["pending", "under_verification", "rejected", "verified"] };
+    filters.paymentStatus = { $in: ["under_verification", "rejected", "verified"] };
+    filters["paymentProof.url"] = { $exists: true, $ne: null };
   }
 
   if (search) {
