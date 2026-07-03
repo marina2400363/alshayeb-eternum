@@ -3966,8 +3966,12 @@ function OutcomersPage() {
               <div className="outcomer-status-row">
                 <span className={`status-badge ${statusClass(request.applicationStatus)}`}>{request.applicationStatus}</span>
                 <div className="table-actions">
-                  <button type="button" onClick={() => updateStatus(request.id, "Approved")}>Approve</button>
-                  <button type="button" onClick={() => updateStatus(request.id, "Rejected")}>Reject</button>
+                  {request.applicationStatus !== "Approved" && request.applicationStatus !== "Rejected" && (
+                    <>
+                      <button type="button" onClick={() => updateStatus(request.id, "Approved")}>Approve</button>
+                      <button type="button" onClick={() => updateStatus(request.id, "Rejected")}>Reject</button>
+                    </>
+                  )}
                 </div>
               </div>
             </article>
@@ -4030,8 +4034,12 @@ function PaymentsPage() {
                   View Full Screenshot
                 </a>
               )}
-              <button type="button" onClick={() => updatePayment(payment.id, "Verified")}>Approve Payment</button>
-              <button type="button" onClick={() => updatePayment(payment.id, "Rejected")}>Reject Payment</button>
+              {payment.paymentStatus !== "Verified" && payment.paymentStatus !== "Rejected" && (
+                <>
+                  <button type="button" onClick={() => updatePayment(payment.id, "Verified")}>Approve Payment</button>
+                  <button type="button" onClick={() => updatePayment(payment.id, "Rejected")}>Reject Payment</button>
+                </>
+              )}
             </div>
           </section>
         ))}
