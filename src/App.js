@@ -129,7 +129,8 @@ function toAdminAttendee(attendee) {
     event: attendeeProm(attendee),
     amount: attendee.event?.price ? `${attendee.event.price} EGP` : (attendee.amount || "TBA"),
     submittedAt: attendee.createdAt ? new Date(attendee.createdAt).toLocaleString() : "",
-    paymentProof: attendee.paymentProof
+    paymentProof: attendee.paymentProof,
+    outcomerPhoto: attendee.outcomerPhoto
   };
 }
 
@@ -3956,11 +3957,15 @@ function OutcomersPage() {
                 <div><span>INSTAGRAM USERNAME</span><strong>{request.instagramUsername}</strong></div>
                 <div><span>STATUS / CURRENT PHASE</span><strong>{request.applicationStatus}</strong></div>
                 <div><span>PROM</span><strong>{request.event}</strong></div>
-                {request.outcomerPhoto?.url && (
-                  <div><span>PERSONAL PHOTO</span><strong><a href={request.outcomerPhoto.url} target="_blank" rel="noreferrer" style={{color: "var(--accent)"}}>View Photo</a></strong></div>
-                )}
-                {request.paymentProof?.url && (
+                {request.paymentProof?.url ? (
                   <div><span>PAYMENT PROOF</span><strong><a href={request.paymentProof.url} target="_blank" rel="noreferrer" style={{color: "var(--accent)"}}>View Proof</a></strong></div>
+                ) : (
+                  <div><span>PAYMENT PROOF</span><strong style={{opacity: 0.45}}>Not Uploaded</strong></div>
+                )}
+                {request.outcomerPhoto?.url ? (
+                  <div><span>CLIENT PHOTO</span><strong><a href={request.outcomerPhoto.url} target="_blank" rel="noreferrer" style={{color: "var(--accent)"}}>View Photo</a></strong></div>
+                ) : (
+                  <div><span>CLIENT PHOTO</span><strong style={{opacity: 0.45}}>Not Uploaded</strong></div>
                 )}
               </div>
               <div className="outcomer-status-row">
