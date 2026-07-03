@@ -71,6 +71,19 @@ function buildSettingsUpdate(body, currentSettings) {
   };
 }
 
+// Returns a MongoDB condition that hides outcomer drafts with no payment proof.
+// Safe to use inside $and arrays or as a standalone match condition.
+// ONLY applies to list/count queries — never to action endpoints.
+function hideDraftsClause() {
+  return {
+    $or: [
+      { attendeeType: { $ne: "outcomer" } },
+      { "paymentProof.url": { $exists: true, $ne: null, $gt: "" } },
+      { paymentStatus: { $in: ["under_verification", "verified", "approved"] } }
+    ]
+  };
+}
+
 function buildAttendeeQuery(query) {
   const filters = {};
   const type = String(query.type || query.attendeeType || "").trim().toLowerCase();
@@ -87,10 +100,9 @@ function buildAttendeeQuery(query) {
   }
 
   if (paymentReview) {
-    // Only show records in the Payment Review queue if they have actually uploaded a payment proof.
-    // This prevents incomplete drafts (users who abandoned the payment page) from cluttering the admin dashboard.
+    // Only show records with proof uploaded in the Payment Review queue.
     filters.paymentStatus = { $in: ["pending", "under_verification", "rejected", "verified"] };
-    filters["paymentProof.url"] = { $exists: true, $ne: null };
+    filters["paymentProof.url"] = { $exists: true, $ne: null, $gt: "" };
   }
 
   if (search) {
@@ -105,16 +117,10 @@ function buildAttendeeQuery(query) {
     ];
   }
 
-  // GLOBAL GUARD: No outcomer should appear in ANY admin list as a real request 
-  // if they are just an incomplete draft without payment proof.
+  // Narrow guard: hide outcomer drafts without payment proof from all list queries.
+  // Action endpoints (approve/reject/payment-status) look up by ID directly and are NOT affected.
   filters.$and = filters.$and || [];
-  filters.$and.push({
-    $or: [
-      { attendeeType: { $ne: "outcomer" } }, // Allow non-outcomers
-      { "paymentProof.url": { $exists: true, $ne: null, $ne: "" } }, // Allow outcomers with proof
-      { paymentStatus: { $in: ["verified", "approved"] } } // Allow manually verified ones just in case
-    ]
-  });
+  filters.$and.push(hideDraftsClause());
 
   return filters;
 }
@@ -124,21 +130,15 @@ async function dashboardStats() {
   const eventStats = [];
 
   for (const event of events) {
-    const excludeDrafts = {
-      $or: [
-        { attendeeType: { $ne: "outcomer" } },
-        { "paymentProof.url": { $exists: true, $ne: null, $ne: "" } },
-        { paymentStatus: { $in: ["verified", "approved"] } }
-      ]
-    };
-
+    // Use $and to safely combine the event filter with the hideDraftsClause.
+    // Do NOT spread $or into top-level — that overwrites existing keys.
     const [incomers, outcomers, approved, pending, rejected, total] = await Promise.all([
-      Attendee.countDocuments({ event: event._id, attendeeType: "incomer", ...excludeDrafts }),
-      Attendee.countDocuments({ event: event._id, attendeeType: "outcomer", ...excludeDrafts }),
-      Attendee.countDocuments({ event: event._id, status: "approved", ...excludeDrafts }),
-      Attendee.countDocuments({ event: event._id, status: "pending", ...excludeDrafts }),
-      Attendee.countDocuments({ event: event._id, status: "rejected", ...excludeDrafts }),
-      Attendee.countDocuments({ event: event._id, ...excludeDrafts })
+      Attendee.countDocuments({ $and: [{ event: event._id, attendeeType: "incomer" }, hideDraftsClause()] }),
+      Attendee.countDocuments({ $and: [{ event: event._id, attendeeType: "outcomer" }, hideDraftsClause()] }),
+      Attendee.countDocuments({ $and: [{ event: event._id, status: "approved" }, hideDraftsClause()] }),
+      Attendee.countDocuments({ $and: [{ event: event._id, status: "pending" }, hideDraftsClause()] }),
+      Attendee.countDocuments({ $and: [{ event: event._id, status: "rejected" }, hideDraftsClause()] }),
+      Attendee.countDocuments({ $and: [{ event: event._id }, hideDraftsClause()] })
     ]);
 
     eventStats.push({
@@ -153,20 +153,12 @@ async function dashboardStats() {
     });
   }
 
-  // Calculate globals if needed, but return eventStats
-  const globalExclude = {
-    $or: [
-      { attendeeType: { $ne: "outcomer" } },
-      { "paymentProof.url": { $exists: true, $ne: null, $ne: "" } },
-      { paymentStatus: { $in: ["verified", "approved"] } }
-    ]
-  };
-
-  const totalApplications = await Attendee.countDocuments(globalExclude);
-  const pendingReview = await Attendee.countDocuments({ status: "pending", ...globalExclude });
-  const globalApproved = await Attendee.countDocuments({ status: "approved", ...globalExclude });
-  const globalRejected = await Attendee.countDocuments({ status: "rejected", ...globalExclude });
-  const used = await Attendee.countDocuments({ status: "used", ...globalExclude });
+  // Global counters — use $and to combine status filter with hideDraftsClause.
+  const totalApplications = await Attendee.countDocuments({ $and: [hideDraftsClause()] });
+  const pendingReview = await Attendee.countDocuments({ $and: [{ status: "pending" }, hideDraftsClause()] });
+  const globalApproved = await Attendee.countDocuments({ $and: [{ status: "approved" }, hideDraftsClause()] });
+  const globalRejected = await Attendee.countDocuments({ $and: [{ status: "rejected" }, hideDraftsClause()] });
+  const used = await Attendee.countDocuments({ $and: [{ status: "used" }, hideDraftsClause()] });
 
   return {
     eventStats,
