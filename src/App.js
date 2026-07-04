@@ -1367,7 +1367,15 @@ function PublicWebsite() {
     setErrors({});
 
     const formData = new FormData();
-    formData.append("attendeeId", trackedRegistration?._id || trackedRegistration?.id);
+    const actualId = trackedRegistration?._id || trackedRegistration?.id || request?._id || request?.id || request?.requestId;
+    
+    if (!actualId) {
+      setIsSubmitting(false);
+      setErrors({ screenshot: "Session expired. Please search your phone number in the Home page to continue." });
+      return;
+    }
+
+    formData.append("attendeeId", actualId);
     formData.append("paymentProof", request.screenshotFile);
 
     try {
