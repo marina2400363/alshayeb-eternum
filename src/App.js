@@ -3730,10 +3730,7 @@ function EventsPage() {
     }
     setConnectSheetSaving(true);
     try {
-      const event = connectSheetModal.event;
-      // Fetch current event data to avoid overwriting other fields
-      const currentData = await apiRequest(`/api/events/${event._id}`);
-      const ev = currentData.event || event;
+      const ev = connectSheetModal.event;
       const payload = {
         name: ev.name,
         slug: ev.slug,
@@ -3754,7 +3751,7 @@ function EventsPage() {
         description: ev.description || "",
         eventTypeLabel: ev.eventTypeLabel || "PROM"
       };
-      await apiRequest(`/api/events/${event._id}`, { method: "PUT", body: JSON.stringify(payload) });
+      await apiRequest(`/api/events/${ev._id}`, { method: "PUT", body: JSON.stringify(payload) });
       setConnectSheetModal({ open: false, event: null, sheetId: "", tabName: "Sheet1" });
       setRefreshKey(k => k + 1);
     } catch (err) {
