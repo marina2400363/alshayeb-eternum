@@ -3599,6 +3599,7 @@ function EventsPage() {
     description: "",
     eventTypeLabel: "PROM"
   });
+  const [bannerFile, setBannerFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(null);
 
