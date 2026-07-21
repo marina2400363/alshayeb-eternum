@@ -3764,7 +3764,7 @@ function EventsPage() {
   const handleGuestListPreview = async (event) => {
     setPreviewingGuestList(event._id);
     try {
-      const json = await apiRequest(`/api/sync/admin/events/${event._id}/guest-list-preview`, { method: "POST" });
+      const json = await apiRequest(`/api/admin/events/${event._id}/guest-list-preview`, { method: "POST" });
       setGuestListPreviewModal({ open: true, event, stats: json.stats });
     } catch (err) {
       alert(err.message);
@@ -3776,7 +3776,7 @@ function EventsPage() {
   const handleGuestListImport = async (event) => {
     setImportingGuestList(event._id);
     try {
-      const json = await apiRequest(`/api/sync/admin/events/${event._id}/guest-list-import`, { method: "POST" });
+      const json = await apiRequest(`/api/admin/events/${event._id}/guest-list-import`, { method: "POST" });
       alert(`Import Successful for ${event.name}!\n\nImported: ${json.stats?.importedCount || 0}\nCreated New: ${json.stats?.createdCount || 0}\nUpdated Existing: ${json.stats?.updatedCount || 0}\nInvalid Rows: ${json.stats?.invalidCount || 0}\nIn-sheet Duplicates: ${json.stats?.duplicateCount || 0}`);
       setGuestListPreviewModal({ open: false, event: null, stats: null });
       setRefreshKey(k => k + 1);
