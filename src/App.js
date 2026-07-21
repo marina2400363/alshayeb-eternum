@@ -4062,6 +4062,10 @@ function PaymentsPage() {
   );
 }
 
+// Session-level camera permission cache: avoids re-prompting every time the
+// scanner page is mounted during the same browser session.
+const _sessionCameraGranted = { current: false };
+
 function ScannerPage() {
   const [scanValue, setScanValue] = useState("");
   const [scanResult, setScanResult] = useState(null);
@@ -4073,6 +4077,8 @@ function ScannerPage() {
   const scanLoopRef = useRef(null);
   const scanningRef = useRef(false);
   const lastDetectedRef = useRef("");
+  // In-flight lock: prevents two concurrent validateScan calls (double-tap, rapid reads)
+  const isValidatingRef = useRef(false);
 
   const stopCamera = useCallback((updateStatus = true) => {
     scanningRef.current = false;
@@ -4096,8 +4102,8 @@ function ScannerPage() {
     const detail = requestError.message || "No matching QR credentials were found.";
     const normalized = detail.toLowerCase();
 
-    if (normalized.includes("used") || normalized.includes("already")) {
-      return { title: "Already Used", detail, status: "used" };
+    if (normalized.includes("used") || normalized.includes("already") || normalized.includes("scanned")) {
+      return { title: "Already Scanned", detail, status: "used" };
     }
 
     if (
@@ -4125,6 +4131,10 @@ function ScannerPage() {
       return;
     }
 
+    // In-flight lock: ignore rapid duplicate reads / double-taps
+    if (isValidatingRef.current) return;
+    isValidatingRef.current = true;
+
     try {
       const result = await apiRequest("/api/scanner/validate", {
         method: "POST",
@@ -4137,14 +4147,28 @@ function ScannerPage() {
 
       const attendeeDetail = result.attendee ? `${attendeeName(result.attendee)} / ${attendeeProm(result.attendee)}` : "Entry token validated.";
       setScanValue(qrCredential);
-      setScanResult({
-        title: result.valid ? "Access Granted" : "Access Denied",
-        detail: result.message || result.reason || attendeeDetail,
-        status: result.valid ? "active" : "denied"
-      });
+
+      // Correctly distinguish "Already Scanned" (valid=false, reason contains 'already')
+      // from a generic access-denied so the UI shows the right colour/title.
+      const reasonText = (result.reason || "").toLowerCase();
+      const isAlreadyScanned = !result.valid && (reasonText.includes("already") || reasonText.includes("scanned"));
+
+      setScanResult(
+        isAlreadyScanned
+          ? { title: "Already Scanned", detail: result.reason, status: "used" }
+          : {
+              title: result.valid ? "Access Granted" : "Access Denied",
+              detail: result.message || result.reason || attendeeDetail,
+              status: result.valid ? "active" : "denied"
+            }
+      );
     } catch (requestError) {
       setScanValue(qrCredential);
       setScanResult(formatScannerError(requestError));
+    } finally {
+      // Release the lock after a 1.5 s cooldown so the camera won't re-read
+      // the same QR label while it's still in frame.
+      setTimeout(() => { isValidatingRef.current = false; }, 1500);
     }
   }, [formatScannerError, scanValue]);
 
@@ -4185,9 +4209,14 @@ function ScannerPage() {
 
     stopCamera();
     lastDetectedRef.current = "";
+    isValidatingRef.current = false;
     setScanResult(null);
     setCameraStatus("starting");
-    setCameraMessage("Requesting camera permission...");
+
+    // Only show the "requesting permission" message the very first time this session.
+    // After permission is already granted, the browser opens the camera immediately
+    // without any prompt, so there is no need to tell the user to wait.
+    setCameraMessage(_sessionCameraGranted.current ? "Starting camera..." : "Requesting camera permission...");
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -4198,6 +4227,9 @@ function ScannerPage() {
           height: { ideal: 720 }
         }
       });
+
+      // Mark permission as granted for the rest of this browser session
+      _sessionCameraGranted.current = true;
 
       streamRef.current = stream;
       if (videoRef.current) {
@@ -4214,8 +4246,9 @@ function ScannerPage() {
       stopCamera();
 
       if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError") {
+        _sessionCameraGranted.current = false;
         setCameraStatus("denied");
-        setCameraMessage("Camera permission was denied. Enable camera access or use manual input below.");
+        setCameraMessage("Camera permission was denied. Please enable camera access in your browser settings, then tap Start Camera again.");
       } else if (errorName === "NotFoundError" || errorName === "OverconstrainedError") {
         setCameraStatus("unavailable");
         setCameraMessage("No usable camera was found on this device. Use manual input below.");
