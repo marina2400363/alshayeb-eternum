@@ -106,4 +106,41 @@ router.post(
   })
 );
 
+// Manual auto-sync trigger for Admin Portal (Guest List)
+router.post(
+  "/admin/events/:id/guest-list-sync",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    try {
+      const stats = await importGuestListSheet(req.params.id);
+      
+      const event = await Event.findById(req.params.id);
+      if (event) {
+        event.guestListSync = {
+          ...(event.guestListSync || {}),
+          lastAutoSyncAt: new Date(),
+          lastAutoSyncStatus: "success",
+          lastAutoSyncCreated: stats.createdCount || 0,
+          lastAutoSyncUpdated: stats.updatedCount || 0,
+          lastAutoSyncInvalid: stats.invalidCount || 0
+        };
+        await event.save();
+      }
+      
+      res.json({ success: true, stats });
+    } catch (err) {
+      const event = await Event.findById(req.params.id);
+      if (event) {
+        event.guestListSync = {
+          ...(event.guestListSync || {}),
+          lastAutoSyncAt: new Date(),
+          lastAutoSyncStatus: "error"
+        };
+        await event.save();
+      }
+      throw apiError(`Sync failed: ${err.message}`, 400);
+    }
+  })
+);
+
 module.exports = router;

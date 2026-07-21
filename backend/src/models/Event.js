@@ -83,7 +83,12 @@ const eventSchema = new mongoose.Schema(
       createdCount: { type: Number, default: 0 },
       updatedCount: { type: Number, default: 0 },
       invalidCount: { type: Number, default: 0 },
-      duplicateCount: { type: Number, default: 0 }
+      duplicateCount: { type: Number, default: 0 },
+      lastAutoSyncAt: Date,
+      lastAutoSyncStatus: String,
+      lastAutoSyncCreated: { type: Number, default: 0 },
+      lastAutoSyncUpdated: { type: Number, default: 0 },
+      lastAutoSyncInvalid: { type: Number, default: 0 }
     },
     bannerImageUrl: {
       type: String,

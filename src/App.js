@@ -3709,6 +3709,7 @@ function EventsPage() {
 
   const [previewingGuestList, setPreviewingGuestList] = useState(null);
   const [importingGuestList, setImportingGuestList] = useState(null);
+  const [syncingGuestList, setSyncingGuestList] = useState(null);
   const [guestListPreviewModal, setGuestListPreviewModal] = useState({ open: false, event: null, stats: null });
   const [connectSheetModal, setConnectSheetModal] = useState({ open: false, event: null, sheetId: "", tabName: "Sheet1" });
   const [connectSheetSaving, setConnectSheetSaving] = useState(false);
@@ -3784,6 +3785,19 @@ function EventsPage() {
       alert(err.message);
     } finally {
       setImportingGuestList(null);
+    }
+  };
+
+  const handleGuestListSyncNow = async (event) => {
+    setSyncingGuestList(event._id);
+    try {
+      const json = await apiRequest(`/api/admin/events/${event._id}/guest-list-sync`, { method: "POST" });
+      alert(`Auto-Sync Successful for ${event.name}!\n\nNew Attendees: ${json.stats?.createdCount || 0}\nUpdated Profiles: ${json.stats?.updatedCount || 0}`);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSyncingGuestList(null);
     }
   };
 
@@ -3881,9 +3895,9 @@ function EventsPage() {
                   </div>
 
                   {syncInfo.lastImportAt && (
-                    <div style={{ background: "rgba(255,255,255,0.03)", padding: "0.75rem", borderRadius: "6px", fontSize: "0.8rem", marginBottom: "1rem" }}>
+                    <div style={{ background: "rgba(255,255,255,0.03)", padding: "0.75rem", borderRadius: "6px", fontSize: "0.8rem", marginBottom: "0.5rem" }}>
                       <div style={{ color: "#94a3b8", marginBottom: "4px" }}>
-                        <strong>LAST IMPORT:</strong> {new Date(syncInfo.lastImportAt).toLocaleString()}
+                        <strong>LAST MANUAL IMPORT:</strong> {new Date(syncInfo.lastImportAt).toLocaleString()}
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                         <span>Imported: <strong>{syncInfo.importedCount || 0}</strong></span>
@@ -3894,10 +3908,24 @@ function EventsPage() {
                     </div>
                   )}
 
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {syncInfo.lastAutoSyncAt && (
+                    <div style={{ background: "rgba(0,178,255,0.05)", border: "1px solid rgba(0,178,255,0.2)", padding: "0.75rem", borderRadius: "6px", fontSize: "0.8rem", marginBottom: "1rem" }}>
+                      <div style={{ color: "#00b2ff", marginBottom: "4px" }}>
+                        <strong>LAST AUTO-SYNC:</strong> {new Date(syncInfo.lastAutoSyncAt).toLocaleString()}
+                        {syncInfo.lastAutoSyncStatus === "error" && <span style={{ color: "#ffb3c6", marginLeft: "8px" }}>(FAILED)</span>}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+                        <span>Created: <strong>{syncInfo.lastAutoSyncCreated || 0}</strong></span>
+                        <span>Updated: <strong>{syncInfo.lastAutoSyncUpdated || 0}</strong></span>
+                        <span>Invalid: <strong style={{ color: syncInfo.lastAutoSyncInvalid > 0 ? "#ffb3c6" : "inherit" }}>{syncInfo.lastAutoSyncInvalid || 0}</strong></span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                     <button
                       className="purple-btn"
-                      style={{ flex: 1, padding: "8px", fontSize: "0.85rem" }}
+                      style={{ flex: "1 1 45%", padding: "8px", fontSize: "0.85rem" }}
                       onClick={() => handleGuestListPreview(event)}
                       disabled={!hasSheet || previewingGuestList === event._id}
                     >
@@ -3905,11 +3933,19 @@ function EventsPage() {
                     </button>
                     <button
                       className="ghost-btn"
-                      style={{ flex: 1, padding: "8px", fontSize: "0.85rem" }}
+                      style={{ flex: "1 1 45%", padding: "8px", fontSize: "0.85rem" }}
                       onClick={() => handleGuestListImport(event)}
                       disabled={!hasSheet || importingGuestList === event._id}
                     >
                       {importingGuestList === event._id ? "Importing..." : syncInfo.lastImportAt ? "Re-import" : "Import Valid"}
+                    </button>
+                    <button
+                      className="admin-btn"
+                      style={{ flex: "1 1 100%", padding: "8px", fontSize: "0.85rem", marginTop: "4px" }}
+                      onClick={() => handleGuestListSyncNow(event)}
+                      disabled={!hasSheet || syncingGuestList === event._id}
+                    >
+                      {syncingGuestList === event._id ? "Syncing..." : "Sync Now"}
                     </button>
                   </div>
                 </div>
