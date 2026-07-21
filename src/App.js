@@ -3599,7 +3599,110 @@ function EventsPage() {
     description: "",
     eventTypeLabel: "PROM"
   });
-  const [bannerFile, setBannerFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(null);
+
+  const handleOpenModal = (event = null) => {
+    if (event) {
+      setEditingEvent(event);
+      setFormData({
+        name: event.name || "",
+        slug: event.slug || "",
+        date: event.date ? event.date.split('T')[0] : "",
+        entryTime: event.entryTime || "21:30",
+        venue: event.venue || "ALSHAYEB ETERNUM",
+        status: event.status || "available",
+        prefix: event.prefix || "",
+        price: event.price || 1800,
+        googleSheetId: event.googleSheetId || "",
+        exportGoogleSheetId: event.exportGoogleSheetId || "",
+        guestListSheetId: event.guestListSheetId || "",
+        guestListTabName: event.guestListTabName || "Sheet1",
+        schools: (event.schools || []).join(", "),
+        displayOrder: event.displayOrder !== undefined && event.displayOrder !== null && event.displayOrder !== 999 ? event.displayOrder : "",
+        bannerImageUrl: event.bannerImageUrl || "",
+        tagline: event.tagline || "",
+        description: event.description || "",
+        eventTypeLabel: event.eventTypeLabel || "PROM"
+      });
+      setBannerFile(null);
+    } else {
+      setEditingEvent(null);
+      setFormData({
+        name: "",
+        slug: "",
+        date: "",
+        entryTime: "21:30",
+        venue: "ALSHAYEB ETERNUM",
+        status: "available",
+        prefix: "",
+        price: 1800,
+        googleSheetId: "",
+        exportGoogleSheetId: "",
+        guestListSheetId: "",
+        guestListTabName: "Sheet1",
+        schools: "",
+        displayOrder: "",
+        bannerImageUrl: "",
+        tagline: "",
+        description: "",
+        eventTypeLabel: "PROM"
+      });
+      setBannerFile(null);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    
+    try {
+      const payload = {
+        ...formData,
+        schools: formData.schools.split(",").map(s => s.trim()).filter(Boolean)
+      };
+      
+      const method = editingEvent ? "PUT" : "POST";
+      const url = editingEvent ? `/api/events/${editingEvent._id}` : "/api/events";
+      
+      const json = await apiRequest(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+      
+      if (json.success && bannerFile) {
+        const uploadData = new FormData();
+        uploadData.append("bannerImage", bannerFile);
+        
+        await apiRequest(`/api/events/${json.event._id}/banner`, {
+          method: "POST",
+          body: uploadData
+        });
+      }
+      
+      setIsModalOpen(false);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSync = async (eventId) => {
+    if (!window.confirm("Manually trigger Google Sheets sync? (Note: Automated sync runs every 5 mins)")) return;
+    setSyncing(eventId);
+    try {
+      const json = await apiRequest(`/api/admin/events/${eventId}/sync`, { method: "POST" });
+      alert(`Sync Success! Imported: ${json.stats?.imported || 0}, Skipped: ${json.stats?.skipped || 0}, Errors: ${json.stats?.errors || 0}\n\nDebug: ${JSON.stringify(json.stats?.debug?.colIdx)}`);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   const [previewingGuestList, setPreviewingGuestList] = useState(null);
   const [importingGuestList, setImportingGuestList] = useState(null);
