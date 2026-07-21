@@ -39,12 +39,12 @@ router.post(
       );
 
       if (claimed) {
-        // 🟢 Non-blocking Google Sheets scan log — fires and forgets.
-        // The scan response is sent immediately below; if Sheets fails,
-        // the MongoDB write is already committed and cannot be rolled back.
-        appendSuccessfulScanToSheet(claimed).catch((sheetErr) => {
-          console.error("[ScanLog] Non-blocking Sheets append failed:", sheetErr.message);
-        });
+        // ── Google Sheets scan log ────────────────────────────────────────────
+        // On Vercel serverless, background promises are terminated the moment
+        // the response is sent. We await here so the append completes before
+        // we respond. appendSuccessfulScanToSheet has its own internal try/catch
+        // and will NEVER throw — so this cannot block or fail the scan.
+        await appendSuccessfulScanToSheet(claimed);
 
         // 🟢 Clean first scan
         return res.json({
