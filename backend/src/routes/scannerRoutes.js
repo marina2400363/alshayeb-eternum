@@ -4,6 +4,7 @@ const Attendee = require("../models/Attendee");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { serializeAttendee } = require("../utils/serializers");
+const { appendSuccessfulScanToSheet } = require("../services/googleSheetsScanLog");
 
 const router = express.Router();
 
@@ -38,6 +39,13 @@ router.post(
       );
 
       if (claimed) {
+        // 🟢 Non-blocking Google Sheets scan log — fires and forgets.
+        // The scan response is sent immediately below; if Sheets fails,
+        // the MongoDB write is already committed and cannot be rolled back.
+        appendSuccessfulScanToSheet(claimed).catch((sheetErr) => {
+          console.error("[ScanLog] Non-blocking Sheets append failed:", sheetErr.message);
+        });
+
         // 🟢 Clean first scan
         return res.json({
           success: true,
