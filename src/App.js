@@ -3592,6 +3592,8 @@ function EventsPage() {
     price: 1800,
     googleSheetId: "",
     exportGoogleSheetId: "",
+    guestListSheetId: "",
+    guestListTabName: "Sheet1",
     schools: "",
     displayOrder: "",
     bannerImageUrl: "",
