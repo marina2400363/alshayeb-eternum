@@ -216,3 +216,76 @@ code {
     padding: 2rem;
   }
 }
+
+/* Scanner Attendee Card */
+.scanner-attendee-card {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+.scanner-attendee-photo-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+.scanner-attendee-photo {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+.scanner-attendee-no-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.4);
+  gap: 8px;
+  font-size: 0.8rem;
+}
+.scanner-attendee-details p {
+  margin: 4px 0;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+}
+.scanner-attendee-details p strong {
+  color: #94a3b8;
+  margin-right: 6px;
+}
+.scanner-already-scanned-warning {
+  margin-top: 15px;
+  padding: 10px;
+  background: rgba(255, 51, 102, 0.1);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+  border-radius: 6px;
+}
+.scanner-already-scanned-warning p {
+  color: #ffb3c6;
+  margin: 0;
+  font-size: 0.9rem;
+}
+.scanner-already-scanned-warning p strong {
+  color: #ff3366;
+}
+@media (min-width: 480px) {
+  .scanner-attendee-card {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .scanner-attendee-photo-container {
+    width: auto;
+    margin-bottom: 0;
+  }
+}
+

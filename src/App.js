@@ -78,6 +78,7 @@ async function apiRequest(path, options = {}) {
   if (!response.ok) {
     const error = new Error(result.message || result.reason || "Backend request failed.");
     error.details = result.details;
+    error.attendee = result.attendee;
     throw error;
   }
 
@@ -238,15 +239,18 @@ function normalizeEventFee(fee) {
 }
 
 function eventDateTimeValue(event) {
-  if (event?.date && event?.entryTime) {
+  const rawDateStr = event?.dateTime || event?.date;
+  if (rawDateStr && event?.entryTime) {
     try {
-      const d = new Date(event.date);
-      const [hours, minutes] = event.entryTime.split(':');
-      d.setHours(parseInt(hours, 10) || 21, parseInt(minutes, 10) || 30, 0, 0);
-      return d.toISOString();
+      const d = new Date(rawDateStr);
+      if (!isNaN(d.getTime())) {
+        const [hours, minutes] = event.entryTime.split(':');
+        d.setHours(parseInt(hours, 10) || 21, parseInt(minutes, 10) || 30, 0, 0);
+        return d.toISOString();
+      }
     } catch (e) {}
   }
-  return event?.dateTime || event?.date || QR_REVEAL_TIME;
+  return rawDateStr || QR_REVEAL_TIME;
 }
 
 function formatCountdownUnit(value) {
@@ -4090,6 +4094,42 @@ function PaymentsPage() {
 // scanner page is mounted during the same browser session.
 const _sessionCameraGranted = { current: false };
 
+function ScannerAttendeeCard({ attendee, isAlreadyScanned }) {
+  if (!attendee) return null;
+
+  const photoUrl = attendee.outcomerPhoto?.url || attendee.outcomerPhoto;
+
+  return (
+    <div className="scanner-attendee-card">
+      <div className="scanner-attendee-photo-container">
+        {photoUrl ? (
+          <img src={photoUrl} alt="Attendee" className="scanner-attendee-photo" />
+        ) : (
+          <div className="scanner-attendee-no-photo">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>No Photo</span>
+          </div>
+        )}
+      </div>
+      <div className="scanner-attendee-details">
+        <p><strong>Name:</strong> {attendee.fullName || attendee.name || "N/A"}</p>
+        <p><strong>Access Type:</strong> {normalizeStatusLabel(attendee.accessType || attendee.attendeeType || "N/A")}</p>
+        <p><strong>Phone:</strong> {attendee.phone || attendee.phoneNumber || "N/A"}</p>
+        {attendee.university && attendee.university !== "—" && <p><strong>School:</strong> {attendee.university}</p>}
+        {attendee.eventName && attendee.eventName !== "N/A" && <p><strong>Event:</strong> {attendee.eventName}</p>}
+        
+        {isAlreadyScanned && attendee.scannedAt && (
+          <div className="scanner-already-scanned-warning">
+            <p><strong>Original Scan:</strong> {new Date(attendee.scannedAt).toLocaleString()}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ScannerPage() {
   const [scanValue, setScanValue] = useState("");
   const [scanResult, setScanResult] = useState(null);
@@ -4125,9 +4165,10 @@ function ScannerPage() {
   const formatScannerError = useCallback((requestError) => {
     const detail = requestError.message || "No matching QR credentials were found.";
     const normalized = detail.toLowerCase();
+    const attendee = requestError.attendee;
 
     if (normalized.includes("used") || normalized.includes("already") || normalized.includes("scanned")) {
-      return { title: "Already Scanned", detail, status: "used" };
+      return { title: "Already Scanned", detail, status: "used", attendee };
     }
 
     if (
@@ -4138,10 +4179,10 @@ function ScannerPage() {
       normalized.includes("declined") ||
       normalized.includes("not approved")
     ) {
-      return { title: "Access Denied", detail, status: "denied" };
+      return { title: "Access Denied", detail, status: "denied", attendee };
     }
 
-    return { title: "Invalid QR", detail, status: "invalid" };
+    return { title: "Invalid QR", detail, status: "invalid", attendee };
   }, []);
 
   const validateScan = useCallback(async (value = scanValue) => {
@@ -4179,11 +4220,12 @@ function ScannerPage() {
 
       setScanResult(
         isAlreadyScanned
-          ? { title: "Already Scanned", detail: result.reason, status: "used" }
+          ? { title: "Already Scanned", detail: result.reason, status: "used", attendee: result.attendee }
           : {
               title: result.valid ? "Access Granted" : "Access Denied",
               detail: result.message || result.reason || attendeeDetail,
-              status: result.valid ? "active" : "denied"
+              status: result.valid ? "active" : "denied",
+              attendee: result.attendee
             }
       );
     } catch (requestError) {
@@ -4316,6 +4358,12 @@ function ScannerPage() {
           <div className={`scan-result-card ${scanResult.status}`}>
             <h3>{scanResult.title}</h3>
             <p>{scanResult.detail}</p>
+            {scanResult.attendee && (
+              <ScannerAttendeeCard 
+                attendee={scanResult.attendee} 
+                isAlreadyScanned={scanResult.status === "used"} 
+              />
+            )}
           </div>
         )}
       </section>
