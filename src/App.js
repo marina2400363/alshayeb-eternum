@@ -3710,6 +3710,59 @@ function EventsPage() {
   const [previewingGuestList, setPreviewingGuestList] = useState(null);
   const [importingGuestList, setImportingGuestList] = useState(null);
   const [guestListPreviewModal, setGuestListPreviewModal] = useState({ open: false, event: null, stats: null });
+  const [connectSheetModal, setConnectSheetModal] = useState({ open: false, event: null, sheetId: "", tabName: "Sheet1" });
+  const [connectSheetSaving, setConnectSheetSaving] = useState(false);
+
+  const handleOpenConnectSheet = (event) => {
+    setConnectSheetModal({
+      open: true,
+      event,
+      sheetId: event.guestListSheetId || "",
+      tabName: event.guestListTabName || "Sheet1"
+    });
+  };
+
+  const handleSaveConnectSheet = async (e) => {
+    e.preventDefault();
+    if (!connectSheetModal.sheetId.trim()) {
+      alert("Please enter a Google Sheet ID.");
+      return;
+    }
+    setConnectSheetSaving(true);
+    try {
+      const event = connectSheetModal.event;
+      // Fetch current event data to avoid overwriting other fields
+      const currentData = await apiRequest(`/api/events/${event._id}`);
+      const ev = currentData.event || event;
+      const payload = {
+        name: ev.name,
+        slug: ev.slug,
+        date: ev.date,
+        entryTime: ev.entryTime,
+        venue: ev.venue,
+        status: ev.status,
+        prefix: ev.prefix,
+        price: ev.price,
+        googleSheetId: ev.googleSheetId || "",
+        exportGoogleSheetId: ev.exportGoogleSheetId || "",
+        guestListSheetId: connectSheetModal.sheetId.trim(),
+        guestListTabName: connectSheetModal.tabName.trim() || "Sheet1",
+        schools: ev.schools || [],
+        displayOrder: ev.displayOrder,
+        bannerImageUrl: ev.bannerImageUrl || "",
+        tagline: ev.tagline || "",
+        description: ev.description || "",
+        eventTypeLabel: ev.eventTypeLabel || "PROM"
+      };
+      await apiRequest(`/api/events/${event._id}`, { method: "PUT", body: JSON.stringify(payload) });
+      setConnectSheetModal({ open: false, event: null, sheetId: "", tabName: "Sheet1" });
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setConnectSheetSaving(false);
+    }
+  };
 
   const handleGuestListPreview = async (event) => {
     setPreviewingGuestList(event._id);
@@ -3814,8 +3867,8 @@ function EventsPage() {
                       <strong style={{ fontSize: "1.1rem", color: "#fff" }}>{event.name}</strong>
                       <span className="status-badge active" style={{ marginLeft: "8px" }}>{event.prefix}</span>
                     </div>
-                    <button className="mini-admin-btn" style={{ padding: "3px 8px", fontSize: "0.75rem" }} onClick={() => handleOpenModal(event)}>
-                      {hasSheet ? "Change Sheet" : "+ Connect Sheet"}
+                    <button className="mini-admin-btn" style={{ padding: "3px 8px", fontSize: "0.75rem" }} onClick={() => handleOpenConnectSheet(event)}>
+                      {hasSheet ? "✏️ Change Sheet" : "+ Connect Sheet"}
                     </button>
                   </div>
 
@@ -4044,6 +4097,44 @@ function EventsPage() {
               <div className="admin-modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
                 <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Event"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* CONNECT SHEET MODAL */}
+      {connectSheetModal.open && (
+        <div className="admin-modal-overlay" onClick={() => setConnectSheetModal({ open: false, event: null, sheetId: "", tabName: "Sheet1" })}>
+          <div className="admin-modal" style={{ maxWidth: "480px" }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: "0.25rem" }}>Connect Guest List Sheet</h3>
+            <p className="muted" style={{ marginBottom: "1.5rem", fontSize: "0.85rem" }}>
+              Event: <strong style={{ color: "#fff" }}>{connectSheetModal.event?.name}</strong>
+            </p>
+            <form autoComplete="off" onSubmit={handleSaveConnectSheet}>
+              <div className="form-group">
+                <label>Google Sheet ID</label>
+                <input
+                  required
+                  placeholder="e.g. 1LOqW8mFVRUvB8vM4qC5oWbcqRlhDOkPJkwALoV9N2vI"
+                  value={connectSheetModal.sheetId}
+                  onChange={e => setConnectSheetModal(m => ({ ...m, sheetId: e.target.value }))}
+                  style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
+                />
+                <small className="muted">Paste the ID from the Google Sheets URL — the long string after /d/</small>
+              </div>
+              <div className="form-group" style={{ marginTop: "1rem" }}>
+                <label>Sheet Tab Name</label>
+                <input
+                  required
+                  placeholder="Sheet1"
+                  value={connectSheetModal.tabName}
+                  onChange={e => setConnectSheetModal(m => ({ ...m, tabName: e.target.value }))}
+                />
+                <small className="muted">The exact name of the tab (bottom of the sheet) containing your guest list</small>
+              </div>
+              <div className="admin-modal-actions" style={{ marginTop: "1.5rem" }}>
+                <button type="button" className="btn-secondary" onClick={() => setConnectSheetModal({ open: false, event: null, sheetId: "", tabName: "Sheet1" })}>Cancel</button>
+                <button type="submit" disabled={connectSheetSaving}>{connectSheetSaving ? "Saving..." : "Save Sheet Settings"}</button>
               </div>
             </form>
           </div>
