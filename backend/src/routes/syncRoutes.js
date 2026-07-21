@@ -41,7 +41,9 @@ router.get(
   })
 );
 
-// Manual sync endpoint for Admin Portal
+const { previewGuestListSheet, importGuestListSheet } = require("../services/googleSheetsGuestListSync");
+
+// Manual sync endpoint for Admin Portal (Incomers)
 router.post(
   "/admin/events/:id/sync",
   requireAdmin,
@@ -61,6 +63,45 @@ router.post(
         await event.save();
       }
       throw apiError(`Sync failed: ${err.message}`, 400);
+    }
+  })
+);
+
+// Preview Guest List Google Sheet for an event
+router.post(
+  "/admin/events/:id/guest-list-preview",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { sheetId, tabName } = req.body || {};
+    try {
+      const stats = await previewGuestListSheet(req.params.id, sheetId, tabName);
+      res.json({ success: true, stats });
+    } catch (err) {
+      throw apiError(`Preview failed: ${err.message}`, 400);
+    }
+  })
+);
+
+// Import Guest List Google Sheet for an event into MongoDB
+router.post(
+  "/admin/events/:id/guest-list-import",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { sheetId, tabName } = req.body || {};
+    try {
+      const stats = await importGuestListSheet(req.params.id, sheetId, tabName);
+      res.json({ success: true, stats });
+    } catch (err) {
+      const event = await Event.findById(req.params.id);
+      if (event) {
+        event.guestListSync = {
+          ...(event.guestListSync || {}),
+          lastImportAt: new Date(),
+          lastImportStatus: "error"
+        };
+        await event.save();
+      }
+      throw apiError(`Import failed: ${err.message}`, 400);
     }
   })
 );

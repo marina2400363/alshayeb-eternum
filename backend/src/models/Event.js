@@ -60,12 +60,30 @@ const eventSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    guestListSheetId: {
+      type: String,
+      trim: true
+    },
+    guestListTabName: {
+      type: String,
+      trim: true,
+      default: "Sheet1"
+    },
     sync: {
       lastSyncAt: Date,
       lastSyncStatus: String,
       importedCount: { type: Number, default: 0 },
       skippedCount: { type: Number, default: 0 },
       errorCount: { type: Number, default: 0 }
+    },
+    guestListSync: {
+      lastImportAt: Date,
+      lastImportStatus: String,
+      importedCount: { type: Number, default: 0 },
+      createdCount: { type: Number, default: 0 },
+      updatedCount: { type: Number, default: 0 },
+      invalidCount: { type: Number, default: 0 },
+      duplicateCount: { type: Number, default: 0 }
     },
     bannerImageUrl: {
       type: String,

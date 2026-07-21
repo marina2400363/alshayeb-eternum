@@ -987,6 +987,10 @@ function PublicWebsite() {
     if (existing && routeExistingRegistration(existing)) return;
 
     setFoundClient(null);
+    if (page === "guestList") {
+      setErrors((prev) => ({ ...prev, phoneSearch: "Your number is not registered on this Guest List." }));
+      return;
+    }
     setErrors((prev) => ({ ...prev, phoneSearch: "" }));
     setPage("notfound");
   };
@@ -3597,104 +3601,33 @@ function EventsPage() {
   });
   const [bannerFile, setBannerFile] = useState(null);
 
-  const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(null);
+  const [previewingGuestList, setPreviewingGuestList] = useState(null);
+  const [importingGuestList, setImportingGuestList] = useState(null);
+  const [guestListPreviewModal, setGuestListPreviewModal] = useState({ open: false, event: null, stats: null });
 
-  const handleOpenModal = (event = null) => {
-    if (event) {
-      setEditingEvent(event);
-      setFormData({
-        name: event.name || "",
-        slug: event.slug || "",
-        date: event.date ? event.date.split('T')[0] : "",
-        entryTime: event.entryTime || "21:30",
-        venue: event.venue || "ALSHAYEB ETERNUM",
-        status: event.status || "available",
-        prefix: event.prefix || "",
-        price: event.price || 1800,
-        googleSheetId: event.googleSheetId || "",
-        exportGoogleSheetId: event.exportGoogleSheetId || "",
-        schools: (event.schools || []).join(", "),
-        displayOrder: event.displayOrder !== undefined && event.displayOrder !== null && event.displayOrder !== 999 ? event.displayOrder : "",
-        bannerImageUrl: event.bannerImageUrl || "",
-        tagline: event.tagline || "",
-        description: event.description || "",
-        eventTypeLabel: event.eventTypeLabel || "PROM"
-      });
-      setBannerFile(null);
-    } else {
-      setEditingEvent(null);
-      setFormData({
-        name: "",
-        slug: "",
-        date: "",
-        entryTime: "21:30",
-        venue: "ALSHAYEB ETERNUM",
-        status: "available",
-        prefix: "",
-        price: 1800,
-        googleSheetId: "",
-        exportGoogleSheetId: "",
-        schools: "",
-        displayOrder: "",
-        bannerImageUrl: "",
-        tagline: "",
-        description: "",
-        eventTypeLabel: "PROM"
-      });
-      setBannerFile(null);
+  const handleGuestListPreview = async (event) => {
+    setPreviewingGuestList(event._id);
+    try {
+      const json = await apiRequest(`/api/sync/admin/events/${event._id}/guest-list-preview`, { method: "POST" });
+      setGuestListPreviewModal({ open: true, event, stats: json.stats });
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setPreviewingGuestList(null);
     }
-    setIsModalOpen(true);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    
+  const handleGuestListImport = async (event) => {
+    setImportingGuestList(event._id);
     try {
-      const payload = {
-        ...formData,
-        schools: formData.schools.split(",").map(s => s.trim()).filter(Boolean)
-      };
-      
-      const method = editingEvent ? "PUT" : "POST";
-      const url = editingEvent ? `/api/events/${editingEvent._id}` : "/api/events";
-      
-      const json = await apiRequest(url, {
-        method,
-        body: JSON.stringify(payload)
-      });
-      
-      if (json.success && bannerFile) {
-        const uploadData = new FormData();
-        uploadData.append("bannerImage", bannerFile);
-        
-        await apiRequest(`/api/events/${json.event._id}/banner`, {
-          method: "POST",
-          body: uploadData
-        });
-      }
-      
-      setIsModalOpen(false);
+      const json = await apiRequest(`/api/sync/admin/events/${event._id}/guest-list-import`, { method: "POST" });
+      alert(`Import Successful for ${event.name}!\n\nImported: ${json.stats?.importedCount || 0}\nCreated New: ${json.stats?.createdCount || 0}\nUpdated Existing: ${json.stats?.updatedCount || 0}\nInvalid Rows: ${json.stats?.invalidCount || 0}\nIn-sheet Duplicates: ${json.stats?.duplicateCount || 0}`);
+      setGuestListPreviewModal({ open: false, event: null, stats: null });
       setRefreshKey(k => k + 1);
     } catch (err) {
       alert(err.message);
     } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSync = async (eventId) => {
-    if (!window.confirm("Manually trigger Google Sheets sync? (Note: Automated sync runs every 5 mins)")) return;
-    setSyncing(eventId);
-    try {
-      const json = await apiRequest(`/api/admin/events/${eventId}/sync`, { method: "POST" });
-      alert(`Sync Success! Imported: ${json.stats?.imported || 0}, Skipped: ${json.stats?.skipped || 0}, Errors: ${json.stats?.errors || 0}\n\nDebug: ${JSON.stringify(json.stats?.debug?.colIdx)}`);
-      setRefreshKey(k => k + 1);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setSyncing(null);
+      setImportingGuestList(null);
     }
   };
 
@@ -3754,7 +3687,162 @@ function EventsPage() {
           )}
         />
         {!loading && liveEvents.length === 0 && <div className="admin-empty-state">NO EVENTS YET</div>}
+
+        {/* GUEST LIST IMPORT SECTION */}
+        <div style={{ marginTop: "2.5rem" }}>
+          <div className="admin-panel-title">
+            <div>
+              <h3>GUEST LIST IMPORT</h3>
+              <p className="muted">Event-specific Guest List Google Sheet import & pre-approval.</p>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", marginTop: "1rem" }}>
+            {liveEvents.map((event) => {
+              const hasSheet = Boolean(event.guestListSheetId);
+              const syncInfo = event.guestListSync || {};
+              return (
+                <div key={`gl-${event._id}`} className="admin-panel" style={{ background: "rgba(10,20,40,0.6)", border: "1px solid rgba(0,178,255,0.2)", borderRadius: "8px", padding: "1.25rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                    <div>
+                      <strong style={{ fontSize: "1.1rem", color: "#fff" }}>{event.name}</strong>
+                      <span className="status-badge active" style={{ marginLeft: "8px" }}>{event.prefix}</span>
+                    </div>
+                    <button className="mini-admin-btn" style={{ padding: "3px 8px", fontSize: "0.75rem" }} onClick={() => handleOpenModal(event)}>
+                      {hasSheet ? "Change Sheet" : "+ Connect Sheet"}
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", marginBottom: "1rem" }}>
+                    {hasSheet ? (
+                      <>
+                        <div style={{ marginBottom: "2px" }}><strong>Sheet ID:</strong> <code style={{ color: "#00b2ff" }}>{event.guestListSheetId}</code></div>
+                        <div><strong>Tab Name:</strong> <code style={{ color: "#00b2ff" }}>{event.guestListTabName || "Sheet1"}</code></div>
+                      </>
+                    ) : (
+                      <div style={{ color: "#ffb3c6" }}>No Guest List Sheet connected yet. Click &quot;Connect Sheet&quot; to save Sheet ID.</div>
+                    )}
+                  </div>
+
+                  {syncInfo.lastImportAt && (
+                    <div style={{ background: "rgba(255,255,255,0.03)", padding: "0.75rem", borderRadius: "6px", fontSize: "0.8rem", marginBottom: "1rem" }}>
+                      <div style={{ color: "#94a3b8", marginBottom: "4px" }}>
+                        <strong>LAST IMPORT:</strong> {new Date(syncInfo.lastImportAt).toLocaleString()}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+                        <span>Imported: <strong>{syncInfo.importedCount || 0}</strong></span>
+                        <span>Created: <strong>{syncInfo.createdCount || 0}</strong></span>
+                        <span>Updated: <strong>{syncInfo.updatedCount || 0}</strong></span>
+                        <span>Invalid: <strong style={{ color: syncInfo.invalidCount > 0 ? "#ffb3c6" : "inherit" }}>{syncInfo.invalidCount || 0}</strong></span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button
+                      className="purple-btn"
+                      style={{ flex: 1, padding: "8px", fontSize: "0.85rem" }}
+                      onClick={() => handleGuestListPreview(event)}
+                      disabled={!hasSheet || previewingGuestList === event._id}
+                    >
+                      {previewingGuestList === event._id ? "Previewing..." : "Preview Import"}
+                    </button>
+                    <button
+                      className="ghost-btn"
+                      style={{ flex: 1, padding: "8px", fontSize: "0.85rem" }}
+                      onClick={() => handleGuestListImport(event)}
+                      disabled={!hasSheet || importingGuestList === event._id}
+                    >
+                      {importingGuestList === event._id ? "Importing..." : syncInfo.lastImportAt ? "Re-import" : "Import Valid"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </section>
+
+      {/* PREVIEW MODAL */}
+      {guestListPreviewModal.open && guestListPreviewModal.stats && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal" style={{ maxWidth: "600px" }}>
+            <h3>Guest List Import Preview — {guestListPreviewModal.event.name}</h3>
+            <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>
+              Review the breakdown below before writing records to MongoDB.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1.25rem" }}>
+              <div style={{ background: "rgba(255,255,255,0.05)", padding: "10px", borderRadius: "6px" }}>
+                <span className="muted" style={{ fontSize: "0.75rem" }}>TOTAL SHEET ROWS</span>
+                <div style={{ fontSize: "1.2rem", fontWeight: "bold" }}>{guestListPreviewModal.stats.totalRows}</div>
+              </div>
+              <div style={{ background: "rgba(0,178,255,0.1)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(0,178,255,0.3)" }}>
+                <span className="muted" style={{ fontSize: "0.75rem" }}>VALID ROWS</span>
+                <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#00b2ff" }}>{guestListPreviewModal.stats.validRowsCount}</div>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.05)", padding: "10px", borderRadius: "6px" }}>
+                <span className="muted" style={{ fontSize: "0.75rem" }}>NEW GUESTS TO CREATE</span>
+                <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#4ade80" }}>+{guestListPreviewModal.stats.willCreate}</div>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.05)", padding: "10px", borderRadius: "6px" }}>
+                <span className="muted" style={{ fontSize: "0.75rem" }}>EXISTING GUESTS TO UPDATE</span>
+                <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#facc15" }}>{guestListPreviewModal.stats.willUpdate}</div>
+              </div>
+              <div style={{ background: "rgba(255,51,102,0.1)", padding: "10px", borderRadius: "6px" }}>
+                <span className="muted" style={{ fontSize: "0.75rem" }}>INVALID PHONE NUMBERS</span>
+                <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#ff3366" }}>{guestListPreviewModal.stats.invalidPhones}</div>
+              </div>
+              <div style={{ background: "rgba(255,51,102,0.1)", padding: "10px", borderRadius: "6px" }}>
+                <span className="muted" style={{ fontSize: "0.75rem" }}>MISSING FULL NAMES</span>
+                <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#ff3366" }}>{guestListPreviewModal.stats.missingNames}</div>
+              </div>
+            </div>
+
+            {guestListPreviewModal.stats.sampleRows && guestListPreviewModal.stats.sampleRows.length > 0 && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <strong style={{ fontSize: "0.85rem", color: "#94a3b8" }}>SAMPLE VALID ROWS (FIRST 5):</strong>
+                <div style={{ overflowX: "auto", marginTop: "6px" }}>
+                  <table style={{ width: "100%", fontSize: "0.8rem", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "rgba(255,255,255,0.05)", textAlign: "left" }}>
+                        <th style={{ padding: "6px" }}>Row</th>
+                        <th style={{ padding: "6px" }}>Full Name</th>
+                        <th style={{ padding: "6px" }}>Phone Number</th>
+                        <th style={{ padding: "6px" }}>School</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {guestListPreviewModal.stats.sampleRows.map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                          <td style={{ padding: "6px" }}>{row.rowIndex}</td>
+                          <td style={{ padding: "6px" }}>{row.fullName}</td>
+                          <td style={{ padding: "6px" }}>{row.phone}</td>
+                          <td style={{ padding: "6px" }}>{row.school || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="admin-modal-actions">
+              <button type="button" className="btn-secondary" onClick={() => setGuestListPreviewModal({ open: false, event: null, stats: null })}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="purple-btn"
+                disabled={importingGuestList === guestListPreviewModal.event._id || guestListPreviewModal.stats.validRowsCount === 0}
+                onClick={() => handleGuestListImport(guestListPreviewModal.event)}
+              >
+                {importingGuestList === guestListPreviewModal.event._id ? "Importing..." : "CONFIRM & IMPORT VALID GUESTS"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="admin-modal-overlay">
@@ -3818,6 +3906,16 @@ function EventsPage() {
               <div className="form-group">
                 <label>Export Google Sheet ID (For Confirmed Outcomers)</label>
                 <input value={formData.exportGoogleSheetId} onChange={e => setFormData({...formData, exportGoogleSheetId: e.target.value})} placeholder="Live sync target sheet ID" />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Guest List Google Sheet ID</label>
+                  <input value={formData.guestListSheetId} onChange={e => setFormData({...formData, guestListSheetId: e.target.value})} placeholder="e.g. 1LOqW8mFVRUvB8vM4qC5oWbcqRlhDOkPJkwALoV9N2vI" />
+                </div>
+                <div className="form-group">
+                  <label>Guest List Sheet Tab Name</label>
+                  <input value={formData.guestListTabName} onChange={e => setFormData({...formData, guestListTabName: e.target.value})} placeholder="Sheet1" />
+                </div>
               </div>
               <div className="form-group">
                 <label>Tagline (e.g. NO BEGINNING. NO END.)</label>
