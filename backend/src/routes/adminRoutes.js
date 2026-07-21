@@ -158,7 +158,9 @@ async function dashboardStats() {
   const pendingReview = await Attendee.countDocuments({ $and: [{ status: "pending" }, hideDraftsClause()] });
   const globalApproved = await Attendee.countDocuments({ $and: [{ status: "approved" }, hideDraftsClause()] });
   const globalRejected = await Attendee.countDocuments({ $and: [{ status: "rejected" }, hideDraftsClause()] });
-  const used = await Attendee.countDocuments({ $and: [{ status: "used" }, hideDraftsClause()] });
+  // "Used Passes" counts venue entry (isUsed:true), not lifecycle status.
+  // Attendees remain status:"approved" after scanning — the two are separate concepts.
+  const used = await Attendee.countDocuments({ $and: [{ isUsed: true }, hideDraftsClause()] });
 
   return {
     eventStats,

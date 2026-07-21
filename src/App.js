@@ -106,6 +106,7 @@ function attendeeProm(attendee) {
 }
 
 function toAdminAttendee(attendee) {
+  const entryUsed = !!(attendee.isUsed);
   return {
     id: attendee.id || attendee._id,
     requestId: attendee.requestId || attendee.qrId || attendee.id,
@@ -123,14 +124,19 @@ function toAdminAttendee(attendee) {
     rawPaymentStatus: attendee.paymentStatus,
     accessType: normalizeStatusLabel(attendee.accessType || attendee.attendeeType || "Guest"),
     attendeeType: attendee.attendeeType || "",
-    qrStatus: attendee.status === "used" ? "Used" : attendee.qrToken || attendee.qrId ? "Active" : "Pending",
+    // qrStatus uses isUsed (venue entry) — status never becomes "used" in the lifecycle
+    qrStatus: entryUsed ? "Used" : attendee.qrToken || attendee.qrId ? "Active" : "Pending",
     qrToken: attendee.qrToken,
     qrId: attendee.qrId,
     event: attendeeProm(attendee),
     amount: attendee.event?.price ? `${attendee.event.price} EGP` : (attendee.amount || "TBA"),
     submittedAt: attendee.createdAt ? new Date(attendee.createdAt).toLocaleString() : "",
     paymentProof: attendee.paymentProof,
-    outcomerPhoto: attendee.outcomerPhoto
+    outcomerPhoto: attendee.outcomerPhoto,
+    // Venue entry fields — separate from lifecycle status
+    isUsed: entryUsed,
+    scannedAt: attendee.scannedAt ? new Date(attendee.scannedAt).toLocaleString() : null,
+    scanCount: attendee.scanCount || 0
   };
 }
 
@@ -3874,7 +3880,7 @@ function AttendeesPage() {
         </div>
 
         <AdminTable
-          columns={["Full Name", "Phone Number", "Email", "School / Origin Prom", "Age", "Instagram Username", "Status / Current Phase", "Prom"]}
+          columns={["Full Name", "Phone Number", "Email", "School / Origin Prom", "Age", "Instagram Username", "Status / Current Phase", "Prom", "Venue Entry"]}
           rows={filteredAttendees}
           renderRow={(attendee) => (
             <tr key={attendee.id}>
@@ -3886,6 +3892,12 @@ function AttendeesPage() {
               <td>{attendee.instagramUsername}</td>
               <td><span className={`status-badge ${statusClass(attendee.status || attendee.paymentStatus)}`}>{attendee.status || attendee.paymentStatus}</span></td>
               <td>{attendee.event}</td>
+              <td>
+                <span className={`status-badge ${attendee.isUsed ? "active" : ""}`} style={attendee.isUsed ? {background:"rgba(0,200,100,0.15)",color:"#00c864"} : {opacity:0.45}}>
+                  {attendee.isUsed ? "YES" : "NO"}
+                </span>
+                {attendee.scannedAt && <div style={{fontSize:"0.7rem",opacity:0.6,marginTop:"2px"}}>{attendee.scannedAt}</div>}
+              </td>
             </tr>
           )}
         />
@@ -3975,6 +3987,18 @@ function OutcomersPage() {
                 ) : (
                   <div><span>CLIENT PHOTO</span><strong style={{opacity: 0.45}}>Not Uploaded</strong></div>
                 )}
+                <div>
+                  <span>VENUE ENTRY</span>
+                  <strong>
+                    <span className={`status-badge ${request.isUsed ? "active" : ""}`} style={request.isUsed ? {background:"rgba(0,200,100,0.15)",color:"#00c864"} : {opacity:0.45}}>
+                      {request.isUsed ? "YES" : "NO"}
+                    </span>
+                  </strong>
+                </div>
+                {request.scannedAt && (
+                  <div><span>SCANNED AT</span><strong>{request.scannedAt}</strong></div>
+                )}
+                <div><span>SCAN COUNT</span><strong>{request.scanCount || 0}</strong></div>
               </div>
               <div className="outcomer-status-row">
                 <span className={`status-badge ${statusClass(request.applicationStatus)}`}>{request.applicationStatus}</span>
