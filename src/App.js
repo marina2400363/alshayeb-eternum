@@ -47,7 +47,7 @@ async function apiRequest(path, options = {}) {
   // Attach JWT token for all /api/admin requests automatically
   // Also attach for /api/events if it's a mutating request (POST, PUT, DELETE)
   const isMutatingEvent = path.startsWith("/api/events") && options.method && options.method !== "GET";
-  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export") || path.startsWith("/api/schools/admin") || isMutatingEvent;
+  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export") || path.startsWith("/api/schools/admin") || path.startsWith("/api/sync") || isMutatingEvent;
   let adminToken = "";
   if (isAdminPath) {
     try {

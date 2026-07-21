@@ -61,6 +61,9 @@ router.get(
       capacity: e.capacity,
       schools: e.schools,
       price: e.price,
+      guestListSheetId: e.guestListSheetId,
+      guestListTabName: e.guestListTabName,
+      guestListSync: e.guestListSync,
       createdAt: e.createdAt,
       updatedAt: e.updatedAt
     }));
