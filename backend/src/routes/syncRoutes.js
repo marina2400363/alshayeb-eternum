@@ -12,19 +12,18 @@ const router = express.Router();
 router.get(
   "/cron/sync-all",
   asyncHandler(async (req, res) => {
+    const results = [];
+    
+    // 1. Sync Incomers
     const events = await Event.find({
       googleSheetId: { $exists: true, $ne: "" }
     });
-
-    const results = [];
     for (const event of events) {
       try {
         const stats = await syncEventIncomers(event._id);
-        results.push({ eventId: event._id, name: event.name, status: "success", stats });
+        results.push({ eventId: event._id, name: event.name, type: "incomers", status: "success", stats });
       } catch (err) {
-        // We log the error but continue syncing other events
-        console.error(`Error syncing event ${event._id}:`, err);
-        
+        console.error(`Error syncing incomers for event ${event._id}:`, err);
         event.sync = {
           ...(event.sync || {}),
           lastSyncAt: new Date(),
@@ -32,8 +31,33 @@ router.get(
           errorCount: (event.sync?.errorCount || 0) + 1
         };
         await event.save();
+        results.push({ eventId: event._id, name: event.name, type: "incomers", status: "error", error: err.message });
+      }
+    }
 
-        results.push({ eventId: event._id, name: event.name, status: "error", error: err.message });
+    // 2. Sync Guest Lists
+    const { importGuestListSheet } = require("../services/googleSheetsGuestListSync");
+    const glEvents = await Event.find({
+      guestListSheetId: { $exists: true, $ne: "" }
+    });
+    for (const event of glEvents) {
+      try {
+        const stats = await importGuestListSheet(event._id);
+        await Event.findByIdAndUpdate(event._id, {
+          "guestListSync.lastAutoSyncAt": new Date(),
+          "guestListSync.lastAutoSyncStatus": "success",
+          "guestListSync.lastAutoSyncCreated": stats.createdCount || 0,
+          "guestListSync.lastAutoSyncUpdated": stats.updatedCount || 0,
+          "guestListSync.lastAutoSyncInvalid": stats.invalidCount || 0
+        });
+        results.push({ eventId: event._id, name: event.name, type: "guest-list", status: "success", stats });
+      } catch (err) {
+        console.error(`Error auto-syncing guest list for event ${event._id}:`, err);
+        await Event.findByIdAndUpdate(event._id, {
+          "guestListSync.lastAutoSyncAt": new Date(),
+          "guestListSync.lastAutoSyncStatus": "error"
+        });
+        results.push({ eventId: event._id, name: event.name, type: "guest-list", status: "error", error: err.message });
       }
     }
 
