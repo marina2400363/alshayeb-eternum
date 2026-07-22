@@ -157,9 +157,7 @@ router.put(
       { new: true, runValidators: true }
     ).populate("hotelId", "name").populate("roomTypeId", "name");
 
-    res.json({ success: true, reservation });
-
-    // Send emails asynchronously
+    // Send emails synchronously so Vercel doesn't freeze the process
     if (reservationStatus && oldStatus !== reservationStatus && reservation.emailAddress) {
       const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       const formatCurrency = (amount) => Number(amount).toLocaleString('en-US');
@@ -202,12 +200,22 @@ If you have any questions or concerns, please contact our support team.`;
       }
 
       if (message) {
-        sendRoomStatusEmail(reservation, subject, message).catch(err => console.error("Admin email trigger failed", err));
+        try {
+          await sendRoomStatusEmail(reservation, subject, message);
+        } catch (err) {
+          console.error("Admin email trigger failed", err);
+        }
       }
     }
 
-    // Sync to Google Sheets asynchronously (trigger regardless of whether emails sent, to capture any status changes)
-    syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on admin update", err));
+    // Sync to Google Sheets synchronously so Vercel doesn't freeze the process
+    try {
+      await syncRoomsGoogleSheet();
+    } catch (err) {
+      console.error("Sync trigger failed on admin update", err);
+    }
+
+    res.json({ success: true, reservation });
   })
 );
 

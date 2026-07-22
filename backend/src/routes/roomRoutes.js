@@ -103,10 +103,14 @@ router.post(
       nationality: "Egyptian"
     });
 
-    res.status(201).json({ success: true, reservation });
+    // Sync to Google Sheets synchronously so Vercel doesn't freeze
+    try {
+      await syncRoomsGoogleSheet();
+    } catch (err) {
+      console.error("Sync trigger failed on creation", err);
+    }
 
-    // Sync to Google Sheets blocking on Vercel
-    await syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on creation", err));
+    res.status(201).json({ success: true, reservation });
   })
 );
 
@@ -143,7 +147,7 @@ router.post(
       .populate("hotelId", "name")
       .populate("roomTypeId", "name");
 
-    // Send email asynchronously
+    // Send email synchronously so Vercel doesn't freeze
     if (populatedReservation && populatedReservation.emailAddress) {
       const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       const formatCurrency = (amount) => Number(amount).toLocaleString('en-US');
@@ -166,11 +170,19 @@ Reservation Details:
 
 We will notify you once your reservation has been confirmed by our team.`;
 
-      await sendRoomStatusEmail(populatedReservation, subject, message).catch(err => console.error("Email send trigger failed", err));
+      try {
+        await sendRoomStatusEmail(populatedReservation, subject, message);
+      } catch (err) {
+        console.error("Email send trigger failed", err);
+      }
     }
 
-    // Sync to Google Sheets blocking on Vercel
-    await syncRoomsGoogleSheet().catch(err => console.error("Sync trigger failed on payment proof", err));
+    // Sync to Google Sheets synchronously so Vercel doesn't freeze
+    try {
+      await syncRoomsGoogleSheet();
+    } catch (err) {
+      console.error("Sync trigger failed on payment proof", err);
+    }
 
     res.json({ success: true, reservation });
   })
