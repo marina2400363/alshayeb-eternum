@@ -989,21 +989,13 @@ function PublicWebsite() {
     setLoading(false);
 
     if (existing?.failed) return;
-
-    // Guest list: NEVER route to ticket — handle entirely within this page
-    if (page === "guestList") {
-      if (existing) {
-        setFoundClient(existing.data ? existing.data : existing);
-      } else {
-        setFoundClient(null);
-        setErrors((prev) => ({ ...prev, phoneSearch: "Your number is not registered on this Guest List." }));
-      }
-      return;
-    }
-
     if (existing && routeExistingRegistration(existing)) return;
 
     setFoundClient(null);
+    if (page === "guestList") {
+      setErrors((prev) => ({ ...prev, phoneSearch: "Your number is not registered on this Guest List." }));
+      return;
+    }
     setErrors((prev) => ({ ...prev, phoneSearch: "" }));
     setPage("notfound");
   };
@@ -2985,29 +2977,6 @@ function PublicWebsite() {
 
         {/* ERROR MESSAGES */}
         {loading && <p className="incomer-loading">Checking guest list...</p>}
-
-        {/* FOUND ON GUEST LIST */}
-        {foundClient && !loading && (
-          <div style={{
-            margin: '18px auto',
-            maxWidth: '340px',
-            background: 'linear-gradient(135deg, rgba(0,178,255,0.12), rgba(0,217,126,0.08))',
-            border: '1px solid rgba(0,178,255,0.4)',
-            borderRadius: '14px',
-            padding: '20px 22px',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
-            <p style={{ color: '#00d97e', fontWeight: 700, fontSize: '1rem', letterSpacing: '0.08em', margin: '0 0 6px' }}>YOU'RE ON THE LIST</p>
-            <p style={{ color: '#e2e8f0', fontSize: '0.9rem', margin: '0 0 4px' }}>{foundClient.fullName || foundClient.name}</p>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0 }}>{foundClient.eventName || 'THE ARRIVAL'}</p>
-            <button
-              type="button"
-              onClick={() => { setFoundClient(null); setPhone(''); setErrors({}); }}
-              style={{ marginTop: '14px', background: 'transparent', border: '1px solid rgba(0,178,255,0.3)', color: '#00b2ff', borderRadius: '8px', padding: '7px 18px', cursor: 'pointer', fontSize: '0.8rem', letterSpacing: '0.05em' }}
-            >CHECK ANOTHER NUMBER</button>
-          </div>
-        )}
 
         {/* PHONE FORM */}
         <form autoComplete="off" className="incomer-phone-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
