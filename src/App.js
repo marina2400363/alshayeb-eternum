@@ -980,7 +980,12 @@ function PublicWebsite() {
 
     setLoading(true);
     setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-    const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch" });
+
+    let expectedType = undefined;
+    if (page === "guestList") expectedType = "guest";
+    else if (page === "incomer") expectedType = "incomer";
+
+    const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch", expectedType });
     setLoading(false);
 
     if (existing?.failed) return;
@@ -1001,7 +1006,7 @@ function PublicWebsite() {
 
     setLoading(true);
     setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-    const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch" });
+    const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch", expectedType: "outcomer" });
     setLoading(false);
 
     if (existing?.failed) return;
@@ -1224,10 +1229,14 @@ function PublicWebsite() {
   };
 
   const lookupBackendRegistration = async (phoneNumber, options = {}) => {
-    const { errorField = "home", quiet = false } = options;
+    const { errorField = "home", quiet = false, expectedType } = options;
 
     try {
-      const result = await apiRequest(`/api/attendees/lookup?phone=${encodeURIComponent(cleanValue(phoneNumber))}`);
+      let url = `/api/attendees/lookup?phone=${encodeURIComponent(cleanValue(phoneNumber))}`;
+      if (expectedType) {
+        url += `&type=${encodeURIComponent(expectedType)}`;
+      }
+      const result = await apiRequest(url);
       if (!result?.found || !result.attendee) return null;
       return {
         source: "backend",
@@ -1262,7 +1271,7 @@ function PublicWebsite() {
     let cancelled = false;
 
     const refreshTrackingStatus = async () => {
-      const existing = await lookupBackendRegistration(phoneForLookup, { quiet: true });
+      const existing = await lookupBackendRegistration(phoneForLookup, { quiet: true, expectedType: "outcomer" });
       if (cancelled || !existing?.data) return;
 
       const normalizedStatus = String(existing.status || existing.data.status || existing.data.applicationStatus || "").toLowerCase();
@@ -1587,7 +1596,7 @@ function PublicWebsite() {
 
       setLoading(true);
       setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-      const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch" });
+      const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch", expectedType: "outcomer" });
       setLoading(false);
 
       if (existing?.failed) return;
