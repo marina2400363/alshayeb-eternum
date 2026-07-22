@@ -208,7 +208,16 @@ router.post(
     const { phoneNumber } = req.body;
     if (!phoneNumber) throw apiError("Phone number is required.");
 
-    const reservations = await RoomReservation.find({ phoneNumber })
+    const { cleanPhone } = require("../utils/phone");
+    const normalizedPhone = cleanPhone(phoneNumber);
+    
+    // Check both exact match and normalized match, just in case
+    const reservations = await RoomReservation.find({ 
+      $or: [
+        { phoneNumber: phoneNumber },
+        { phoneNumber: normalizedPhone }
+      ]
+    })
       .populate("hotelId", "name")
       .populate("roomTypeId", "name")
       .sort({ createdAt: -1 });
