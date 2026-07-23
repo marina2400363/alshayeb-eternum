@@ -1,10 +1,9 @@
 function cleanPhone(value) {
-  let cleaned = String(value || "").replace(/[\s'-]/g, "").trim();
+  // First, remove absolutely all non-digit characters (including weird unicode spaces/letters)
+  let cleaned = String(value || "").replace(/\D/g, "").trim();
   
   // Normalize Egyptian country code (+20 or 20) to standard 01... format
-  if (cleaned.startsWith("+20")) {
-    cleaned = "0" + cleaned.slice(3);
-  } else if (cleaned.startsWith("201")) {
+  if (cleaned.startsWith("20") && cleaned.length >= 12) {
     cleaned = "0" + cleaned.slice(2);
   } else if (cleaned.startsWith("1") && cleaned.length === 10) {
     cleaned = "0" + cleaned;
