@@ -5,6 +5,7 @@ const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { serializeAttendee } = require("../utils/serializers");
 const { appendSuccessfulScanToSheet } = require("../services/googleSheetsScanLog");
+const { cleanPhone } = require("../utils/phone");
 
 const router = express.Router();
 
@@ -17,9 +18,21 @@ router.post(
       throw apiError("qrToken or qrId is required.");
     }
 
-    const query = qrToken && qrId
-      ? { $or: [{ qrToken }, { qrId }] }
-      : qrToken ? { qrToken } : { qrId };
+    const rawInput = String(qrToken || qrId || "").trim();
+    if (!rawInput) {
+      throw apiError("QR credentials or phone number required.");
+    }
+
+    const phoneNormalized = cleanPhone(rawInput);
+    const orClauses = [];
+    if (qrToken) orClauses.push({ qrToken });
+    if (qrId) orClauses.push({ qrId });
+    if (phoneNormalized && phoneNormalized.length >= 10) {
+      orClauses.push({ phoneNormalized });
+    }
+
+    const query = orClauses.length > 0 ? { $or: orClauses } : { _id: null };
+
 
     // ── FAST PATH: Atomic scan in a single database round-trip ───────────────
     // If markUsed is true, attempt the atomic claim immediately without a
