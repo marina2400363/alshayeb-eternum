@@ -2,13 +2,15 @@ const cron = require("node-cron");
 const Event = require("../models/Event");
 const { syncEventIncomers } = require("./googleSheetsSync");
 const { importGuestListSheet } = require("./googleSheetsGuestListSync");
+const { syncEventExportSheet } = require("./googleSheetsExportSync");
+const { syncRoomsGoogleSheet } = require("./googleSheetsRoomsSync");
 
 function startCronJobs() {
   // Run every 5 minutes
   cron.schedule("*/5 * * * *", async () => {
     console.log("[CRON] Starting 5-minute scheduled Google Sheets Sync...");
 
-    // ── 1. Incomers sync (existing) ──────────────────────────────────────────
+    // ── 1. Incomers sync (Sheet → MongoDB) ───────────────────────────────────
     try {
       const events = await Event.find({
         googleSheetId: { $exists: true, $ne: "" }
@@ -33,7 +35,7 @@ function startCronJobs() {
       console.error("[CRON] Global incomers sync error:", globalErr.message);
     }
 
-    // ── 2. Guest List auto-sync ──────────────────────────────────────────────
+    // ── 2. Guest List auto-sync (Sheet → MongoDB) ────────────────────────────
     try {
       const glEvents = await Event.find({
         guestListSheetId: { $exists: true, $ne: "" }
@@ -43,7 +45,6 @@ function startCronJobs() {
         try {
           console.log(`[CRON] Auto-syncing Guest List for Event: ${event.name}`);
           const stats = await importGuestListSheet(event._id);
-          // Save auto-sync stats (separate from manual import stats)
           await Event.findByIdAndUpdate(event._id, {
             "guestListSync.lastAutoSyncAt": new Date(),
             "guestListSync.lastAutoSyncStatus": "success",
@@ -62,6 +63,35 @@ function startCronJobs() {
       }
     } catch (globalErr) {
       console.error("[CRON] Global guest list auto-sync error:", globalErr.message);
+    }
+
+    // ── 3. Outcomers export sync (MongoDB → Sheet) ────────────────────────────
+    try {
+      const exportEvents = await Event.find({
+        exportGoogleSheetId: { $exists: true, $ne: "" }
+      });
+
+      for (const event of exportEvents) {
+        try {
+          console.log(`[CRON] Syncing outcomers export sheet for Event: ${event.name}`);
+          await syncEventExportSheet(event._id);
+        } catch (err) {
+          console.error(`[CRON] Error syncing outcomers export for event ${event._id}:`, err.message);
+        }
+      }
+    } catch (globalErr) {
+      console.error("[CRON] Global outcomers export sync error:", globalErr.message);
+    }
+
+    // ── 4. Rooms sync (MongoDB → Sheet) ──────────────────────────────────────
+    try {
+      if (process.env.ROOMS_GOOGLE_SHEET_ID) {
+        console.log("[CRON] Syncing confirmed room reservations to sheet...");
+        await syncRoomsGoogleSheet();
+        console.log("[CRON] Rooms sync completed.");
+      }
+    } catch (globalErr) {
+      console.error("[CRON] Rooms sync error:", globalErr.message);
     }
 
     console.log("[CRON] 5-minute scheduled sync completed.");

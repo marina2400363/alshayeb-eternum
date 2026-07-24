@@ -3,71 +3,119 @@ const Event = require("../models/Event");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { syncEventIncomers } = require("../services/googleSheetsSync");
+const { importGuestListSheet, previewGuestListSheet } = require("../services/googleSheetsGuestListSync");
+const { syncEventExportSheet } = require("../services/googleSheetsExportSync");
+const { syncRoomsGoogleSheet } = require("../services/googleSheetsRoomsSync");
 const { requireAdmin } = require("../middleware/requireAdmin");
 
 const router = express.Router();
 
-// Cron Endpoint (GET) to sync all active events that have a Google Sheet ID.
-// Intended to be called by an external cron service every 5 minutes.
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC CRON ENDPOINT — called by external cron every 5 minutes
+// Syncs ALL 4 directions:
+//   1. Incomers    (Sheet   → MongoDB)
+//   2. Guest List  (Sheet   → MongoDB)
+//   3. Outcomers   (MongoDB → Sheet)
+//   4. Rooms       (MongoDB → Sheet)
+// ─────────────────────────────────────────────────────────────────────────────
 router.get(
   "/cron/sync-all",
   asyncHandler(async (req, res) => {
     const results = [];
-    
-    // 1. Sync Incomers
-    const events = await Event.find({
-      googleSheetId: { $exists: true, $ne: "" }
-    });
-    for (const event of events) {
-      try {
-        const stats = await syncEventIncomers(event._id);
-        results.push({ eventId: event._id, name: event.name, type: "incomers", status: "success", stats });
-      } catch (err) {
-        console.error(`Error syncing incomers for event ${event._id}:`, err);
-        event.sync = {
-          ...(event.sync || {}),
-          lastSyncAt: new Date(),
-          lastSyncStatus: "error",
-          errorCount: (event.sync?.errorCount || 0) + 1
-        };
-        await event.save();
-        results.push({ eventId: event._id, name: event.name, type: "incomers", status: "error", error: err.message });
+
+    // ── 1. Incomers (Sheet → MongoDB) ────────────────────────────────────────
+    try {
+      const events = await Event.find({
+        googleSheetId: { $exists: true, $ne: "" }
+      });
+      for (const event of events) {
+        try {
+          const stats = await syncEventIncomers(event._id);
+          results.push({ name: event.name, type: "incomers", status: "success", stats });
+        } catch (err) {
+          console.error(`Error syncing incomers for event ${event._id}:`, err);
+          event.sync = {
+            ...(event.sync || {}),
+            lastSyncAt: new Date(),
+            lastSyncStatus: "error",
+            errorCount: (event.sync?.errorCount || 0) + 1
+          };
+          await event.save();
+          results.push({ name: event.name, type: "incomers", status: "error", error: err.message });
+        }
       }
+    } catch (err) {
+      results.push({ type: "incomers", status: "error", error: err.message });
     }
 
-    // 2. Sync Guest Lists
-    const { importGuestListSheet } = require("../services/googleSheetsGuestListSync");
-    const glEvents = await Event.find({
-      guestListSheetId: { $exists: true, $ne: "" }
-    });
-    for (const event of glEvents) {
-      try {
-        const stats = await importGuestListSheet(event._id);
-        await Event.findByIdAndUpdate(event._id, {
-          "guestListSync.lastAutoSyncAt": new Date(),
-          "guestListSync.lastAutoSyncStatus": "success",
-          "guestListSync.lastAutoSyncCreated": stats.createdCount || 0,
-          "guestListSync.lastAutoSyncUpdated": stats.updatedCount || 0,
-          "guestListSync.lastAutoSyncInvalid": stats.invalidCount || 0
-        });
-        results.push({ eventId: event._id, name: event.name, type: "guest-list", status: "success", stats });
-      } catch (err) {
-        console.error(`Error auto-syncing guest list for event ${event._id}:`, err);
-        await Event.findByIdAndUpdate(event._id, {
-          "guestListSync.lastAutoSyncAt": new Date(),
-          "guestListSync.lastAutoSyncStatus": "error"
-        });
-        results.push({ eventId: event._id, name: event.name, type: "guest-list", status: "error", error: err.message });
+    // ── 2. Guest List (Sheet → MongoDB) ──────────────────────────────────────
+    try {
+      const glEvents = await Event.find({
+        guestListSheetId: { $exists: true, $ne: "" }
+      });
+      for (const event of glEvents) {
+        try {
+          const stats = await importGuestListSheet(event._id);
+          await Event.findByIdAndUpdate(event._id, {
+            "guestListSync.lastAutoSyncAt": new Date(),
+            "guestListSync.lastAutoSyncStatus": "success",
+            "guestListSync.lastAutoSyncCreated": stats.createdCount || 0,
+            "guestListSync.lastAutoSyncUpdated": stats.updatedCount || 0,
+            "guestListSync.lastAutoSyncInvalid": stats.invalidCount || 0
+          });
+          results.push({ name: event.name, type: "guest-list", status: "success", stats });
+        } catch (err) {
+          console.error(`Error auto-syncing guest list for event ${event._id}:`, err);
+          await Event.findByIdAndUpdate(event._id, {
+            "guestListSync.lastAutoSyncAt": new Date(),
+            "guestListSync.lastAutoSyncStatus": "error"
+          });
+          results.push({ name: event.name, type: "guest-list", status: "error", error: err.message });
+        }
       }
+    } catch (err) {
+      results.push({ type: "guest-list", status: "error", error: err.message });
+    }
+
+    // ── 3. Outcomers (MongoDB → Sheet) ────────────────────────────────────────
+    try {
+      const exportEvents = await Event.find({
+        exportGoogleSheetId: { $exists: true, $ne: "" }
+      });
+      for (const event of exportEvents) {
+        try {
+          await syncEventExportSheet(event._id);
+          results.push({ name: event.name, type: "outcomers-export", status: "success" });
+        } catch (err) {
+          console.error(`Error syncing outcomers export for event ${event._id}:`, err);
+          results.push({ name: event.name, type: "outcomers-export", status: "error", error: err.message });
+        }
+      }
+    } catch (err) {
+      results.push({ type: "outcomers-export", status: "error", error: err.message });
+    }
+
+    // ── 4. Rooms (MongoDB → Sheet) ─────────────────────────────────────────────
+    try {
+      if (process.env.ROOMS_GOOGLE_SHEET_ID) {
+        const roomResult = await syncRoomsGoogleSheet();
+        results.push({ type: "rooms", status: roomResult.success ? "success" : "error", message: roomResult.message, rowsCount: roomResult.rowsCount });
+      } else {
+        results.push({ type: "rooms", status: "skipped", message: "ROOMS_GOOGLE_SHEET_ID not configured" });
+      }
+    } catch (err) {
+      results.push({ type: "rooms", status: "error", error: err.message });
     }
 
     res.json({ success: true, results });
   })
 );
 
-const { previewGuestListSheet, importGuestListSheet } = require("../services/googleSheetsGuestListSync");
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Manual sync endpoints
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Manual sync endpoint for Admin Portal (Incomers)
+// Manual incomers sync for a single event
 router.post(
   "/admin/events/:id/sync",
   requireAdmin,
@@ -87,6 +135,34 @@ router.post(
         await event.save();
       }
       throw apiError(`Sync failed: ${err.message}`, 400);
+    }
+  })
+);
+
+// Manual outcomers export sync for a single event
+router.post(
+  "/admin/events/:id/export-sync",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    try {
+      await syncEventExportSheet(req.params.id);
+      res.json({ success: true, message: "Outcomers export sheet synced." });
+    } catch (err) {
+      throw apiError(`Export sync failed: ${err.message}`, 400);
+    }
+  })
+);
+
+// Manual rooms sync
+router.post(
+  "/admin/rooms/sync",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await syncRoomsGoogleSheet();
+      res.json(result);
+    } catch (err) {
+      throw apiError(`Rooms sync failed: ${err.message}`, 400);
     }
   })
 );
@@ -130,14 +206,14 @@ router.post(
   })
 );
 
-// Manual auto-sync trigger for Admin Portal (Guest List)
+// Manual Guest List auto-sync trigger for Admin Portal
 router.post(
   "/admin/events/:id/guest-list-sync",
   requireAdmin,
   asyncHandler(async (req, res) => {
     try {
       const stats = await importGuestListSheet(req.params.id);
-      
+
       const event = await Event.findById(req.params.id);
       if (event) {
         event.guestListSync = {
@@ -150,7 +226,7 @@ router.post(
         };
         await event.save();
       }
-      
+
       res.json({ success: true, stats });
     } catch (err) {
       const event = await Event.findById(req.params.id);
