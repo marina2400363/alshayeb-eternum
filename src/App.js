@@ -45,9 +45,8 @@ async function apiRequest(path, options = {}) {
   const isJsonRequest = hasBody && !isFormData;
 
   // Attach JWT token for all /api/admin requests automatically
-  // Also attach for /api/events if it's a mutating request (POST, PUT, DELETE)
-  const isMutatingEvent = path.startsWith("/api/events") && options.method && options.method !== "GET";
-  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export") || path.startsWith("/api/schools/admin") || path.startsWith("/api/sync") || isMutatingEvent;
+  // Also attach for ALL /api/events requests so admin gets full event data (including sheet IDs)
+  const isAdminPath = path.startsWith("/api/admin") || path.startsWith("/api/scanner") || path.startsWith("/api/export") || path.startsWith("/api/schools/admin") || path.startsWith("/api/sync") || path.startsWith("/api/events");
   let adminToken = "";
   if (isAdminPath) {
     try {
@@ -3741,25 +3740,29 @@ function EventsPage() {
     setConnectSheetSaving(true);
     try {
       const ev = connectSheetModal.event;
+      // Re-fetch the event to get the latest full data (including googleSheetId/exportGoogleSheetId)
+      // This prevents accidentally wiping sheet IDs that weren't included in the public API response
+      const freshData = await apiRequest(`/api/events`);
+      const freshEv = (freshData.events || []).find(e => e._id === ev._id) || ev;
       const payload = {
-        name: ev.name,
-        slug: ev.slug,
-        date: ev.date,
-        entryTime: ev.entryTime,
-        venue: ev.venue,
-        status: ev.status,
-        prefix: ev.prefix,
-        price: ev.price,
-        googleSheetId: ev.googleSheetId || "",
-        exportGoogleSheetId: ev.exportGoogleSheetId || "",
+        name: freshEv.name || ev.name,
+        slug: freshEv.slug || ev.slug,
+        date: freshEv.date || ev.date,
+        entryTime: freshEv.entryTime || ev.entryTime,
+        venue: freshEv.venue || ev.venue,
+        status: freshEv.status || ev.status,
+        prefix: freshEv.prefix || ev.prefix,
+        price: freshEv.price ?? ev.price,
+        googleSheetId: freshEv.googleSheetId || ev.googleSheetId || "",
+        exportGoogleSheetId: freshEv.exportGoogleSheetId || ev.exportGoogleSheetId || "",
         guestListSheetId: connectSheetModal.sheetId.trim(),
         guestListTabName: connectSheetModal.tabName.trim() || "Sheet1",
-        schools: ev.schools || [],
-        displayOrder: ev.displayOrder,
-        bannerImageUrl: ev.bannerImageUrl || "",
-        tagline: ev.tagline || "",
-        description: ev.description || "",
-        eventTypeLabel: ev.eventTypeLabel || "PROM"
+        schools: freshEv.schools || ev.schools || [],
+        displayOrder: freshEv.displayOrder ?? ev.displayOrder,
+        bannerImageUrl: freshEv.bannerImageUrl || ev.bannerImageUrl || "",
+        tagline: freshEv.tagline || ev.tagline || "",
+        description: freshEv.description || ev.description || "",
+        eventTypeLabel: freshEv.eventTypeLabel || ev.eventTypeLabel || "PROM"
       };
       await apiRequest(`/api/events/${ev._id}`, { method: "PUT", body: JSON.stringify(payload) });
       setConnectSheetModal({ open: false, event: null, sheetId: "", tabName: "Sheet1" });
