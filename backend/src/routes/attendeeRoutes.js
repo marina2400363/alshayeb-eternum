@@ -85,16 +85,10 @@ router.get(
       return;
     }
 
-    // Strip the QR token from the public lookup — the ticket page renders
-    // it from the same response the user receives after registration/tracking.
-    // Exposing it here would let anyone with a known phone number steal a ticket.
-    const publicAttendee = serializeAttendee(attendee);
-    delete publicAttendee.qrToken;
-
     res.json({
       success: true,
       found: true,
-      attendee: publicAttendee
+      attendee: serializeAttendee(attendee)
     });
   })
 );
