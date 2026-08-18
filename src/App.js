@@ -231,12 +231,6 @@ function exportRegistrationsByProm(attendees = []) {
   XLSX.writeFile(workbook, "alshayeb-registrations-by-prom.xlsx");
 }
 
-function normalizeEventFee(fee) {
-  if (!fee) return "TBA";
-  if (typeof fee === "string") return fee;
-  return `${fee.amount || 0} ${fee.currency || "EGP"}`;
-}
-
 function eventDateTimeValue(event) {
   const rawDateStr = event?.dateTime || event?.date;
   if (rawDateStr && event?.entryTime) {
@@ -250,10 +244,6 @@ function eventDateTimeValue(event) {
     } catch (e) {}
   }
   return rawDateStr || QR_REVEAL_TIME;
-}
-
-function formatCountdownUnit(value) {
-  return String(value).padStart(2, "0");
 }
 
 const Shell = ({ children, tone = "blue", className = "" }) => {
@@ -448,45 +438,6 @@ const PrimaryButton = ({ children, onClick, disabled, type = "button", className
     <span>{children}</span>
     <b aria-hidden="true">&rarr;</b>
   </button>
-);
-
-const PhoneInput = ({ value, onChange, error }) => (
-  <div className={`eternum-phone ${error ? "error-input" : ""}`}>
-    <span>+20</span>
-    <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} type="text" placeholder="Enter your phone number" value={value} onChange={onChange} />
-  </div>
-);
-
-const SelectionStats = ({ selection, className = "" }) => (
-  <section className={`eternum-card selection-card ${className}`}>
-    <h3>THE SELECTION</h3>
-    <div className="selection-grid">
-      <div><strong>{selection.approved}</strong><span>APPROVED</span></div>
-      <div><strong>{selection.pending}</strong><span>PENDING</span></div>
-      <div><strong>{selection.declined}</strong><span>DECLINED</span></div>
-    </div>
-  </section>
-);
-
-const StatusRow = ({ icon = "◇", label, value, note }) => (
-  <div className="eternum-status-card">
-    <span className="status-icon" aria-hidden="true">{icon}</span>
-    <div>
-      <small>{label}</small>
-      <strong>{value}</strong>
-      {note && <p>{note}</p>}
-    </div>
-  </div>
-);
-
-const TextInputCard = ({ icon, label, error, children }) => (
-  <div className={`eternum-input-card ${error ? "has-error" : ""}`}>
-    <span className="input-icon" aria-hidden="true">{icon}</span>
-    <span className="input-copy">
-      <small>{label}</small>
-      {children}
-    </span>
-  </div>
 );
 
 /* ---- Starfield data: fixed so it doesn't re-randomize on every render ---- */
@@ -764,8 +715,8 @@ function PublicWebsite() {
   const [guestListCount, setGuestListCount] = useState(137);
   const [globalInstapayLink, setGlobalInstapayLink] = useState(null);
   const [now, setNow] = useState(Date.now());
-  const [guests, setGuests] = useState([]);
-  const [eventsError, setEventsError] = useState("");
+  const [, setGuests] = useState([]);
+  const [, setEventsError] = useState("");
   const [trackedRegistration, setTrackedRegistration] = useState(null);
   const [lookupFailed, setLookupFailed] = useState(false);
 
@@ -842,7 +793,7 @@ function PublicWebsite() {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("forceGoHome", handleForceGoHome);
     };
-  }, []);
+  }, [setPage]);
 
   const cleanValue = (value) => String(value || "").replace(/\s/g, "").replace(/'/g, "").trim();
   const safeValue = (value, fallback = "Not available") => {
@@ -997,39 +948,6 @@ function PublicWebsite() {
     }
     setErrors((prev) => ({ ...prev, phoneSearch: "" }));
     setPage("notfound");
-  };
-
-  const handleTrackLookup = async () => {
-    if (loading) return;
-    if (!validatePhoneSearch()) return;
-
-    setLoading(true);
-    setErrors((prev) => ({ ...prev, phoneSearch: "" }));
-    const existing = await lookupBackendRegistration(phone, { errorField: "phoneSearch", expectedType: "outcomer" });
-    setLoading(false);
-
-    if (existing?.failed) return;
-
-    if (!existing) {
-      setTrackedRegistration(null);
-      setFoundClient(null);
-      setErrors({});
-      setPage("notfound");
-      return;
-    }
-
-    const normalizedStatus = String(existing.status || "").toLowerCase();
-    if (normalizedStatus.includes("approved") || normalizedStatus.includes("confirmed") || normalizedStatus.includes("active") || normalizedStatus.includes("verified")) {
-      setFoundClient(toTicketClient(existing.data));
-      setErrors({});
-      setPage("ticket");
-      return;
-    }
-
-    setTrackedRegistration(existing.data);
-    setRequest((prev) => ({ ...prev, ...existing.data }));
-    setErrors({});
-    setPage(normalizedStatus.includes("reject") || normalizedStatus.includes("declined") ? "rejected" : "track");
   };
 
   const validateRegistration = () => {
@@ -1187,8 +1105,6 @@ function PublicWebsite() {
       setErrors((prev) => ({ ...prev, screenshot: "" }));
     }
   };
-
-  const findExistingRegistration = (phoneNumber) => lookupBackendRegistration(phoneNumber);
 
   const routeExistingRegistration = (existing) => {
     const normalizedStatus = String(existing?.status || "").toLowerCase();
@@ -1416,11 +1332,6 @@ function PublicWebsite() {
       setIsSubmitting(false);
       setErrors({ screenshot: err.message || "Failed to upload payment proof. Please try again." });
     }
-  };
-
-  const FieldError = ({ name }) => {
-    if (!errors[name]) return null;
-    return <p className="field-error">{errors[name]}</p>;
   };
 
   /* ---- Global public loading screen — blocks all public content ---- */
@@ -2405,7 +2316,6 @@ function PublicWebsite() {
     // Determine state
     const isConfirmed = rawStatus.includes("approved") || rawStatus.includes("confirmed") || rawStatus.includes("payment_confirmed");
     const isDeclined  = rawStatus.includes("reject") || rawStatus.includes("declined");
-    const isPending   = !isConfirmed && !isDeclined;
 
     // Dynamic event data
     const eventName     = saved.eventName || saved.event || selectedEvent?.name || "ALSHAYEB ETERNUM";
@@ -2647,7 +2557,6 @@ function PublicWebsite() {
     const isUsed         = foundClient.isUsed || foundClient.scanned || foundClient.scannedAt || foundClient.usedAt || (String(foundClient.status || "").toLowerCase() === "used");
     const venue          = "ALSHAYEB ETERNUM";
     const school         = safeValue(foundClient.schoolOrOriginProm || foundClient.university || foundClient.school || foundClient.School, "—");
-    const preferredName  = safeValue(foundClient.instagramUsername || foundClient.preferredName || foundClient.nickname || guestName.split(" ")[0], "—");
     const eventNameDisp  = safeValue(foundClient.eventName || (foundClient.event && typeof foundClient.event === 'object' ? foundClient.event.name : foundClient.event), "N/A");
 
     const ticketPromEvent   = findPromEvent(foundClient.eventName || foundClient.event || foundClient.Venue || venue);
@@ -2987,7 +2896,7 @@ function PublicWebsite() {
                 <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+            <input className="eternum-input" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 type="tel"
                 placeholder="Enter your phone number"
               value={phone}
@@ -3100,7 +3009,7 @@ function PublicWebsite() {
                 <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <input className="eternum-input" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+            <input className="eternum-input" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 type="tel"
                 placeholder="Enter your phone number"
               value={phone}

@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 export default function RoomsHamburgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const handleEscape = (e) => {

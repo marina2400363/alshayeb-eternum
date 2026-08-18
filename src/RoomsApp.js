@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import RoomsDatePicker from "./RoomsDatePicker";
 import RoomsLoadingScreen from "./RoomsLoadingScreen";
@@ -998,7 +998,6 @@ export default function RoomsApp() {
                       })
                       .map(res => {
                         const statLower = res.reservationStatus?.toLowerCase() || "pending";
-                        const isUnderReview = ["pending", "pending_review", "under_verification", "under review", "verification"].includes(statLower);
                         
                         let statusObj = { class: "under-review", label: "UNDER REVIEW" };
                         if (statLower === "confirmed") {
