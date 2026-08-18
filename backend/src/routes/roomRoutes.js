@@ -7,6 +7,7 @@ const apiError = require("../utils/apiError");
 const multer = require("multer");
 const { sendRoomStatusEmail } = require("../utils/email");
 const { syncRoomsGoogleSheet } = require("../services/googleSheetsRoomsSync");
+const { cleanPhone } = require("../utils/phone");
 
 const router = express.Router();
 
@@ -208,7 +209,6 @@ router.post(
     const { phoneNumber } = req.body;
     if (!phoneNumber) throw apiError("Phone number is required.");
 
-    const { cleanPhone } = require("../utils/phone");
     const normalizedPhone = cleanPhone(phoneNumber);
     
     // Check both exact match and normalized match, just in case
