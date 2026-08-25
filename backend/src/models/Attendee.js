@@ -129,6 +129,25 @@ const attendeeSchema = new mongoose.Schema(
       registrationReceivedAt: Date,
       approvedAt: Date,
       rejectedAt: Date
+    },
+    // Season 2 Incomer school association. schoolId links to the Admin-managed
+    // School; ticketPrice is a snapshot of School.ticketPrice at registration
+    // time and must never be recomputed from the School's current price.
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "School"
+    },
+    ticketPrice: {
+      type: Number,
+      min: 0
+    },
+    // Season 2 Incomer personal photo (mirrors the existing outcomerPhoto shape).
+    incomerPhoto: {
+      url: String,
+      publicId: String,
+      fileName: String,
+      fileType: String,
+      uploadedAt: Date
     }
   },
   { timestamps: true }

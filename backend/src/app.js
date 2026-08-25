@@ -80,10 +80,14 @@ app.use("/api/scanner", requireAdmin, scannerRoutes);
 
 const roomRoutes = require("./routes/roomRoutes");
 const roomAdminRoutes = require("./routes/roomAdminRoutes");
+const schoolRoutes = require("./routes/schoolRoutes");
+const schoolAdminRoutes = require("./routes/schoolAdminRoutes");
 
 app.use("/api/settings", settingsRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/admin/rooms", requireAdmin, roomAdminRoutes);
+app.use("/api/schools", schoolRoutes);
+app.use("/api/admin/schools", requireAdmin, schoolAdminRoutes);
 app.use("/api", syncRoutes);
 
 app.use(notFound);

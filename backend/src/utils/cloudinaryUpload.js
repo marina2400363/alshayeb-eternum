@@ -98,6 +98,58 @@ function uploadOutcomerPhoto(file) {
   });
 }
 
+function uploadIncomerPhoto(file) {
+  if (!file) {
+    return Promise.resolve(null);
+  }
+
+  if (!configureCloudinary()) {
+    const error = new Error("Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.");
+    error.statusCode = 503;
+    return Promise.reject(error);
+  }
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "alshayeb/incomer-photos",
+        resource_type: "image",
+        use_filename: true,
+        unique_filename: true,
+        overwrite: false,
+        width: 1200,
+        crop: "limit",
+        quality: "80",
+        fetch_format: "auto"
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+}
+
+// Cleanup helper: removes an Incomer photo asset that was uploaded but never
+// ended up attached to a saved Attendee document (e.g. a duplicate-registration
+// race condition, or the create() call failing after the upload succeeded).
+function deleteIncomerPhoto(publicId) {
+  if (!publicId || !configureCloudinary()) {
+    return Promise.resolve(null);
+  }
+
+  return cloudinary.uploader.destroy(publicId).catch((error) => {
+    console.error("Failed to delete orphaned incomer photo:", publicId, error.message);
+    return null;
+  });
+}
+
 function uploadEventBanner(file) {
   if (!file) {
     return Promise.resolve(null);
@@ -177,6 +229,8 @@ function uploadRoomPaymentProof(file) {
 module.exports = {
   uploadPaymentProof,
   uploadOutcomerPhoto,
+  uploadIncomerPhoto,
+  deleteIncomerPhoto,
   uploadEventBanner,
   uploadRoomPaymentProof
 };
