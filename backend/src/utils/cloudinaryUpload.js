@@ -150,6 +150,59 @@ function deleteIncomerPhoto(publicId) {
   });
 }
 
+function uploadIncomerDepositProof(file) {
+  if (!file) {
+    return Promise.resolve(null);
+  }
+
+  if (!configureCloudinary()) {
+    const error = new Error("Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.");
+    error.statusCode = 503;
+    return Promise.reject(error);
+  }
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "alshayeb/incomer-deposit-proofs",
+        resource_type: "image",
+        use_filename: true,
+        unique_filename: true,
+        overwrite: false,
+        width: 1200,
+        crop: "limit",
+        quality: "80",
+        fetch_format: "auto"
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+}
+
+// Cleanup helper: removes an Incomer deposit-proof asset that was uploaded
+// but never ended up attached to a saved Deposit document (e.g. all 5 active
+// slots became occupied by a concurrent request, or Deposit.create() failed
+// after the upload succeeded).
+function deleteIncomerDepositProof(publicId) {
+  if (!publicId || !configureCloudinary()) {
+    return Promise.resolve(null);
+  }
+
+  return cloudinary.uploader.destroy(publicId).catch((error) => {
+    console.error("Failed to delete orphaned incomer deposit proof:", publicId, error.message);
+    return null;
+  });
+}
+
 function uploadEventBanner(file) {
   if (!file) {
     return Promise.resolve(null);
@@ -231,6 +284,8 @@ module.exports = {
   uploadOutcomerPhoto,
   uploadIncomerPhoto,
   deleteIncomerPhoto,
+  uploadIncomerDepositProof,
+  deleteIncomerDepositProof,
   uploadEventBanner,
   uploadRoomPaymentProof
 };
