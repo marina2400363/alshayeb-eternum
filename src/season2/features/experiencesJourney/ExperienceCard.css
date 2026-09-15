@@ -1,0 +1,46 @@
+.s2-exp-card {
+  flex: 0 0 auto;
+  width: 280px;
+  height: 360px;
+}
+
+.s2-exp-card-title {
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-tight);
+  font-size: 22px;
+}
+
+.s2-exp-card-tagline {
+  margin-top: var(--s2-space-2);
+  font-size: 12.5px;
+  color: var(--s2-text-secondary);
+}
+
+/* Tablet: reduced scale, not a straight downscale of desktop's numbers. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .s2-exp-card {
+    width: 230px;
+    height: 300px;
+  }
+
+  .s2-exp-card-title {
+    font-size: 19px;
+  }
+}
+
+/* Mobile: still a rail card (not full-width), sized so the next card peeks
+   in at the edge as a swipe affordance — "fewer cards at once" without
+   turning into a vertical list. */
+@media (max-width: 767px) {
+  .s2-exp-card {
+    width: 72vw;
+    max-width: 320px;
+    height: 260px;
+  }
+
+  .s2-exp-card-title {
+    font-size: 19px;
+  }
+}

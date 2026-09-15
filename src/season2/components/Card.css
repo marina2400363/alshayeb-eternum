@@ -1,0 +1,30 @@
+.s2-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--s2-border);
+  border-radius: var(--s2-radius-md);
+  background: var(--s2-surface);
+}
+
+.s2-card-media {
+  position: absolute;
+  inset: 0;
+}
+
+.s2-card-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--s2-space-4);
+}
+
+.s2-card--interactive {
+  transition: border-color var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+.s2-card--interactive:hover {
+  border-color: var(--s2-border-strong);
+}

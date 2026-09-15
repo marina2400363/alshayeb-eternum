@@ -15,6 +15,7 @@ import "./App.css";
 import "./RoomsApp.css";
 import RoomsApp from "./RoomsApp";
 import AnimatedBackground from "./AnimatedBackground";
+import Season2App from "./season2";
 
 const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
 const CONFIGURED_API_URL = String(process.env.REACT_APP_API_URL || "").trim().replace(/\/$/, "");
@@ -4799,6 +4800,7 @@ function App() {
             </ProtectedRoomsAdminRoute>
           }
         />
+        <Route path="/season2/*" element={<Season2App />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

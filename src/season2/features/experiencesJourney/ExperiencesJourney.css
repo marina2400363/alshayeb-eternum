@@ -1,0 +1,121 @@
+.s2-journey {
+  background: var(--s2-bg-0);
+}
+
+/* Short pin target for the card-entry choreography only. Once cards land,
+   ScrollTrigger releases this and it behaves like any other section. */
+.s2-transition {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2-space-6);
+  background: var(--s2-bg-0);
+  padding: var(--s2-space-8) 0;
+}
+
+.s2-experiences-heading {
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-tight);
+  font-size: clamp(26px, 4.6vw, 44px);
+  text-align: center;
+}
+
+/* While cards are scattered, the rail must show the full vertical spread
+   (overflow-y: visible) without ever leaking horizontal page overflow — a
+   rotated card's painted bounding box can extend past its layout box, which
+   showed up as real document-level horizontal scroll when this was plain
+   "visible" on both axes. `clip` (unlike `hidden`/`auto`) isn't paired with
+   its sibling axis by the CSS visible/auto coupling rule, so this contains
+   X without forcing Y closed. Native horizontal scrolling only turns on via
+   .s2-rail--landed, added by motion/useExperienceJourney once the entry
+   transition fully releases. */
+.s2-rail {
+  position: relative;
+  width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.s2-rail--landed {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.s2-rail--landed::-webkit-scrollbar {
+  display: none;
+}
+
+/* Subtle edge hint instead of a visible scrollbar — signals "more content"
+   without looking like a browser overflow accident. Only relevant once the
+   rail is actually a scroller. */
+.s2-rail--landed::before,
+.s2-rail--landed::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.s2-rail--landed::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--s2-bg-0), transparent);
+}
+
+.s2-rail--landed::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--s2-bg-0), transparent);
+}
+
+.s2-rail-track {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-5);
+  padding: 0 8vw;
+  width: max-content;
+}
+
+.s2-rail-track > * {
+  scroll-snap-align: start;
+}
+
+/* Tablet: same concept, reduced spacing/scale (see
+   motion/useExperienceJourney.js TABLET_ENTRY + pinMultiplier). */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .s2-rail-track {
+    gap: var(--s2-space-4);
+    padding: 0 6vw;
+  }
+}
+
+/* Mobile keeps the same rail — never a vertical stack — just shorter and
+   smaller (see MOBILE_ENTRY). */
+@media (max-width: 767px) {
+  .s2-transition {
+    min-height: 86svh;
+    padding: var(--s2-space-6) 0;
+    gap: var(--s2-space-4);
+  }
+
+  .s2-rail-track {
+    gap: var(--s2-space-3);
+    padding: 0 9vw;
+  }
+
+  .s2-rail--landed::before,
+  .s2-rail--landed::after {
+    width: 32px;
+  }
+}
