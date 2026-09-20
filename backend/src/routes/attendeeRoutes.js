@@ -7,6 +7,7 @@ const School = require("../models/School");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
+const { cleanEmail, isValidEmail } = require("../utils/emailAddress");
 const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
 const { requireAdmin } = require("../middleware/requireAdmin");
@@ -46,14 +47,45 @@ function uploadIncomerPhotoMiddleware(req, res, next) {
   });
 }
 
-// Public, phone-triggered responses (lookup + register-duplicate) must not
-// leak the Incomer's personal photo to an unauthenticated caller who only
-// knows a phone number. schoolId/ticketPrice stay — the customer/payment
-// contract needs them. Admin routes still get the full serializeAttendee().
+// LEGACY public serializer — used ONLY by the legacy GET /lookup below, whose
+// response the Season 1 ticket / QR / guest-list / outcomer-tracking flows
+// depend on (qrToken and qrId included). DO NOT EDIT this for Season 2's sake:
+// Season 2 has its own minimal serializer (serializeSeason2Attendee) and its
+// own endpoint (GET /season2/lookup). A previous "security" edit to this shape
+// broke legitimate QR display.
+//
+// It strips the Incomer's personal photo and email from phone-triggered
+// responses; legacy guest/outcomer records are returned unchanged.
 function serializePublicAttendee(attendee) {
   const serialized = serializeAttendee(attendee);
   delete serialized.incomerPhoto;
+  if (serialized.attendeeType === "incomer") {
+    delete serialized.email;
+  }
   return serialized;
+}
+
+// ---------------------------------------------------------------------------
+// Season 2 (Marina) — minimal public shape.
+//
+// Season 2 customer entry only needs to know WHO the customer is. Nothing else
+// leaves the server through the Season 2 endpoints: no email, school, price,
+// status, payment, event, photo, QR or scan data, and no internal Mongo fields.
+// ---------------------------------------------------------------------------
+const SEASON2_ATTENDEE_TYPE = "incomer";
+
+// Mirrors FULL_NAME_MAX in src/season2/features/onboarding/utils/validation.js.
+const FULL_NAME_MAX_LENGTH = 80;
+
+function serializeSeason2Attendee(attendee) {
+  if (!attendee) return null;
+
+  return {
+    id: String(attendee._id),
+    fullName: attendee.fullName || "",
+    phone: attendee.phone || "",
+    attendeeType: attendee.attendeeType
+  };
 }
 
 function buildPublicQuery(query) {
@@ -138,16 +170,67 @@ router.get(
   })
 );
 
+// Season 2 (Marina): customer-entry / hydration lookup — Already Registered,
+// the Details phone pre-check and Customer Area hydration.
+//
+//   • phone ONLY: the attendee type is fixed server-side (any `type` in the
+//     query is ignored, so it can never be widened to other attendee types);
+//   • identity is phoneNormalized + attendeeType "incomer" — never email;
+//   • the projection and response are the minimal Season 2 shape, and nothing
+//     is populated (no Event object, no sheet ids).
+//
+// Deliberately separate from the legacy GET /lookup above, which is untouched:
+// the Season 1 QR / ticket flows still read every field it returns.
+router.get(
+  "/season2/lookup",
+  asyncHandler(async (req, res) => {
+    const phone = cleanPhone(req.query.phone);
+
+    if (!phone) {
+      throw apiError("Phone number is required.");
+    }
+
+    if (!isEgyptianPhone(phone)) {
+      throw apiError("Enter an Egyptian phone number starting with 01 and 11 digits long.", 422);
+    }
+
+    const attendee = await Attendee.findOne({ phoneNormalized: phone, attendeeType: SEASON2_ATTENDEE_TYPE })
+      .select("fullName phone attendeeType")
+      .sort({ createdAt: -1 });
+
+    if (!attendee) {
+      res.json({ success: true, found: false, attendee: null });
+      return;
+    }
+
+    res.json({
+      success: true,
+      found: true,
+      attendee: serializeSeason2Attendee(attendee)
+    });
+  })
+);
+
 // Season 2: Incomer registration with Admin-managed School association.
 // The ticket price is NEVER trusted from the request body — it is always
 // snapshotted server-side from the School's current price at registration time.
+//
+// Email is REQUIRED customer data (reused Attendee.email — the legacy field).
+// It is trimmed + lowercased before saving and is never part of identity: it
+// is not unique, not used for lookup, and not used for duplicate detection.
+// Identity stays phoneNormalized + attendeeType.
 async function registerIncomer(req, res) {
   const fullName = String(req.body.fullName || req.body.name || "").trim();
   const phone = cleanPhone(req.body.phoneNumber || req.body.phone);
+  const email = cleanEmail(req.body.email);
   const schoolId = String(req.body.schoolId || "").trim();
 
   if (!fullName) {
     throw apiError("Full name is required.", 422);
+  }
+
+  if (fullName.length > FULL_NAME_MAX_LENGTH) {
+    throw apiError(`Full name must be ${FULL_NAME_MAX_LENGTH} characters or fewer.`, 422);
   }
 
   if (!phone) {
@@ -156,6 +239,14 @@ async function registerIncomer(req, res) {
 
   if (!isEgyptianPhone(phone)) {
     throw apiError("Enter an Egyptian phone number starting with 01 and 11 digits long.", 422);
+  }
+
+  if (!email) {
+    throw apiError("Email is required.", 422);
+  }
+
+  if (!isValidEmail(email)) {
+    throw apiError("Enter a valid email address.", 422);
   }
 
   if (!schoolId || !mongoose.Types.ObjectId.isValid(schoolId)) {
@@ -178,7 +269,7 @@ async function registerIncomer(req, res) {
       success: true,
       duplicate: true,
       message: "Existing registration found.",
-      attendee: serializePublicAttendee(existingAttendee)
+      attendee: serializeSeason2Attendee(existingAttendee)
     });
     return;
   }
@@ -204,6 +295,7 @@ async function registerIncomer(req, res) {
       fullName,
       phone,
       phoneNormalized: phone,
+      email,
       attendeeType: "incomer",
       accessType: "INCOMER",
       schoolId: school._id,
@@ -224,7 +316,7 @@ async function registerIncomer(req, res) {
           success: true,
           duplicate: true,
           message: "Existing registration found.",
-          attendee: serializePublicAttendee(raceExisting)
+          attendee: serializeSeason2Attendee(raceExisting)
         });
         return;
       }
@@ -235,7 +327,7 @@ async function registerIncomer(req, res) {
   res.status(201).json({
     success: true,
     message: "Incomer registered.",
-    attendee: serializeAttendee(attendee)
+    attendee: serializeSeason2Attendee(attendee)
   });
 }
 

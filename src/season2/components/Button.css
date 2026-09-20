@@ -1,4 +1,10 @@
-.s2-btn {
+/*
+  Selectors are scoped under .s2-root on purpose: tokens.css resets
+  `.s2-root a, .s2-root button { color: inherit; font: inherit }` at (0,1,1),
+  which would otherwise beat these single-class rules and strip the Button's
+  color / font sizing. (0,2,0) here keeps the intended styling.
+*/
+.s2-root .s2-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -14,41 +20,41 @@
   border: 1px solid transparent;
 }
 
-.s2-btn--md {
+.s2-root .s2-btn--md {
   padding: 15px 28px;
 }
 
-.s2-btn--sm {
+.s2-root .s2-btn--sm {
   padding: 10px 18px;
   font-size: 11px;
 }
 
-.s2-btn--primary {
+.s2-root .s2-btn--primary {
   background: var(--s2-text-primary);
   color: var(--s2-bg-0);
 }
 
-.s2-btn--secondary {
+.s2-root .s2-btn--secondary {
   background: rgba(18, 18, 20, 0.88);
   border-color: var(--s2-border);
   color: var(--s2-text-primary);
 }
 
-.s2-btn--ghost {
+.s2-root .s2-btn--ghost {
   background: transparent;
   border-color: var(--s2-border);
   color: var(--s2-text-secondary);
 }
 
-.s2-btn:disabled {
+.s2-root .s2-btn:disabled {
   opacity: 0.42;
   cursor: not-allowed;
 }
 
-.s2-btn:not(:disabled):hover {
+.s2-root .s2-btn:not(:disabled):hover {
   opacity: 0.88;
 }
 
-.s2-btn:not(:disabled):active {
+.s2-root .s2-btn:not(:disabled):active {
   transform: scale(0.98);
 }

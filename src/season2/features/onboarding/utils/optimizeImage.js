@@ -7,7 +7,10 @@
 const DEFAULT_MAX_DIMENSION = 1280;
 const DEFAULT_QUALITY = 0.8;
 
-function optimizeImage(file, options = {}) {
+// Strict variant: rejects when the browser cannot decode or re-encode the
+// image. photo.js uses this so an unreadable file becomes a clear error
+// instead of being uploaded untouched.
+export function optimizeImage(file, options = {}) {
   const maxDimension = options.maxDimension || DEFAULT_MAX_DIMENSION;
   const quality = options.quality ?? DEFAULT_QUALITY;
 
@@ -33,6 +36,9 @@ function optimizeImage(file, options = {}) {
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
+      // JPEG has no alpha: without a base fill a transparent PNG turns black.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
 
       canvas.toBlob(

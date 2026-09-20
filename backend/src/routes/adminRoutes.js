@@ -5,7 +5,9 @@ const SiteSettings = require("../models/SiteSettings");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { requireAdmin } = require("../middleware/requireAdmin");
-const { sendStatusEmail } = require("../utils/email");
+// canReceiveLegacyStatusEmail: the legacy status emails below are for legacy
+// attendees only — never Season 2 Incomers (their email is a separate, later system).
+const { sendStatusEmail, canReceiveLegacyStatusEmail } = require("../utils/email");
 const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
 const Event = require("../models/Event");
@@ -286,7 +288,7 @@ router.patch(
 
     await attendee.save();
 
-    if (previousStatus !== "approved" && !attendee.emailNotifications?.approvedAt) {
+    if (previousStatus !== "approved" && !attendee.emailNotifications?.approvedAt && canReceiveLegacyStatusEmail(attendee)) {
       sendStatusEmail(
         attendee,
         "You Have Been Selected",
@@ -329,7 +331,7 @@ router.patch(
 
     await attendee.save();
 
-    if (previousStatus !== "rejected" && !attendee.emailNotifications?.rejectedAt) {
+    if (previousStatus !== "rejected" && !attendee.emailNotifications?.rejectedAt && canReceiveLegacyStatusEmail(attendee)) {
       sendStatusEmail(
         attendee,
         "Application Status Updated",
@@ -395,7 +397,7 @@ router.patch(
 
     await attendee.save();
 
-    if (paymentStatus === "verified" && previousStatus !== "approved" && !attendee.emailNotifications?.approvedAt) {
+    if (paymentStatus === "verified" && previousStatus !== "approved" && !attendee.emailNotifications?.approvedAt && canReceiveLegacyStatusEmail(attendee)) {
       sendStatusEmail(
         attendee,
         "You Have Been Selected",
@@ -409,7 +411,7 @@ router.patch(
       await attendee.save();
     }
 
-    if (paymentStatus === "rejected" && previousStatus !== "rejected" && !attendee.emailNotifications?.rejectedAt) {
+    if (paymentStatus === "rejected" && previousStatus !== "rejected" && !attendee.emailNotifications?.rejectedAt && canReceiveLegacyStatusEmail(attendee)) {
       sendStatusEmail(
         attendee,
         "Application Status Updated",

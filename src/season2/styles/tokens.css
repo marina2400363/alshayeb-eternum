@@ -41,6 +41,27 @@
   --s2-tracking-wide: 0.14em;
   --s2-tracking-wider: 0.26em;
 
+  /* Archivo is a variable font with a real width axis (75–125%). Width is
+     spent by role, not everywhere: only display type is stretched; labels,
+     body, helper text and lists stay at normal width for legibility.
+       brand   — wordmarks (hero, header, footer)
+       display — page titles, choice titles, the homepage close
+       text    — everything that is read rather than seen (the default) */
+  --s2-stretch-brand: 125%;
+  --s2-stretch-display: 112%;
+  --s2-stretch-text: 100%;
+
+  /* Display titles are sized FROM THEIR CONTAINER (cqw), not from the
+     viewport, so a title can never outgrow its column. --s2-fit-title is how
+     many em wide the widest title line may run (Archivo 800 @ 112%, -0.02em:
+     "EXPERIENCE" = 7.44em, "ENTER YOUR" = 7.42em + 0.08em word-space, plus
+     ~4% margin). Titles
+     are broken into deliberate lines in markup; nothing relies on
+     auto-wrapping. --s2-fit-name is the same idea for user-supplied names,
+     which do wrap (longest common word ≈ 9em, plus margin). */
+  --s2-fit-title: 7.85;
+  --s2-fit-name: 12.4;
+
   /* Spacing — 4/8pt scale */
   --s2-space-1: 4px;
   --s2-space-2: 8px;
@@ -51,6 +72,10 @@
   --s2-space-7: 48px;
   --s2-space-8: 64px;
   --s2-space-9: 96px;
+
+  /* One page margin for every full-width Season 2 surface (onboarding,
+     homepage close, footer) so they share a single left edge. */
+  --s2-gutter: clamp(20px, 4.4vw, 72px);
 
   /* Radius — editorial, not bootstrap-rounded */
   --s2-radius-sm: 4px;

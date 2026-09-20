@@ -58,8 +58,12 @@
 
 .s2-hero-title-line {
   display: block;
-  font-stretch: 125%;
-  font-size: clamp(46px, 9vw, 96px);
+  font-stretch: var(--s2-stretch-brand);
+  /* Unchanged from the approved sizing (46px floor, 9vw, 96px ceiling) —
+     plus a width cap: "ALSHAYEB" is 6.8em wide in Archivo @125%, so on
+     phones narrower than ~360px the 46px floor would overflow. At 390 and
+     wider the cap never bites. */
+  font-size: min(max(46px, 9vw), calc((100vw - 48px) / 7.1), 96px);
   letter-spacing: var(--s2-tracking-tight);
 }
 

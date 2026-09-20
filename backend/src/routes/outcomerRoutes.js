@@ -7,7 +7,7 @@ const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { serializeAttendee } = require("../utils/serializers");
-const { sendStatusEmail } = require("../utils/email");
+const { sendStatusEmail, canReceiveLegacyStatusEmail } = require("../utils/email");
 const { uploadPaymentProof, uploadOutcomerPhoto } = require("../utils/cloudinaryUpload");
 const { syncEventExportSheet } = require("../services/googleSheetsExportSync");
 
@@ -261,19 +261,24 @@ router.post(
       throw apiError("Attendee was not found.", 404);
     }
 
-    // Send Under Review email ONLY after payment proof is uploaded
-    await sendStatusEmail(
-      attendee,
-      "Your Application Has Been Received",
-      "Your application has been successfully submitted.\nYour payment proof has been received and is now under review.\nYou can track your application status anytime through the ALSHAYEB platform using your phone number.\nWe will notify you once a decision has been made."
-    ).catch(err => console.error("Under review email failed:", err));
+    // This is a legacy Outcomer flow, but the endpoint takes any attendeeId.
+    // Season 2 Incomers get neither the email nor the "already emailed"
+    // timestamp — their email is a separate, later system.
+    if (canReceiveLegacyStatusEmail(attendee)) {
+      // Send Under Review email ONLY after payment proof is uploaded
+      await sendStatusEmail(
+        attendee,
+        "Your Application Has Been Received",
+        "Your application has been successfully submitted.\nYour payment proof has been received and is now under review.\nYou can track your application status anytime through the ALSHAYEB platform using your phone number.\nWe will notify you once a decision has been made."
+      ).catch(err => console.error("Under review email failed:", err));
 
-    // Save email timestamp
-    attendee.emailNotifications = {
-      ...attendee.emailNotifications,
-      registrationReceivedAt: new Date()
-    };
-    await attendee.save();
+      // Save email timestamp
+      attendee.emailNotifications = {
+        ...attendee.emailNotifications,
+        registrationReceivedAt: new Date()
+      };
+      await attendee.save();
+    }
 
     // Trigger export sync
     if (attendee.event) {

@@ -161,8 +161,20 @@ async function sendRoomStatusEmail(reservation, subject, message) {
   return false;
 }
 
+// Legacy (Season 1) status / registration emails are Attendee-based: they mail
+// attendee.email on approval, rejection and "application received". Season 2
+// Incomers now carry an email too (required customer data), but their email
+// communication will be its own, later system — so this legacy automation must
+// never treat an Incomer like a legacy attendee. Only attendeeType "incomer" is
+// excluded; Outcomer and guest behaviour is unchanged.
+function canReceiveLegacyStatusEmail(attendee) {
+  return attendee?.attendeeType !== "incomer";
+}
+
 async function sendStatusEmail(attendee, subject, message) {
-  if (!attendee?.email || !isResendConfigured()) {
+  // canReceiveLegacyStatusEmail: backstop — callers also check it so they skip
+  // the "already emailed" timestamp as well.
+  if (!attendee?.email || !isResendConfigured() || !canReceiveLegacyStatusEmail(attendee)) {
     return false;
   }
 
@@ -211,6 +223,7 @@ async function sendStatusEmail(attendee, subject, message) {
 }
 
 module.exports = {
+  canReceiveLegacyStatusEmail,
   sendStatusEmail,
   sendRoomStatusEmail
 };

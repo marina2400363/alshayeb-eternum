@@ -35,7 +35,8 @@ Payment proof screenshots are uploaded to Cloudinary. MongoDB stores only lightw
 - `POST /api/events`
 - `POST /api/outcomers/register`
 - `POST /api/outcomers/payment-proof`
-- `GET /api/attendees/lookup?phone=01xxxxxxxxx`
+- `GET /api/attendees/lookup?phone=01xxxxxxxxx` (legacy — Season 1 ticket/QR flows depend on its full response; do not change its shape)
+- `GET /api/attendees/season2/lookup?phone=01xxxxxxxxx` (Season 2 — phone only, always Incomers, returns only `{ id, fullName, phone, attendeeType }`)
 - `PATCH /api/admin/attendees/:id/approve`
 - `PATCH /api/admin/attendees/:id/reject`
 - `POST /api/scanner/validate`

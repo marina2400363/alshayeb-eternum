@@ -20,6 +20,7 @@
 .s2-experiences-heading {
   margin: 0;
   font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: var(--s2-tracking-tight);
@@ -91,27 +92,88 @@
   scroll-snap-align: start;
 }
 
-/* Tablet: same concept, reduced spacing/scale (see
-   motion/useExperienceJourney.js TABLET_ENTRY + pinMultiplier). */
+/* ---------------------------------------------------------------------
+   Tablet + mobile: their own compositions (desktop above is untouched).
+
+   The pinned frame is the WHOLE screen. It uses svh (the small viewport
+   height) on purpose, not dvh: dvh changes as the browser toolbar collapses
+   while scrolling, which would resize a pinned, scrubbed scene mid-gesture.
+   svh is stable; the page is black, so the few extra pixels revealed when
+   the toolbar hides are invisible.
+
+   Card size comes from two custom properties per tier so the card can be
+   large relative to the screen without ever exceeding it: height from the
+   viewport height, width capped by both viewport width and the card's
+   portrait ratio (this is what keeps landscape phones sane).
+   --------------------------------------------------------------------- */
+
+/* Tablet, both orientations */
 @media (min-width: 768px) and (max-width: 1199px) {
+  .s2-transition {
+    padding: var(--s2-space-6) 0;
+  }
+
   .s2-rail-track {
     gap: var(--s2-space-4);
     padding: 0 6vw;
   }
+
+  .s2-rail--landed {
+    scroll-padding-inline: 6vw;
+  }
 }
 
-/* Mobile keeps the same rail — never a vertical stack — just shorter and
-   smaller (see MOBILE_ENTRY). */
-@media (max-width: 767px) {
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: portrait) {
   .s2-transition {
-    min-height: 86svh;
-    padding: var(--s2-space-6) 0;
-    gap: var(--s2-space-4);
+    --s2-card-h: clamp(300px, 50svh, 560px);
+    --s2-card-w: min(50vw, calc(var(--s2-card-h) * 0.74));
   }
 
+  .s2-experiences-heading {
+    font-size: clamp(32px, 5.4vw, 48px);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+  .s2-transition {
+    --s2-card-h: clamp(210px, 54svh, 420px);
+    --s2-card-w: min(30vw, calc(var(--s2-card-h) * 0.78));
+  }
+}
+
+/* Mobile: a full-screen, portrait-first scene. */
+@media (max-width: 767px) {
+  .s2-transition {
+    --s2-card-h: clamp(220px, 58svh, 560px);
+    --s2-card-w: min(72vw, calc(var(--s2-card-h) * 0.7));
+
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: var(--s2-space-6) 0;
+    gap: var(--s2-space-5);
+  }
+
+  /* Left-aligned to the first card's edge, set large. Above the cards, so a
+     card passing behind it in flight never half-hides it. */
+  .s2-experiences-heading {
+    position: relative;
+    z-index: 10;
+    align-self: stretch;
+    padding: 0 8vw;
+    text-align: left;
+    font-size: clamp(28px, 8.6vw, 40px);
+    line-height: 0.92;
+  }
+
+  /* Same rail — never a vertical stack — with an intentional start (8vw
+     in) and the next card always peeking in from the right: the swipe cue. */
   .s2-rail-track {
     gap: var(--s2-space-3);
-    padding: 0 9vw;
+    padding: 0 8vw;
+  }
+
+  .s2-rail--landed {
+    scroll-padding-inline: 8vw;
   }
 
   .s2-rail--landed::before,

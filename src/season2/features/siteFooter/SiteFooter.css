@@ -1,0 +1,132 @@
+/*
+  Footer — type and one hairline. Same gutter as the rest of the page so the
+  mark sits on the page's left edge; links are 44px-tall touch targets.
+*/
+.s2-footer {
+  padding: 0 var(--s2-gutter) calc(28px + env(safe-area-inset-bottom, 0px));
+  background: var(--s2-bg-0);
+}
+
+.s2-footer-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s2-space-5);
+  padding-top: var(--s2-space-5);
+  border-top: 1px solid var(--s2-border);
+}
+
+.s2-footer-brand {
+  padding-top: 13px;
+}
+
+.s2-footer-mark,
+.s2-footer-tag,
+.s2-footer-fine {
+  margin: 0;
+}
+
+.s2-footer-mark {
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-brand);
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.s2-footer-tag {
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-footer-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.s2-root .s2-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--s2-text-secondary);
+  transition: color var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+.s2-footer-link svg {
+  flex: none;
+  transition: transform var(--s2-duration-base) var(--s2-ease-out);
+}
+
+@media (hover: hover) {
+  .s2-root .s2-footer-link:hover {
+    color: var(--s2-text-primary);
+  }
+
+  .s2-footer-link:hover svg {
+    transform: translate(2px, -2px);
+  }
+}
+
+.s2-footer-fine {
+  margin-top: var(--s2-space-6);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+/* Screen-reader-only text (the visible label already says where it goes). */
+.s2-root .s2-footer-link .s2-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .s2-footer-row {
+    padding-top: var(--s2-space-6);
+  }
+
+  .s2-footer-nav {
+    flex-direction: row;
+    gap: var(--s2-space-6);
+  }
+
+  .s2-footer-brand {
+    padding-top: 15px;
+  }
+
+  .s2-footer-fine {
+    margin-top: var(--s2-space-7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-footer-link,
+  .s2-footer-link svg {
+    transition: none;
+  }
+
+  .s2-footer-link:hover svg {
+    transform: none;
+  }
+}

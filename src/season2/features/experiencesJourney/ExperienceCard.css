@@ -6,6 +6,7 @@
 
 .s2-exp-card-title {
   font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: var(--s2-tracking-tight);
@@ -18,29 +19,76 @@
   color: var(--s2-text-secondary);
 }
 
-/* Tablet: reduced scale, not a straight downscale of desktop's numbers. */
-@media (min-width: 768px) and (max-width: 1199px) {
+/* Tablet + mobile: large, immersive cards sized by the section's
+   --s2-card-w / --s2-card-h (see ExperiencesJourney.css). Desktop above is
+   untouched. */
+@media (max-width: 1199px) {
   .s2-exp-card {
-    width: 230px;
-    height: 300px;
+    width: var(--s2-card-w);
+    height: var(--s2-card-h);
+  }
+
+  /* Shared-CSS order clash (also noted on the onboarding panels):
+     tokens.css's .s2-photo-treatment { position: relative } beats Card.css's
+     .s2-card-media { position: absolute }, collapsing the graded layer and
+     leaving flat black cards. Re-assert it here so tablet/mobile cards
+     carry their graded image + blue lift. */
+  .s2-exp-card .s2-card-media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .s2-exp-card .s2-card-content {
+    padding: 20px;
+  }
+
+  /* A soft light cone behind the type, so a big card is never a flat
+     black slab. Sits above the graded media, below the text. */
+  .s2-exp-card .s2-card-content::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(90% 55% at var(--s2-cone-x, 80%) 0%, rgba(255, 255, 255, 0.26), transparent 74%),
+      linear-gradient(200deg, rgba(120, 150, 255, 0.1), transparent 55%);
+  }
+
+  .s2-rail-track > :nth-child(1) {
+    --s2-cone-x: 78%;
+  }
+
+  .s2-rail-track > :nth-child(2) {
+    --s2-cone-x: 22%;
+  }
+
+  .s2-rail-track > :nth-child(3) {
+    --s2-cone-x: 72%;
+  }
+
+  .s2-rail-track > :nth-child(4) {
+    --s2-cone-x: 30%;
   }
 
   .s2-exp-card-title {
-    font-size: 19px;
+    font-size: 30px;
+    line-height: 0.95;
+  }
+
+  .s2-exp-card-tagline {
+    font-size: 14px;
   }
 }
 
-/* Mobile: still a rail card (not full-width), sized so the next card peeks
-   in at the edge as a swipe affordance — "fewer cards at once" without
-   turning into a vertical list. */
-@media (max-width: 767px) {
-  .s2-exp-card {
-    width: 72vw;
-    max-width: 320px;
-    height: 260px;
-  }
-
+@media (min-width: 768px) and (max-width: 1199px) {
   .s2-exp-card-title {
-    font-size: 19px;
+    font-size: 34px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+  .s2-exp-card-title {
+    font-size: 24px;
   }
 }
