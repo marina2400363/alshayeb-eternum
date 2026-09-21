@@ -2,11 +2,11 @@ import React from "react";
 import CustomerAreaShell from "../../features/customerArea/CustomerAreaShell";
 import CustomerAreaGate from "../../features/onboarding/CustomerAreaGate";
 import CustomerSessionBar from "../../features/onboarding/components/CustomerSessionBar";
-import { EmptyState } from "../../components";
+import PaymentArea from "../../features/payments/PaymentArea";
 
-// Route-level page stays thin: layout only, no payment/registration logic.
-// The gate (Marina) guarantees a signed-in customer before anything inside
-// renders; the body below is still the Phase 1A placeholder for payment work.
+// Route-level page stays thin: layout only. The gate (Marina) guarantees a
+// signed-in customer before anything inside renders; the body is Sandra's
+// payment experience — Sandra owns only this body, not the gate/shell/session bar.
 export default function CustomerAreaPage() {
   return (
     <CustomerAreaGate>
@@ -15,10 +15,7 @@ export default function CustomerAreaPage() {
       <div className="s2-ob-ca">
         <CustomerAreaShell>
           <CustomerSessionBar />
-          <EmptyState
-            title="Customer Area"
-            message="Structure only — onboarding and payment flows are built in a later phase."
-          />
+          <PaymentArea />
         </CustomerAreaShell>
       </div>
     </CustomerAreaGate>

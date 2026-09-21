@@ -1,6 +1,8 @@
 const express = require("express");
+const mongoose = require("mongoose");
 
 const PaymentOption = require("../models/PaymentOption");
+const School = require("../models/School");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 
@@ -14,10 +16,37 @@ function parseAmount(rawAmount) {
   return amount;
 }
 
+async function requireExistingSchool(rawSchoolId) {
+  const schoolId = String(rawSchoolId || "").trim();
+  if (!schoolId || !mongoose.Types.ObjectId.isValid(schoolId)) {
+    throw apiError("A valid schoolId is required.", 422);
+  }
+
+  const school = await School.findById(schoolId);
+  if (!school) {
+    throw apiError("School not found.", 422);
+  }
+
+  return school;
+}
+
+// Optional ?schoolId= filter — the future Admin Portal's School detail view
+// lists one School's options; omitted, this still returns every option
+// across every School (admin-only, unlike the customer-facing endpoints).
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const paymentOptions = await PaymentOption.find({}).sort({ displayOrder: 1, createdAt: 1 });
+    const filters = {};
+
+    if (req.query.schoolId !== undefined) {
+      const schoolId = String(req.query.schoolId).trim();
+      if (!schoolId || !mongoose.Types.ObjectId.isValid(schoolId)) {
+        throw apiError("A valid schoolId is required.", 422);
+      }
+      filters.schoolId = schoolId;
+    }
+
+    const paymentOptions = await PaymentOption.find(filters).sort({ displayOrder: 1, createdAt: 1 });
     res.json({ success: true, paymentOptions });
   })
 );
@@ -25,12 +54,14 @@ router.get(
 router.post(
   "/",
   asyncHandler(async (req, res) => {
+    const school = await requireExistingSchool(req.body.schoolId);
     const amount = parseAmount(req.body.amount);
     const label = req.body.label !== undefined ? String(req.body.label).trim() : undefined;
     const enabled = req.body.enabled !== undefined ? Boolean(req.body.enabled) : true;
     const displayOrder = req.body.displayOrder !== undefined ? Number(req.body.displayOrder) : 999;
 
     const paymentOption = await PaymentOption.create({
+      schoolId: school._id,
       amount,
       label,
       enabled,

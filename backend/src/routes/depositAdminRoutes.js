@@ -13,6 +13,17 @@ const router = express.Router();
 const ATTENDEE_POPULATE_FIELDS = "fullName phone schoolId ticketPrice attendeeType";
 const PAYMENT_OPTION_POPULATE_FIELDS = "label amount enabled";
 
+// Nested populate so the Admin Portal's Deposit Review can show the
+// customer's School name without a second round-trip or a client-side join
+// against the schools list. Additive only — every field the flat
+// ATTENDEE_POPULATE_FIELDS select already returned is unchanged; schoolId
+// simply becomes a populated {_id, name} object instead of a bare ObjectId.
+const ATTENDEE_POPULATE = {
+  path: "attendeeId",
+  select: ATTENDEE_POPULATE_FIELDS,
+  populate: { path: "schoolId", select: "name" }
+};
+
 // The current admin JWT payload is { email, role } only — no Admin document
 // id (admin login is env-credential based, not backed by the Admin
 // collection; see adminAuthRoutes.js). reviewedBy stays unset unless/until
@@ -45,7 +56,7 @@ router.get(
     }
 
     const deposits = await Deposit.find(filters)
-      .populate("attendeeId", ATTENDEE_POPULATE_FIELDS)
+      .populate(ATTENDEE_POPULATE)
       .populate("paymentOptionId", PAYMENT_OPTION_POPULATE_FIELDS)
       .sort({ createdAt: -1 });
 
@@ -62,7 +73,7 @@ router.get(
     }
 
     const deposit = await Deposit.findById(id)
-      .populate("attendeeId", ATTENDEE_POPULATE_FIELDS)
+      .populate(ATTENDEE_POPULATE)
       .populate("paymentOptionId", PAYMENT_OPTION_POPULATE_FIELDS);
 
     if (!deposit) {

@@ -1,0 +1,64 @@
+.s2-pay-overview {
+  padding-top: var(--s2-space-1);
+}
+
+.s2-pay-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.s2-pay-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-2);
+  padding: var(--s2-space-5) 0;
+  border-top: 1px solid var(--s2-border);
+}
+
+.s2-pay-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.s2-pay-row-label {
+  font-size: 11px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-secondary);
+}
+
+.s2-pay-row-value {
+  font-family: var(--s2-font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(28px, 9vw, 40px);
+  letter-spacing: var(--s2-tracking-tight);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.s2-pay-confirmed-value {
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-wide);
+  font-size: clamp(19px, 5.5vw, 26px);
+  color: var(--s2-accent);
+}
+
+@media (min-width: 768px) {
+  .s2-pay-rows {
+    flex-direction: row;
+    gap: var(--s2-space-7);
+  }
+
+  .s2-pay-row {
+    border-top: 0;
+    border-left: 1px solid var(--s2-border);
+    padding: 0 var(--s2-space-7);
+  }
+
+  .s2-pay-row:first-child {
+    padding-left: 0;
+  }
+}

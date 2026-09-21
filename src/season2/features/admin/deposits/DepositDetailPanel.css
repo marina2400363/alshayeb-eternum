@@ -1,0 +1,70 @@
+.s2-dep-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s2-space-4);
+}
+
+.s2-dep-detail-header .s2-admin-eyebrow {
+  margin-bottom: 0;
+}
+
+.s2-dep-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s2-space-4) var(--s2-space-5);
+  margin-bottom: var(--s2-space-4);
+}
+
+@media (max-width: 500px) {
+  .s2-dep-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.s2-dep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.s2-dep-value {
+  font-size: 14px;
+  color: var(--s2-text-primary);
+}
+
+.s2-dep-proof {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-2);
+  margin: var(--s2-space-4) 0;
+  padding-top: var(--s2-space-4);
+  border-top: 1px solid var(--s2-border);
+}
+
+.s2-dep-proof-image {
+  max-width: 100%;
+  max-height: 420px;
+  width: auto;
+  object-fit: contain;
+  background: var(--s2-bg-1);
+  border: 1px solid var(--s2-border);
+}
+
+.s2-dep-actions {
+  padding-top: var(--s2-space-4);
+  border-top: 1px solid var(--s2-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-3);
+}
+
+.s2-dep-reject-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-3);
+}
+
+.s2-dep-reject-form textarea {
+  resize: vertical;
+}

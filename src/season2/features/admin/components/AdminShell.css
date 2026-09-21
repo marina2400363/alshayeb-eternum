@@ -1,0 +1,96 @@
+.s2-admin {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.s2-admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-6);
+  padding: var(--s2-space-4) var(--s2-gutter);
+  border-bottom: 1px solid var(--s2-border);
+  background: var(--s2-bg-0);
+  flex-wrap: wrap;
+}
+
+.s2-admin-wordmark {
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.s2-admin-nav {
+  display: flex;
+  gap: var(--s2-space-5);
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.s2-admin-nav-link {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+  padding: var(--s2-space-2) 0;
+  border-bottom: 2px solid transparent;
+}
+
+.s2-admin-nav-link.is-active {
+  color: var(--s2-text-primary);
+  border-bottom-color: var(--s2-accent);
+}
+
+.s2-admin-account {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-4);
+  margin-left: auto;
+}
+
+.s2-admin-account-email {
+  font-size: 12px;
+  color: var(--s2-text-muted);
+}
+
+.s2-admin-signout {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.s2-admin-main {
+  flex: 1;
+  padding: var(--s2-space-6) var(--s2-gutter) var(--s2-space-9);
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+  .s2-admin-header {
+    gap: var(--s2-space-3);
+  }
+
+  .s2-admin-nav {
+    order: 3;
+    width: 100%;
+    gap: var(--s2-space-4);
+  }
+
+  .s2-admin-account-email {
+    display: none;
+  }
+}

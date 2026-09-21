@@ -6,6 +6,13 @@
 */
 .s2-root .s2-btn {
   display: inline-flex;
+  /* Legacy Season 1 CSS carries an unscoped `button { width: 100% }` reset
+     (0,0,1 specificity) that this rule never previously overrode — inline-
+     flex sizing doesn't win against an explicit `width`, so every Button
+     silently stretched to its container's full width unless a caller
+     happened to override it (as onboarding's `.s2-ob-stage .s2-btn` does).
+     Explicit here so the component is correct on its own, everywhere. */
+  width: auto;
   align-items: center;
   justify-content: center;
   gap: var(--s2-space-2);

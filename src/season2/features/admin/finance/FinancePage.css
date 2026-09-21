@@ -1,0 +1,28 @@
+.s2-fin-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-2);
+  font-size: 13px;
+  color: var(--s2-text-secondary);
+  margin: var(--s2-space-2) 0 var(--s2-space-4);
+  cursor: pointer;
+}
+
+.s2-fin-sync-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2-space-6);
+}
+
+.s2-fin-sync-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-2);
+  align-items: flex-start;
+}
+
+@media (max-width: 700px) {
+  .s2-fin-sync-row {
+    grid-template-columns: 1fr;
+  }
+}

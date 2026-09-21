@@ -1,0 +1,75 @@
+.s2-pay-proof {
+  padding: var(--s2-space-5) 0;
+  border-top: 1px solid var(--s2-border);
+}
+
+.s2-pay-proof-frame {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4 / 5;
+  max-height: 380px;
+  border: 1px solid var(--s2-border);
+  border-radius: var(--s2-radius-md);
+  overflow: hidden;
+  background: var(--s2-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.s2-pay-proof-frame.is-error {
+  border-color: var(--s2-status-declined);
+}
+
+.s2-pay-proof-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.s2-pay-proof-empty {
+  font-size: 12.5px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-pay-proof-busy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2-space-2);
+  background: rgba(0, 0, 0, 0.72);
+  font-size: 12px;
+  color: var(--s2-text-secondary);
+}
+
+.s2-root .s2-pay-proof-btn {
+  margin-top: var(--s2-space-3);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 12px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.s2-root .s2-pay-proof-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.s2-pay-proof-error {
+  margin: var(--s2-space-2) 0 0;
+  font-size: 12.5px;
+  color: var(--s2-status-declined);
+}

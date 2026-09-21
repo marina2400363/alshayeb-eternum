@@ -1,0 +1,32 @@
+.s2-po-reorder {
+  display: flex;
+  gap: 4px;
+}
+
+.s2-po-amount {
+  font-family: var(--s2-font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.s2-po-warn {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--s2-status-pending);
+}
+
+.s2-po-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--s2-text-secondary);
+  cursor: pointer;
+}
+
+.s2-po-add-form {
+  margin-top: var(--s2-space-5);
+  padding-top: var(--s2-space-4);
+  border-top: 1px solid var(--s2-border);
+}

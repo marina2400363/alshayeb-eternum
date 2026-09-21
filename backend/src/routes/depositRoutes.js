@@ -1,14 +1,15 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const multer = require("multer");
 
-const Attendee = require("../models/Attendee");
 const PaymentOption = require("../models/PaymentOption");
 const Deposit = require("../models/Deposit");
+const FullPaymentStatus = require("../models/FullPaymentStatus");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { uploadIncomerDepositProof, deleteIncomerDepositProof } = require("../utils/cloudinaryUpload");
 const { getAttendeeFinancialSummary } = require("../utils/paymentCalculations");
+const { serializeCustomerDepositCreated } = require("../utils/paymentSerializers");
+const { requireValidObjectId, requireValidPhone, resolveOwnedIncomer } = require("../utils/customerOwnership");
 
 const router = express.Router();
 
@@ -72,28 +73,28 @@ router.post(
   "/",
   uploadDepositProofMiddleware,
   asyncHandler(async (req, res) => {
-    const attendeeId = String(req.body.attendeeId || "").trim();
-    const paymentOptionId = String(req.body.paymentOptionId || "").trim();
-
-    if (!attendeeId || !mongoose.Types.ObjectId.isValid(attendeeId)) {
-      throw apiError("A valid attendeeId is required.", 422);
-    }
-
-    if (!paymentOptionId || !mongoose.Types.ObjectId.isValid(paymentOptionId)) {
-      throw apiError("A valid paymentOptionId is required.", 422);
-    }
+    const attendeeId = requireValidObjectId(req.body.attendeeId, "A valid attendeeId is required.");
+    const paymentOptionId = requireValidObjectId(req.body.paymentOptionId, "A valid paymentOptionId is required.");
+    const phone = requireValidPhone(req.body.phone);
 
     if (!req.file) {
       throw apiError("Payment proof image is required.", 422);
     }
 
-    const attendee = await Attendee.findById(attendeeId);
-    if (!attendee) {
-      throw apiError("Attendee not found.", 404);
-    }
+    // Server-side ownership cross-check — the only access control here, since
+    // there is no OTP/password/JWT for customers. Collapses "no such
+    // attendee", "not an Incomer" and "phone doesn't match" into one generic
+    // error so attendeeId alone can never be used as a bearer token.
+    const attendee = await resolveOwnedIncomer(attendeeId, phone);
 
-    if (attendee.attendeeType !== "incomer") {
-      throw apiError("Deposits can only be created for Incomer customers.", 422);
+    // Full Payment is never inferred from arithmetic — it is strictly the
+    // accountant's DONE column, mirrored into FullPaymentStatus by the
+    // existing Sheet read-back sync (see googleSheetsFullPaymentSync.js).
+    // Once confirmed, no new deposit can be created for this attendee,
+    // regardless of remaining/ticketPrice math or active-slot count.
+    const fullPaymentStatus = await FullPaymentStatus.findOne({ attendeeId: attendee._id }).select("confirmed");
+    if (fullPaymentStatus?.confirmed) {
+      throw apiError("Full payment has already been confirmed.", 422);
     }
 
     if (!Number.isFinite(attendee.ticketPrice) || attendee.ticketPrice < 0) {
@@ -101,7 +102,11 @@ router.post(
     }
 
     const paymentOption = await PaymentOption.findById(paymentOptionId);
-    if (!paymentOption || !paymentOption.enabled) {
+    // Same generic message for "doesn't exist", "disabled" and "belongs to a
+    // different School" — a customer must never learn that a School-mismatch
+    // (as opposed to disabled/missing) was the actual reason, which would
+    // otherwise confirm another School's option id is valid.
+    if (!paymentOption || !paymentOption.enabled || String(paymentOption.schoolId) !== String(attendee.schoolId)) {
       throw apiError("Selected payment option is not available.", 422);
     }
 
@@ -163,7 +168,7 @@ router.post(
     res.status(201).json({
       success: true,
       message: "Deposit created.",
-      deposit
+      deposit: serializeCustomerDepositCreated(deposit)
     });
   })
 );
