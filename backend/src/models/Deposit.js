@@ -100,6 +100,15 @@ const depositSchema = new mongoose.Schema(
       type: Number,
       min: 1,
       max: MAX_ACTIVE_DEPOSITS
+    },
+    // Season 2 transactional email delivery markers. Internal bookkeeping
+    // only — never exposed by a customer-facing serializer (see
+    // serializeCustomerDepositCreated in paymentSerializers.js, an explicit
+    // allowlist that omits it).
+    season2EmailNotifications: {
+      proofReceivedSentAt: Date,
+      approvalSentAt: Date,
+      rejectionSentAt: Date
     }
   },
   { timestamps: true }

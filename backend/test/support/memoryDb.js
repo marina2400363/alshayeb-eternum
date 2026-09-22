@@ -48,8 +48,24 @@ function matches(doc, filter = {}) {
   });
 }
 
+// Mirrors Mongo's dotted-path $set semantics (e.g. "a.b.c") so a write to a
+// nested field creates the intermediate object instead of setting a literal
+// key named "a.b.c" on the document.
+function setPath(doc, path, value) {
+  const parts = path.split(".");
+  let target = doc;
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const key = parts[i];
+    if (target[key] === undefined || target[key] === null || typeof target[key] !== "object") {
+      target[key] = {};
+    }
+    target = target[key];
+  }
+  target[parts[parts.length - 1]] = value;
+}
+
 function applyUpdate(doc, update) {
-  for (const [key, value] of Object.entries(update.$set || {})) doc[key] = value;
+  for (const [key, value] of Object.entries(update.$set || {})) setPath(doc, key, value);
   for (const key of Object.keys(update.$unset || {})) delete doc[key];
   for (const [key, value] of Object.entries(update.$inc || {})) doc[key] = (doc[key] || 0) + value;
   // Plain-object updates (no operators) behave like $set.
@@ -98,6 +114,7 @@ function createMemoryDb() {
   // --- Attendee -----------------------------------------------------------
   stub(Attendee, "findById", (id) => queryResult(db.attendees.find((doc) => String(doc._id) === String(id)) || null));
   stub(Attendee, "find", (filter = {}) => queryResult(db.attendees.filter((doc) => matches(doc, filter))));
+  stub(Attendee, "findOne", (filter = {}) => queryResult(db.attendees.find((doc) => matches(doc, filter)) || null));
   stub(Attendee, "updateOne", async (filter, update) => {
     const doc = db.attendees.find((candidate) => matches(candidate, filter));
     if (doc) applyUpdate(doc, update);
@@ -107,6 +124,31 @@ function createMemoryDb() {
     const docs = db.attendees.filter((candidate) => matches(candidate, filter));
     docs.forEach((doc) => applyUpdate(doc, update));
     return { matchedCount: docs.length, modifiedCount: docs.length };
+  });
+  stub(Attendee, "findByIdAndUpdate", (id, update) => {
+    const doc = db.attendees.find((candidate) => String(candidate._id) === String(id));
+    return queryResult(doc ? applyUpdate(doc, update) : null);
+  });
+  // Mirrors the production {phoneNormalized, event} unique index: Season 2
+  // Incomers register with no event field, so two concurrent registrations
+  // for the same phone collide the same way two null `event`s would under a
+  // non-sparse unique index in real MongoDB.
+  function assertAttendeeIndexes(candidate) {
+    if (candidate.attendeeType !== "incomer" || candidate.event !== undefined) return;
+    const clash = db.attendees.some(
+      (doc) =>
+        doc !== candidate &&
+        doc.attendeeType === "incomer" &&
+        doc.event === undefined &&
+        doc.phoneNormalized === candidate.phoneNormalized
+    );
+    if (clash) throw duplicateKeyError("phoneNormalized_1_event_1");
+  }
+  stub(Attendee, "create", async (data) => {
+    const doc = { _id: new mongoose.Types.ObjectId(), ...data, createdAt: tick() };
+    assertAttendeeIndexes(doc);
+    db.attendees.push(doc);
+    return doc;
   });
 
   // --- School -------------------------------------------------------------
@@ -146,6 +188,10 @@ function createMemoryDb() {
     const doc = db.deposits.find((candidate) => matches(candidate, filter));
     return queryResult(doc ? applyUpdate(doc, update) : null);
   });
+  stub(Deposit, "findByIdAndUpdate", (id, update) => {
+    const doc = db.deposits.find((candidate) => String(candidate._id) === String(id));
+    return queryResult(doc ? applyUpdate(doc, update) : null);
+  });
 
   // --- PaymentOption ----------------------------------------------------
   stub(PaymentOption, "findById", (id) =>
@@ -163,6 +209,16 @@ function createMemoryDb() {
   stub(FullPaymentStatus, "findOne", (filter = {}) =>
     queryResult(db.fullPayments.find((doc) => matches(doc, filter)) || null)
   );
+  stub(FullPaymentStatus, "find", (filter = {}) => queryResult(db.fullPayments.filter((doc) => matches(doc, filter))));
+  stub(FullPaymentStatus, "findOneAndUpdate", (filter, update) => {
+    let doc = db.fullPayments.find((candidate) => matches(candidate, filter));
+    if (!doc) {
+      doc = { ...(update.$setOnInsert || {}) };
+      db.fullPayments.push(doc);
+    }
+    applyUpdate(doc, update);
+    return queryResult(doc);
+  });
 
   // --- Approval transaction plumbing -------------------------------------
   stub(DepositApprovalLock, "findOneAndUpdate", () => queryResult({}));

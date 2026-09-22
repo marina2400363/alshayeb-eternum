@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Attendee = require("../models/Attendee");
 const SchoolFinanceConfig = require("../models/SchoolFinanceConfig");
 const FullPaymentStatus = require("../models/FullPaymentStatus");
+const { sendSeason2FullPaymentCompleteEmail } = require("../utils/season2Email");
 
 function isGoogleConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
@@ -102,7 +103,9 @@ async function syncFullPaymentFromSchoolSheet(schoolId) {
 
     const attendees = candidateRows.length
       ? await Attendee.find({ _id: { $in: candidateRows.map((r) => r.customerId) } })
-          .select("attendeeType schoolId")
+          // email/fullName: read-only, needed only for the Email E dispatch
+          // below on a false -> true transition — never written here.
+          .select("attendeeType schoolId email fullName")
           .lean()
       : [];
     const attendeeMap = new Map(attendees.map((a) => [String(a._id), a]));
@@ -169,6 +172,33 @@ async function syncFullPaymentFromSchoolSheet(schoolId) {
         confirmedCount += 1;
       } else {
         unconfirmedCount += 1;
+      }
+
+      // Email E — Full payment complete. Fires ONLY on the false/absent ->
+      // true transition computed above (wasConfirmed) — a repeated DONE sync
+      // (true -> true) never re-enters this branch. The completionSentAt
+      // check is a defense-in-depth guard against a future re-run of this
+      // exact transition (e.g. after a crash between the write above and the
+      // send below). This sync is manual-only (no cron — see the admin
+      // route), so an admin re-clicking sync is the realistic retry case,
+      // and it's covered by both guards. Email failure must never fail the
+      // sync response — sendSeason2* never throws.
+      if (item.confirmed && !wasConfirmed && !existing?.season2EmailNotifications?.completionSentAt) {
+        const attendee = attendeeMap.get(item.attendeeId);
+        // eslint-disable-next-line no-await-in-loop
+        const emailResult = await sendSeason2FullPaymentCompleteEmail({
+          attendeeId: item.attendeeId,
+          email: attendee?.email,
+          fullName: attendee?.fullName
+        });
+
+        if (emailResult.sent) {
+          // eslint-disable-next-line no-await-in-loop
+          await FullPaymentStatus.findOneAndUpdate(
+            { attendeeId: item.attendeeId },
+            { $set: { "season2EmailNotifications.completionSentAt": new Date() } }
+          );
+        }
       }
     }
 

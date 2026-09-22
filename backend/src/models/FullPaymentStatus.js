@@ -33,6 +33,12 @@ const fullPaymentStatusSchema = new mongoose.Schema(
     lastSheetValue: {
       type: String,
       trim: true
+    },
+    // Season 2 "Full Payment Complete" email delivery marker. Set only after
+    // the false -> true transition's send succeeds — a repeated true -> true
+    // sync must never re-send, and this is the durable guard for that.
+    season2EmailNotifications: {
+      completionSentAt: Date
     }
   },
   { timestamps: true }

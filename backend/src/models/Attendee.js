@@ -130,6 +130,14 @@ const attendeeSchema = new mongoose.Schema(
       approvedAt: Date,
       rejectedAt: Date
     },
+    // Season 2 transactional email delivery markers — entirely separate from
+    // the legacy emailNotifications above (never read/written by legacy code,
+    // never sent through sendStatusEmail). Internal bookkeeping only: never
+    // exposed by a customer-facing serializer (see serializeSeason2Attendee
+    // in attendeeRoutes.js, which is an explicit allowlist that omits it).
+    season2EmailNotifications: {
+      registrationSentAt: Date
+    },
     // Season 2 Incomer school association. schoolId links to the Admin-managed
     // School.
     //

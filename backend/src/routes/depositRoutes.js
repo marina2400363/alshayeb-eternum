@@ -10,6 +10,7 @@ const { uploadIncomerDepositProof, deleteIncomerDepositProof } = require("../uti
 const { serializeCustomerDepositCreated } = require("../utils/paymentSerializers");
 const { requireValidObjectId, requireValidPhone, resolveOwnedIncomer } = require("../utils/customerOwnership");
 const { lockTicketPriceOnFirstDeposit } = require("../utils/ticketPriceLock");
+const { sendSeason2PaymentUnderReviewEmail } = require("../utils/season2Email");
 
 const router = express.Router();
 
@@ -139,6 +140,24 @@ router.post(
     // First payment request → lock the ticket price the customer had when
     // they made it (no-op if already locked). See utils/ticketPriceLock.js.
     await lockTicketPriceOnFirstDeposit(attendee._id, attendee.ticketPrice);
+
+    // Email B — Payment under review. Only a successful Deposit.create() ever
+    // reaches here: the cycle-busy 409 and the E11000 race both throw above,
+    // so a blocked/duplicate submission can never re-send this. Email failure
+    // must never fail the deposit response — sendSeason2* never throws.
+    if (!deposit.season2EmailNotifications?.proofReceivedSentAt) {
+      const emailResult = await sendSeason2PaymentUnderReviewEmail({
+        depositId: String(deposit._id),
+        email: attendee.email,
+        fullName: attendee.fullName
+      });
+
+      if (emailResult.sent) {
+        await Deposit.findByIdAndUpdate(deposit._id, {
+          $set: { "season2EmailNotifications.proofReceivedSentAt": new Date() }
+        });
+      }
+    }
 
     res.status(201).json({
       success: true,

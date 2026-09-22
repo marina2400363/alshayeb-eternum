@@ -6,6 +6,7 @@ const Deposit = require("../models/Deposit");
 const DepositApprovalLock = require("../models/DepositApprovalLock");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
+const { sendSeason2PaymentConfirmedEmail, sendSeason2PaymentRejectedEmail } = require("../utils/season2Email");
 
 const router = express.Router();
 
@@ -116,6 +117,7 @@ router.put(
     }
 
     let result;
+    let resultAttendee;
 
     for (let attempt = 1; attempt <= MAX_LOCK_CONFLICT_ATTEMPTS; attempt += 1) {
       const session = await mongoose.startSession();
@@ -140,11 +142,15 @@ router.put(
             { upsert: true, session }
           );
 
-          const attendee = await Attendee.findById(deposit.attendeeId).select("_id").session(session);
+          // email/fullName: read-only, needed only for the Email C dispatch
+          // after this transaction commits — never written, never part of
+          // the approval decision itself.
+          const attendee = await Attendee.findById(deposit.attendeeId).select("_id email fullName").session(session);
 
           if (!attendee) {
             throw apiError("Associated attendee was not found.", 404);
           }
+          resultAttendee = attendee;
 
           // Product rule: the ticket price is NOT a payment ceiling. Admin
           // configures which amounts customers may pay (an option may even
@@ -194,6 +200,25 @@ router.put(
       }
     }
 
+    // Email C — Payment confirmed. Only a successful pending -> approved
+    // transition reaches here: the transaction throws 404/409 above for
+    // every other case, so a retried/duplicate approve request never
+    // re-sends this. Email failure must never fail the approval response —
+    // sendSeason2* never throws.
+    if (!result.season2EmailNotifications?.approvalSentAt) {
+      const emailResult = await sendSeason2PaymentConfirmedEmail({
+        depositId: String(result._id),
+        email: resultAttendee?.email,
+        fullName: resultAttendee?.fullName
+      });
+
+      if (emailResult.sent) {
+        await Deposit.findByIdAndUpdate(result._id, {
+          $set: { "season2EmailNotifications.approvalSentAt": new Date() }
+        });
+      }
+    }
+
     res.json({ success: true, message: "Deposit approved.", deposit: result });
   })
 );
@@ -238,6 +263,28 @@ router.put(
 
     if (!updated) {
       throw apiError("This deposit was already reviewed.", 409);
+    }
+
+    // Email D — Payment needs attention. Only a successful pending ->
+    // rejected transition reaches here: the 404/409 guards above throw for
+    // every other case, so a retried/duplicate reject request never
+    // re-sends this. Email failure must never fail the rejection response —
+    // sendSeason2* never throws. rejectionReason is HTML-escaped inside the
+    // template (see season2Email.js).
+    if (!updated.season2EmailNotifications?.rejectionSentAt) {
+      const rejectedAttendee = await Attendee.findById(updated.attendeeId).select("email fullName");
+      const emailResult = await sendSeason2PaymentRejectedEmail({
+        depositId: String(updated._id),
+        email: rejectedAttendee?.email,
+        fullName: rejectedAttendee?.fullName,
+        rejectionReason
+      });
+
+      if (emailResult.sent) {
+        await Deposit.findByIdAndUpdate(updated._id, {
+          $set: { "season2EmailNotifications.rejectionSentAt": new Date() }
+        });
+      }
     }
 
     res.json({ success: true, message: "Deposit rejected.", deposit: updated });

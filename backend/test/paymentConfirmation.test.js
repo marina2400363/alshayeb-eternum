@@ -662,6 +662,7 @@ test("admin approval", async (t) => {
   await t.test("rejection is unchanged and never raises a customer confirmation", async () => {
     const attendee = fakeAttendee();
     const deposit = fakeDeposit(attendee);
+    installAttendee(attendee);
     stub(Deposit, "findById", () => queryResult(deposit));
     let rejectionWrite = null;
     stub(Deposit, "findOneAndUpdate", (filter, update) => {

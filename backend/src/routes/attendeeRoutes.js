@@ -12,6 +12,7 @@ const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
 const { requireAdmin } = require("../middleware/requireAdmin");
 const { uploadIncomerPhoto, deleteIncomerPhoto } = require("../utils/cloudinaryUpload");
+const { sendSeason2RegistrationReceivedEmail } = require("../utils/season2Email");
 const Event = require("../models/Event");
 
 const router = express.Router();
@@ -322,6 +323,27 @@ async function registerIncomer(req, res) {
       }
     }
     throw err;
+  }
+
+  // Email A — Registration received. Only THIS success path (a brand new
+  // Attendee.create()) ever reaches here: the "duplicate" early-return above
+  // and the race-recovery branch in the catch block both return before this
+  // point, so a repeated/duplicate registration attempt can never re-send it.
+  // Email failure must never fail the registration response — sendSeason2*
+  // never throws, and the "already sent" check below is a defense-in-depth
+  // guard against a future code path re-entering here.
+  if (!attendee.season2EmailNotifications?.registrationSentAt) {
+    const emailResult = await sendSeason2RegistrationReceivedEmail({
+      attendeeId: String(attendee._id),
+      email: attendee.email,
+      fullName: attendee.fullName
+    });
+
+    if (emailResult.sent) {
+      await Attendee.findByIdAndUpdate(attendee._id, {
+        $set: { "season2EmailNotifications.registrationSentAt": new Date() }
+      });
+    }
   }
 
   res.status(201).json({
