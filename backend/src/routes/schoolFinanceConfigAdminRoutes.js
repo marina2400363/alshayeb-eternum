@@ -7,6 +7,7 @@ const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { syncSchoolFinanceSheet } = require("../services/googleSheetsSchoolFinanceSync");
 const { syncFullPaymentFromSchoolSheet } = require("../services/googleSheetsFullPaymentSync");
+const { parseSpreadsheetId } = require("../utils/googleSheetUrl");
 
 const router = express.Router();
 
@@ -38,9 +39,14 @@ router.get(
   })
 );
 
-// Assign/update googleSheetId, tabName, and enabled for a School's finance
-// sheet mapping. Upserts so the first call creates the config. Does not
-// touch School.js — schoolId only references it.
+// Assign/update the Google Sheet, tabName and enabled flag for a School's
+// finance sheet mapping. Upserts so the first call creates the config. Does
+// not touch School.js — schoolId only references it.
+//
+// Admin may paste the FULL Google Sheets URL or the bare spreadsheet id
+// (either as googleSheetUrl or googleSheetId): the server normalizes it to
+// the canonical id and refuses anything else with a 422. The link is never
+// fetched here — access is proven by running a sync.
 router.put(
   "/:schoolId",
   asyncHandler(async (req, res) => {
@@ -56,8 +62,10 @@ router.put(
 
     const update = {};
 
-    if (req.body.googleSheetId !== undefined) {
-      update.googleSheetId = String(req.body.googleSheetId).trim();
+    const rawSheet = req.body.googleSheetUrl !== undefined ? req.body.googleSheetUrl : req.body.googleSheetId;
+    if (rawSheet !== undefined) {
+      // An explicitly empty value clears the mapping (School not configured).
+      update.googleSheetId = String(rawSheet).trim() === "" ? "" : parseSpreadsheetId(rawSheet);
     }
 
     if (req.body.tabName !== undefined) {

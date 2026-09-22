@@ -266,8 +266,8 @@
   border: 1px solid var(--s2-border);
   border-radius: var(--s2-radius-sm);
   padding: 6px 10px;
-  /* Season 1's global \`button { width: 100% }\` would otherwise stretch
-     every small admin action across its container. */
+  /* Season 1's global button { width: 100% } would otherwise stretch every
+     small admin action across its container. */
   width: auto;
 }
 
@@ -283,4 +283,11 @@
 
 .s2-root .s2-admin-icon-btn--danger {
   color: var(--s2-status-declined);
+}
+
+/* Season 1's global input { width: 100% } would stretch checkboxes across
+   their row; admin checkboxes keep their natural size. */
+.s2-root .s2-admin-page input[type="checkbox"] {
+  width: auto;
+  flex: none;
 }

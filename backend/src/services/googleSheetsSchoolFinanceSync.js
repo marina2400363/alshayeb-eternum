@@ -4,7 +4,8 @@ const Attendee = require("../models/Attendee");
 const Deposit = require("../models/Deposit");
 const School = require("../models/School");
 const SchoolFinanceConfig = require("../models/SchoolFinanceConfig");
-const { calculateApprovedTotalPaid, calculateRemainingBalance } = require("../utils/paymentCalculations");
+const FullPaymentStatus = require("../models/FullPaymentStatus");
+const { calculateApprovedTotalPaid } = require("../utils/paymentCalculations");
 
 // System-managed columns. Column I ("Full Payment") is deliberately excluded
 // from every write this service performs — it is the accountant's manually-
@@ -15,11 +16,32 @@ const HEADER_ROW = [
   "Phone",
   "School",
   "Ticket Price",
-  "Deposit Summary",
-  "Approved Total Paid",
-  "Remaining Balance",
+  "Approved Payments",
+  "Approved Total",
+  "Payment State",
   "Full Payment"
 ];
+
+// Column H — informational only, derived fresh from MongoDB on every sync.
+// Never read back as authority: only the accountant's column I decides Full
+// Payment (see googleSheetsFullPaymentSync.js).
+const PAYMENT_STATE = {
+  none: "NO PAYMENT",
+  underReview: "UNDER REVIEW",
+  awaitingConfirmation: "AWAITING CUSTOMER CONFIRMATION",
+  active: "PAYMENTS ACTIVE",
+  fullPayment: "FULL PAYMENT COMPLETE"
+};
+
+function paymentStateFor(deposits, fullPaymentConfirmed) {
+  if (fullPaymentConfirmed) return PAYMENT_STATE.fullPayment;
+  if (deposits.some((deposit) => deposit.status === "pending")) return PAYMENT_STATE.underReview;
+  if (deposits.some((deposit) => deposit.status === "approved" && deposit.customerConfirmationPending === true)) {
+    return PAYMENT_STATE.awaitingConfirmation;
+  }
+  if (deposits.some((deposit) => deposit.status === "approved")) return PAYMENT_STATE.active;
+  return PAYMENT_STATE.none;
+}
 
 function isGoogleConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
@@ -41,14 +63,13 @@ function getGoogleAuth() {
   });
 }
 
-function formatDepositSummary(deposits) {
-  if (!deposits.length) {
-    return "No deposits yet";
-  }
-
-  return deposits
-    .map((deposit) => `${deposit.amount} EGP - ${deposit.status}`)
-    .join("\n");
+// Column F — APPROVED amounts only, oldest first, e.g. "500, 1000, 2000".
+// Pending and rejected Deposits are deliberately absent, as is any proof
+// or Cloudinary data.
+function formatApprovedPayments(deposits) {
+  const approved = deposits.filter((deposit) => deposit.status === "approved");
+  if (!approved.length) return "";
+  return approved.map((deposit) => deposit.amount).join(", ");
 }
 
 function quotedRange(tabName, a1Range) {
@@ -97,6 +118,8 @@ async function syncSchoolFinanceSheet(schoolId) {
       return { success: false, skipped: true, reason };
     }
 
+    // ticketPrice is the CUSTOMER's own price (locked at their first payment
+    // request) — never the School's current price.
     const attendees = await Attendee.find({ schoolId, attendeeType: "incomer" })
       .select("fullName phone ticketPrice")
       .lean();
@@ -104,10 +127,19 @@ async function syncSchoolFinanceSheet(schoolId) {
     const attendeeIds = attendees.map((attendee) => attendee._id);
     const deposits = attendeeIds.length
       ? await Deposit.find({ attendeeId: { $in: attendeeIds } })
-          .select("attendeeId amount status createdAt")
+          .select("attendeeId amount status customerConfirmationPending createdAt")
           .sort({ createdAt: 1 })
           .lean()
       : [];
+
+    // Read-only here: this service never writes FullPaymentStatus, it only
+    // reports the accountant's decision in column H.
+    const fullPayments = attendeeIds.length
+      ? await FullPaymentStatus.find({ attendeeId: { $in: attendeeIds } }).select("attendeeId confirmed").lean()
+      : [];
+    const confirmedAttendeeIds = new Set(
+      fullPayments.filter((status) => status.confirmed).map((status) => String(status.attendeeId))
+    );
 
     const depositsByAttendee = new Map();
     for (const deposit of deposits) {
@@ -120,8 +152,8 @@ async function syncSchoolFinanceSheet(schoolId) {
 
     const rows = attendees.map((attendee) => {
       const attendeeDeposits = depositsByAttendee.get(String(attendee._id)) || [];
-      const approvedTotalPaid = calculateApprovedTotalPaid(attendeeDeposits);
-      const remainingBalance = calculateRemainingBalance(attendee.ticketPrice, approvedTotalPaid);
+      const approvedTotal = calculateApprovedTotalPaid(attendeeDeposits);
+      const fullPaymentConfirmed = confirmedAttendeeIds.has(String(attendee._id));
 
       return {
         customerId: String(attendee._id),
@@ -131,9 +163,9 @@ async function syncSchoolFinanceSheet(schoolId) {
           attendee.phone || "",
           school.name || "",
           Number.isFinite(attendee.ticketPrice) ? attendee.ticketPrice : "",
-          formatDepositSummary(attendeeDeposits),
-          approvedTotalPaid,
-          remainingBalance
+          formatApprovedPayments(attendeeDeposits),
+          approvedTotal,
+          paymentStateFor(attendeeDeposits, fullPaymentConfirmed)
         ]
       };
     });
@@ -197,7 +229,12 @@ async function syncSchoolFinanceSheet(schoolId) {
       await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId: config.googleSheetId,
         requestBody: {
-          valueInputOption: "USER_ENTERED",
+          // RAW, not USER_ENTERED: Sheets must never re-parse what we send.
+          // Egyptian phone numbers are strings starting with 0
+          // ("01012345678"), which USER_ENTERED coerces into numbers and
+          // strips the leading zero. Values we send as numbers (ticket price,
+          // approved total) still land as numbers under RAW.
+          valueInputOption: "RAW",
           data
         }
       });
