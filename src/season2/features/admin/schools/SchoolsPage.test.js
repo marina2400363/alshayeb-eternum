@@ -47,13 +47,13 @@ test("selecting School B loads ONLY School B's options — School A's never leak
   expect(screen.queryByText("1,000 EGP")).not.toBeInTheDocument();
 });
 
-test("editing the ticket price shows the snapshot-only note and calls updateSchool", async () => {
+test("editing the ticket price shows the price-lock note and calls updateSchool", async () => {
   adminApi.updateSchool.mockResolvedValue({ ...SCHOOL_A, ticketPrice: 6500 });
   render(<SchoolsPage />);
   await screen.findByText("Mega Heliopolis");
 
   const priceInput = await screen.findByDisplayValue("6000");
-  expect(screen.getByText(/affects new registrations only/i)).toBeInTheDocument();
+  expect(screen.getByText(/price locks at their first payment request/i)).toBeInTheDocument();
   await userEvent.clear(priceInput);
   await userEvent.type(priceInput, "6500");
   const saveButtons = screen.getAllByRole("button", { name: /^save$/i });
@@ -87,6 +87,45 @@ test("creating a school with valid data calls createSchool with {name, ticketPri
   await userEvent.click(within(form).getByRole("button", { name: /create school/i }));
 
   await waitFor(() => expect(adminApi.createSchool).toHaveBeenCalledWith({ name: "New School", ticketPrice: 3000 }));
+});
+
+describe("ticket price visibility", () => {
+  test("shows the switch ON by default and turning it off sends ONLY the visibility flag", async () => {
+    adminApi.updateSchool.mockResolvedValue({ ...SCHOOL_A, showTicketPriceToCustomer: false });
+    render(<SchoolsPage />);
+    await screen.findByText("Mega Heliopolis");
+
+    const toggle = await screen.findByRole("switch", { name: /show ticket price to customer/i });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(toggle);
+
+    await waitFor(() => expect(adminApi.updateSchool).toHaveBeenCalledWith("school-a", { showTicketPriceToCustomer: false }));
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "false"));
+    expect(screen.getByText(/price hidden/i)).toBeInTheDocument();
+  });
+
+  test("a hidden School can be switched back on", async () => {
+    adminApi.fetchSchools.mockResolvedValue([{ ...SCHOOL_A, showTicketPriceToCustomer: false }, SCHOOL_B]);
+    adminApi.updateSchool.mockResolvedValue({ ...SCHOOL_A, showTicketPriceToCustomer: true });
+    render(<SchoolsPage />);
+
+    const toggle = await screen.findByRole("switch", { name: /show ticket price to customer/i });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    await userEvent.click(toggle);
+    await waitFor(() => expect(adminApi.updateSchool).toHaveBeenCalledWith("school-a", { showTicketPriceToCustomer: true }));
+  });
+
+  test("each School has its own setting", async () => {
+    adminApi.fetchSchools.mockResolvedValue([SCHOOL_A, { ...SCHOOL_B, showTicketPriceToCustomer: false }]);
+    render(<SchoolsPage />);
+    const toggle = await screen.findByRole("switch", { name: /show ticket price to customer/i });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+
+    await userEvent.click(screen.getByRole("option", { name: /downtown prep/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("switch", { name: /show ticket price to customer/i })).toHaveAttribute("aria-checked", "false")
+    );
+  });
 });
 
 describe("payment options editor (embedded)", () => {
@@ -125,7 +164,7 @@ describe("payment options editor (embedded)", () => {
     );
   });
 
-  test("warns when an option amount exceeds the School's ticket price, without blocking creation", async () => {
+  test("an option above the ticket price is allowed — no warning, no block", async () => {
     adminApi.createPaymentOption.mockResolvedValue({
       _id: "po-a3",
       schoolId: "school-a",
@@ -141,7 +180,9 @@ describe("payment options editor (embedded)", () => {
     await userEvent.type(screen.getByPlaceholderText("e.g. 500"), "9999");
     await userEvent.click(screen.getByRole("button", { name: /add option/i }));
 
-    expect(await screen.findByText(/above ticket price/i)).toBeInTheDocument();
+    expect(await screen.findByText("9,999 EGP")).toBeInTheDocument();
+    expect(adminApi.createPaymentOption).toHaveBeenCalledWith(expect.objectContaining({ schoolId: "school-a", amount: 9999 }));
+    expect(screen.queryByText(/above ticket price|does not equal|plan/i)).not.toBeInTheDocument();
   });
 
   test("toggling enabled/disabled calls updatePaymentOption with {enabled}", async () => {

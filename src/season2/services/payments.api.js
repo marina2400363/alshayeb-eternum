@@ -3,19 +3,22 @@
 // stays untouched): only the payment endpoints below live here.
 //
 // Contracts (backend/src/routes/paymentRoutes.js + depositRoutes.js + settingsRoutes.js):
-//   POST /api/payments/customer-summary         → { success, summary:{ ticketPrice, activeDepositCount,
-//                                                    fullPaymentConfirmed,
-//                                                    deposits:[{ id, amount, label, status, createdAt, rejectionReason }] } }
+//   POST /api/payments/customer-summary         → { success, summary:{ ticketPriceVisible, ticketPrice?,
+//                                                    paymentStatus,
+//                                                    paymentConfirmation:{ depositId } | null,
+//                                                    latestRejection:{ reason } | null } }
 //     body: { attendeeId, phone }
-//     Product rule: NO payment-progress fields (approvedTotal/remaining) are
-//     ever in this response — see paymentRoutes.js's own comment. The
-//     customer sees only the full ticket price, never paid/remaining.
+//     Product rule: NO payment-progress fields (approvedTotal/remaining) and
+//     NO payment history are ever in this response. ticketPrice is present
+//     only when the customer's School shows it (ticketPriceVisible).
+//   POST /api/payments/acknowledge-confirmation → { success }
+//     body: { attendeeId, phone, depositId }
+//     The customer's OK on the one-time PAYMENT CONFIRMED screen.
 //   POST /api/payments/customer-options          → { success, paymentOptions:[{ id, amount, label }] }
 //     body: { attendeeId, phone }
 //     School-specific: the backend reads the customer's own schoolId
-//     server-side (never sent by the client) and returns only that School's
-//     enabled options, already filtered to what the customer's (internal,
-//     never-exposed) remaining balance can actually afford.
+//     server-side (never sent by the client) and returns every enabled
+//     option of that School.
 //   POST /api/deposits (multipart)                → 201 { success, message, deposit:{ id, amount, label, status, createdAt } }
 //     fields: attendeeId, phone, paymentOptionId, paymentProof
 //   GET  /api/settings/public                     → { success, instapayLink, ... }
@@ -107,15 +110,17 @@ async function request(path, { signal, timeoutMs = DEFAULT_TIMEOUT_MS, ...option
 // Whitelist mappers — a second line of defence at the boundary, same pattern
 // as onboarding.api.js's toCustomer(): even if a response ever carried more
 // than the documented shape, nothing beyond these fields reaches the UI.
-function toDepositHistoryItem(raw) {
-  return {
-    id: String(raw?.id ?? ""),
-    amount: Number(raw?.amount) || 0,
-    label: raw?.label ?? null,
-    status: raw?.status === "approved" || raw?.status === "rejected" ? raw.status : "pending",
-    createdAt: raw?.createdAt ?? null,
-    rejectionReason: raw?.rejectionReason ?? null
-  };
+
+// Just the id — the screen only needs to acknowledge it. No amount and no
+// date: the customer never sees a previous payment.
+function toPaymentConfirmation(raw) {
+  if (!raw || !raw.depositId) return null;
+  return { depositId: String(raw.depositId) };
+}
+
+function toLatestRejection(raw) {
+  if (!raw) return null;
+  return { reason: typeof raw.reason === "string" && raw.reason.trim() ? raw.reason.trim() : null };
 }
 
 function toCreatedDeposit(raw) {
@@ -128,17 +133,26 @@ function toCreatedDeposit(raw) {
   };
 }
 
-// Deliberately just three fields plus history — no approvedTotal, no
-// remaining, no payment-progress figure of any kind. Even if the backend
-// response ever carried one (it shouldn't — see paymentRoutes.js), it is
-// dropped here rather than passed through.
+const PAYMENT_STATUSES = ["ready", "under_review", "awaiting_confirmation", "full_payment_complete"];
+
+// Current state only — no history, no approvedTotal, no remaining, no
+// payment-progress figure of any kind. Even if the backend response ever
+// carried one (it shouldn't — see paymentRoutes.js), it is dropped here
+// rather than passed through.
+//
+// ticketPrice is carried ONLY when the backend says it is visible; a hidden
+// price is never read from the response, even if one were present.
 function toPaymentSummary(raw) {
   const summary = raw || {};
+  const ticketPriceVisible = summary.ticketPriceVisible === true;
   return {
-    ticketPrice: Number(summary.ticketPrice) || 0,
-    activeDepositCount: Number(summary.activeDepositCount) || 0,
-    fullPaymentConfirmed: Boolean(summary.fullPaymentConfirmed),
-    deposits: Array.isArray(summary.deposits) ? summary.deposits.map(toDepositHistoryItem) : []
+    ticketPriceVisible,
+    ticketPrice: ticketPriceVisible ? Number(summary.ticketPrice) || 0 : null,
+    // An unknown status is treated as "under_review" — nothing payable —
+    // never as a state that would let the customer submit.
+    paymentStatus: PAYMENT_STATUSES.includes(summary.paymentStatus) ? summary.paymentStatus : "under_review",
+    paymentConfirmation: toPaymentConfirmation(summary.paymentConfirmation),
+    latestRejection: toLatestRejection(summary.latestRejection)
   };
 }
 
@@ -150,9 +164,8 @@ function toPaymentOption(raw) {
   };
 }
 
-// ticketPrice (the attendee's own snapshot) / activeDepositCount /
-// fullPaymentConfirmed / deposit history — nothing else. attendeeId and
-// phone are sent, never returned or re-exposed.
+// Current payment state only — see toPaymentSummary. attendeeId and phone
+// are sent, never returned or re-exposed.
 export async function fetchCustomerPaymentSummary({ attendeeId, phone }, { signal } = {}) {
   const body = await request("/api/payments/customer-summary", {
     method: "POST",
@@ -164,12 +177,21 @@ export async function fetchCustomerPaymentSummary({ attendeeId, phone }, { signa
   return toPaymentSummary(body.summary);
 }
 
-// The calling customer's own School's enabled options only, already
-// affordability-filtered server-side — the frontend never learns the
-// customer's remaining balance itself, only the options that currently fit
-// it. The backend is the sole authority on filtering and ordering; this
-// never accepts or sends a schoolId — it is resolved server-side from the
-// attendee record.
+// The customer's OK on the one-time PAYMENT CONFIRMED screen. Persisted
+// server-side (never a browser flag) so the confirmation shows exactly once
+// across devices/sessions. Resolves only once the backend has recorded it.
+export async function acknowledgePaymentConfirmation({ attendeeId, phone, depositId }, { signal } = {}) {
+  await request("/api/payments/acknowledge-confirmation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ attendeeId, phone, depositId }),
+    signal
+  });
+}
+
+// The calling customer's own School's enabled options — every one of them,
+// whatever the amount (they are not filtered by any balance). This never
+// accepts or sends a schoolId: the backend resolves it from the attendee.
 export async function fetchCustomerPaymentOptions({ attendeeId, phone }, { signal } = {}) {
   const body = await request("/api/payments/customer-options", {
     method: "POST",

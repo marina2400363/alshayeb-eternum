@@ -144,11 +144,15 @@ describe("deposits", () => {
     await expect(approveDeposit("d1")).rejects.toMatchObject({ status: 409, message: "This deposit was already reviewed." });
   });
 
-  test("approveDeposit surfaces a 422 (would exceed ticket price) with the backend's message", async () => {
-    fetch.mockResolvedValue(
-      jsonResponse(422, { success: false, message: "Approving this deposit (500) would push the approved total (5800) above the ticket price (6000)." })
-    );
-    await expect(approveDeposit("d1")).rejects.toMatchObject({ status: 422 });
+  test("approveDeposit surfaces a 4xx with the backend's message", async () => {
+    fetch.mockResolvedValue(jsonResponse(404, { success: false, message: "Associated attendee was not found." }));
+    await expect(approveDeposit("d1")).rejects.toMatchObject({ status: 404, message: "Associated attendee was not found." });
+  });
+
+  test("updateSchool sends the ticket-price visibility flag as-is", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, school: { _id: "s1", showTicketPriceToCustomer: false } }));
+    await updateSchool("s1", { showTicketPriceToCustomer: false });
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ showTicketPriceToCustomer: false });
   });
 
   test("rejectDeposit PUTs with {rejectionReason}", async () => {

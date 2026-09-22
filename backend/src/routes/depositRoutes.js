@@ -7,9 +7,9 @@ const FullPaymentStatus = require("../models/FullPaymentStatus");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { uploadIncomerDepositProof, deleteIncomerDepositProof } = require("../utils/cloudinaryUpload");
-const { getAttendeeFinancialSummary } = require("../utils/paymentCalculations");
 const { serializeCustomerDepositCreated } = require("../utils/paymentSerializers");
 const { requireValidObjectId, requireValidPhone, resolveOwnedIncomer } = require("../utils/customerOwnership");
+const { lockTicketPriceOnFirstDeposit } = require("../utils/ticketPriceLock");
 
 const router = express.Router();
 
@@ -41,34 +41,18 @@ function uploadDepositProofMiddleware(req, res, next) {
   });
 }
 
-// Attempts to insert a Deposit into an available active slot (1..MAX). The
-// MongoDB partial unique index on {attendeeId, activeSlot} is the actual
-// authority here — a duplicate-key error means a concurrent request already
-// claimed that slot, so we just try the next one. Returns null (not a throw)
-// when every slot is occupied, so the caller can clean up the already-
-// uploaded Cloudinary asset before responding.
-async function claimActiveSlot(depositData) {
-  const maxSlots = Deposit.MAX_ACTIVE_DEPOSITS;
-
-  for (let slot = 1; slot <= maxSlots; slot += 1) {
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      const deposit = await Deposit.create({ ...depositData, activeSlot: slot });
-      return deposit;
-    } catch (err) {
-      if (err.code === 11000) {
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  return null;
-}
+const CYCLE_BUSY_MESSAGE = "You already have a payment in progress.";
 
 // Creates one Deposit for an existing Season 2 Incomer against one currently
-// enabled PaymentOption. The amount is always PaymentOption.amount from the
-// database — never trusted from the request body.
+// enabled PaymentOption of THEIR OWN School. The amount is always
+// PaymentOption.amount from the database — never trusted from the request
+// body — and is deliberately NOT limited by the ticket price or any
+// remaining balance: Admin decides which amounts customers may pay.
+//
+// One payment cycle at a time: no new Deposit while a previous one is
+// pending, or approved but not yet acknowledged by the customer (OK on the
+// PAYMENT CONFIRMED screen). The partial unique index on
+// {attendeeId, activeCycle} (see Deposit.js) is the concurrency authority.
 router.post(
   "/",
   uploadDepositProofMiddleware,
@@ -90,15 +74,10 @@ router.post(
     // Full Payment is never inferred from arithmetic — it is strictly the
     // accountant's DONE column, mirrored into FullPaymentStatus by the
     // existing Sheet read-back sync (see googleSheetsFullPaymentSync.js).
-    // Once confirmed, no new deposit can be created for this attendee,
-    // regardless of remaining/ticketPrice math or active-slot count.
+    // Once confirmed, no new deposit can be created for this attendee.
     const fullPaymentStatus = await FullPaymentStatus.findOne({ attendeeId: attendee._id }).select("confirmed");
     if (fullPaymentStatus?.confirmed) {
       throw apiError("Full payment has already been confirmed.", 422);
-    }
-
-    if (!Number.isFinite(attendee.ticketPrice) || attendee.ticketPrice < 0) {
-      throw apiError("This attendee has no valid ticket price on record.", 422);
     }
 
     const paymentOption = await PaymentOption.findById(paymentOptionId);
@@ -110,25 +89,18 @@ router.post(
       throw apiError("Selected payment option is not available.", 422);
     }
 
-    const { remainingBalance } = await getAttendeeFinancialSummary(attendeeId);
-
-    if (paymentOption.amount > remainingBalance) {
-      throw apiError(
-        `Selected amount (${paymentOption.amount}) exceeds the remaining balance (${remainingBalance}).`,
-        422
-      );
-    }
-
-    // Optimistic pre-check only, to avoid an unnecessary Cloudinary upload
-    // when the account is already visibly full. The partial unique index
-    // inside claimActiveSlot() below is the actual concurrency authority.
-    const activeSlotCount = await Deposit.countDocuments({
-      attendeeId,
-      activeSlot: { $exists: true }
+    // Optimistic pre-check (avoids an unnecessary Cloudinary upload). The
+    // status checks also cover Deposits created before activeCycle existed.
+    const cycleBusy = await Deposit.exists({
+      attendeeId: attendee._id,
+      $or: [
+        { status: "pending" },
+        { status: "approved", customerConfirmationPending: true },
+        { activeCycle: { $exists: true } }
+      ]
     });
-
-    if (activeSlotCount >= Deposit.MAX_ACTIVE_DEPOSITS) {
-      throw apiError("This attendee already has the maximum of 5 active deposits.", 422);
+    if (cycleBusy) {
+      throw apiError(CYCLE_BUSY_MESSAGE, 409);
     }
 
     const uploadedProof = await uploadIncomerDepositProof(req.file);
@@ -142,8 +114,8 @@ router.post(
 
     let deposit;
     try {
-      deposit = await claimActiveSlot({
-        attendeeId,
+      deposit = await Deposit.create({
+        attendeeId: attendee._id,
         paymentOptionId: paymentOption._id,
         paymentOptionSnapshot: {
           amount: paymentOption.amount,
@@ -151,19 +123,22 @@ router.post(
         },
         amount: paymentOption.amount,
         paymentProof,
-        status: "pending"
+        status: "pending",
+        activeCycle: 1
       });
     } catch (err) {
       // The upload already succeeded but no Deposit ended up owning it —
       // delete the orphaned Cloudinary asset regardless of failure reason.
       await deleteIncomerDepositProof(paymentProof.publicId);
+      if (err.code === 11000) {
+        throw apiError(CYCLE_BUSY_MESSAGE, 409);
+      }
       throw err;
     }
 
-    if (!deposit) {
-      await deleteIncomerDepositProof(paymentProof.publicId);
-      throw apiError("This attendee already has the maximum of 5 active deposits.", 422);
-    }
+    // First payment request → lock the ticket price the customer had when
+    // they made it (no-op if already locked). See utils/ticketPriceLock.js.
+    await lockTicketPriceOnFirstDeposit(attendee._id, attendee.ticketPrice);
 
     res.status(201).json({
       success: true,

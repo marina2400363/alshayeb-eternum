@@ -131,8 +131,14 @@ const attendeeSchema = new mongoose.Schema(
       rejectedAt: Date
     },
     // Season 2 Incomer school association. schoolId links to the Admin-managed
-    // School; ticketPrice is a snapshot of School.ticketPrice at registration
-    // time and must never be recomputed from the School's current price.
+    // School.
+    //
+    // ticketPrice follows the School's current price until the customer's
+    // FIRST payment request (first Deposit of any status) — Admin price
+    // changes are copied onto every unlocked Incomer of that School. The first
+    // Deposit locks it (ticketPriceLocked) at the value the customer had when
+    // they made that request; from then on School price changes never touch
+    // it, and a later rejection never unlocks it.
     schoolId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "School"
@@ -140,6 +146,14 @@ const attendeeSchema = new mongoose.Schema(
     ticketPrice: {
       type: Number,
       min: 0
+    },
+    ticketPriceLocked: {
+      type: Boolean,
+      default: false
+    },
+    ticketPriceLockedAt: {
+      type: Date,
+      default: null
     },
     // Season 2 Incomer personal photo (mirrors the existing outcomerPhoto shape).
     incomerPhoto: {

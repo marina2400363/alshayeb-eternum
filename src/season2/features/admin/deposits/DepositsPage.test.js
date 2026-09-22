@@ -77,7 +77,7 @@ test("selecting a row shows the detail panel with the proof image and never the 
   expect(image).toHaveAttribute("src", "https://cdn.example/proof.jpg");
   expect(document.body.textContent).not.toMatch(/hidden-should-not-render/);
   expect(screen.getByText("6,000 EGP")).toBeInTheDocument(); // ticket price
-  expect(screen.getByText("First deposit")).toBeInTheDocument(); // option label
+  expect(screen.getByText(/First deposit/)).toBeInTheDocument(); // option label, beside its amount
 });
 
 test("approve calls the API, refetches, and disables both actions while in flight", async () => {

@@ -12,12 +12,15 @@ function parseAmount(raw) {
   return amount;
 }
 
+// The School's Payment Options: the amounts its customers may choose from
+// for ANY payment, as many times as they like. Not an installment plan —
+// there is no sequence, no count and no total to match. Amounts are free:
+// an option may even be larger than the ticket price, and nothing here
+// compares them to it.
+//
 // Every option created here is scoped to `schoolId` by useSchoolPaymentOptions
 // — there is no way to create one without a School, matching the backend's
-// required schoolId. Amounts are never clamped to <= ticketPrice (the
-// backend doesn't enforce that either); instead a quiet warning flags an
-// option that customers can never actually be offered once the customer-
-// facing affordability filter (see paymentRoutes.js) applies.
+// required schoolId. The list order is the order customers see.
 export default function PaymentOptionsEditor({ school }) {
   const { status, options, error, retry, addOption, editOption, removeOption, toggleEnabled, moveOption } =
     useSchoolPaymentOptions(school._id);
@@ -110,8 +113,11 @@ export default function PaymentOptionsEditor({ school }) {
   }
 
   return (
-    <div className="s2-admin-panel">
+    <div className="s2-admin-panel s2-po">
       <span className="s2-admin-eyebrow">Payment options</span>
+      <p className="s2-admin-muted-text s2-po-intro">
+        The amounts this School&apos;s customers can choose for each payment, in this order.
+      </p>
 
       {status === "loading" && <LoadingState label="Loading payment options" />}
       {status === "error" && <ErrorState title="Couldn't load payment options" message={error?.message} onRetry={retry} />}
@@ -121,130 +127,116 @@ export default function PaymentOptionsEditor({ school }) {
           {options.length === 0 ? (
             <p className="s2-admin-muted-text">No payment options yet for this School.</p>
           ) : (
-            <div className="s2-admin-table-overflow">
-              <table className="s2-admin-table s2-po-table">
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Amount</th>
-                    <th>Label</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {options.map((option, index) => {
-                    const isEditing = editingId === option._id;
-                    const isBusy = busyId === option._id;
-                    const exceedsTicketPrice = option.amount > school.ticketPrice;
+            <ol className="s2-po-list" aria-label="Payment options">
+              {options.map((option, index) => {
+                const isEditing = editingId === option._id;
+                const isBusy = busyId === option._id;
+                const number = String(index + 1).padStart(2, "0");
+                const name = formatCurrency(option.amount);
 
-                    return (
-                      <tr key={option._id}>
-                        <td>
-                          <div className="s2-po-reorder">
-                            <button
-                              type="button"
-                              className="s2-admin-icon-btn"
-                              disabled={index === 0 || isBusy}
-                              onClick={() => handleMove(option, "up")}
-                              aria-label={`Move ${formatCurrency(option.amount)} up`}
-                            >
-                              ↑
-                            </button>
-                            <button
-                              type="button"
-                              className="s2-admin-icon-btn"
-                              disabled={index === options.length - 1 || isBusy}
-                              onClick={() => handleMove(option, "down")}
-                              aria-label={`Move ${formatCurrency(option.amount)} down`}
-                            >
-                              ↓
-                            </button>
-                          </div>
-                        </td>
+                return (
+                  <li key={option._id} className={`s2-po-row ${option.enabled ? "" : "is-disabled"}`}>
+                    <span className="s2-po-index" aria-hidden="true">
+                      {number}
+                    </span>
 
-                        {isEditing ? (
-                          <>
-                            <td>
-                              <input
-                                className="s2-admin-input"
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={editDraft.amount}
-                                onChange={(event) => setEditDraft((d) => ({ ...d, amount: event.target.value }))}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="s2-admin-input"
-                                type="text"
-                                value={editDraft.label}
-                                placeholder="Optional label"
-                                onChange={(event) => setEditDraft((d) => ({ ...d, label: event.target.value }))}
-                              />
-                            </td>
-                            <td colSpan={2}>
-                              <div className="s2-admin-action-row">
-                                <button
-                                  type="button"
-                                  className="s2-admin-icon-btn"
-                                  disabled={isBusy}
-                                  onClick={() => saveEdit(option._id)}
-                                >
-                                  {isBusy ? "Saving…" : "Save"}
-                                </button>
-                                <button type="button" className="s2-admin-icon-btn" onClick={() => setEditingId(null)}>
-                                  Cancel
-                                </button>
-                              </div>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td data-label="Amount">
-                              <span className="s2-po-amount">{formatCurrency(option.amount)}</span>
-                              {exceedsTicketPrice && (
-                                <span className="s2-po-warn" title="Above this School's full ticket price — customers will never be offered this option.">
-                                  ⚠ above ticket price
-                                </span>
-                              )}
-                            </td>
-                            <td data-label="Label">{option.label || <span className="s2-admin-muted-text">—</span>}</td>
-                            <td data-label="Status">
-                              <label className="s2-po-toggle">
-                                <input
-                                  type="checkbox"
-                                  checked={option.enabled}
-                                  disabled={isBusy}
-                                  onChange={() => handleToggle(option)}
-                                />
-                                {option.enabled ? "Enabled" : "Disabled"}
-                              </label>
-                            </td>
-                            <td data-label="Actions">
-                              <div className="s2-admin-action-row">
-                                <button type="button" className="s2-admin-icon-btn" disabled={isBusy} onClick={() => startEdit(option)}>
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  className="s2-admin-icon-btn s2-admin-icon-btn--danger"
-                                  disabled={isBusy}
-                                  onClick={() => handleDelete(option)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    {isEditing ? (
+                      <div className="s2-po-edit">
+                        <label className="s2-po-edit-field">
+                          <span className="s2-admin-field-label">Amount</span>
+                          <input
+                            className="s2-admin-input"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={editDraft.amount}
+                            onChange={(event) => setEditDraft((d) => ({ ...d, amount: event.target.value }))}
+                          />
+                        </label>
+                        <label className="s2-po-edit-field">
+                          <span className="s2-admin-field-label">Label</span>
+                          <input
+                            className="s2-admin-input"
+                            type="text"
+                            value={editDraft.label}
+                            placeholder="Optional label"
+                            onChange={(event) => setEditDraft((d) => ({ ...d, label: event.target.value }))}
+                          />
+                        </label>
+                        <div className="s2-admin-action-row">
+                          <button
+                            type="button"
+                            className="s2-admin-icon-btn"
+                            disabled={isBusy}
+                            onClick={() => saveEdit(option._id)}
+                          >
+                            {isBusy ? "Saving…" : "Save"}
+                          </button>
+                          <button type="button" className="s2-admin-icon-btn" onClick={() => setEditingId(null)}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="s2-po-main">
+                        <span className="s2-po-amount">{name}</span>
+                        {option.label && <span className="s2-po-label">{option.label}</span>}
+                      </div>
+                    )}
+
+                    {!isEditing && (
+                      <div className="s2-po-actions">
+                        <label className="s2-po-toggle">
+                          <input
+                            type="checkbox"
+                            checked={option.enabled}
+                            disabled={isBusy}
+                            onChange={() => handleToggle(option)}
+                          />
+                          {option.enabled ? "Enabled" : "Disabled"}
+                        </label>
+                        <button
+                          type="button"
+                          className="s2-admin-icon-btn"
+                          disabled={index === 0 || isBusy}
+                          onClick={() => handleMove(option, "up")}
+                          aria-label={`Move ${name} up`}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="s2-admin-icon-btn"
+                          disabled={index === options.length - 1 || isBusy}
+                          onClick={() => handleMove(option, "down")}
+                          aria-label={`Move ${name} down`}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="s2-admin-icon-btn"
+                          disabled={isBusy}
+                          onClick={() => startEdit(option)}
+                          aria-label={`Edit ${name}`}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="s2-admin-icon-btn s2-admin-icon-btn--danger"
+                          disabled={isBusy}
+                          onClick={() => handleDelete(option)}
+                          aria-label={`Delete ${name}`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
           )}
 
           {rowError && (
@@ -253,8 +245,8 @@ export default function PaymentOptionsEditor({ school }) {
             </p>
           )}
 
-          <form className="s2-admin-inline-form s2-po-add-form" onSubmit={handleAdd}>
-            <div className="s2-admin-field-row">
+          <form className="s2-po-add-form" onSubmit={handleAdd}>
+            <label className="s2-po-edit-field">
               <span className="s2-admin-field-label">New amount</span>
               <input
                 className="s2-admin-input"
@@ -265,8 +257,8 @@ export default function PaymentOptionsEditor({ school }) {
                 value={newAmount}
                 onChange={(event) => setNewAmount(event.target.value)}
               />
-            </div>
-            <div className="s2-admin-field-row">
+            </label>
+            <label className="s2-po-edit-field">
               <span className="s2-admin-field-label">Label (optional)</span>
               <input
                 className="s2-admin-input"
@@ -275,9 +267,9 @@ export default function PaymentOptionsEditor({ school }) {
                 value={newLabel}
                 onChange={(event) => setNewLabel(event.target.value)}
               />
-            </div>
+            </label>
             <Button type="submit" variant="secondary" size="sm" disabled={submitting}>
-              {submitting ? "Adding…" : "Add option"}
+              {submitting ? "Adding…" : "+ Add option"}
             </Button>
           </form>
           {formError && (

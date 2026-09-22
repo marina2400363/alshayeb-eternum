@@ -1,6 +1,7 @@
 import {
   fetchCustomerPaymentSummary,
   fetchCustomerPaymentOptions,
+  acknowledgePaymentConfirmation,
   createDeposit,
   fetchInstaPayLink,
   ApiError,
@@ -12,38 +13,38 @@ function jsonResponse(status, body) {
 }
 
 const RAW_SUMMARY = {
+  ticketPriceVisible: true,
   ticketPrice: 6000,
-  activeDepositCount: 2,
-  fullPaymentConfirmed: false,
-  deposits: [
-    { id: "d1", amount: 2000, label: "2000 EGP", status: "approved", createdAt: "2026-01-01T00:00:00.000Z", rejectionReason: null },
-    { id: "d2", amount: 500, label: null, status: "pending", createdAt: "2026-01-02T00:00:00.000Z", rejectionReason: null }
-  ]
+  paymentStatus: "ready",
+  paymentConfirmation: { depositId: "d1" },
+  latestRejection: null
 };
 
 // A response shaped like it carries forbidden fields — the mapper must strip
-// everything down to the documented shape regardless, INCLUDING the two
-// payment-progress fields this revision explicitly removed.
+// everything down to the documented shape regardless: payment progress, the
+// (removed) deposit history, and a previous payment's amount.
 const OVERSHARING_SUMMARY = {
   ...RAW_SUMMARY,
   attendeeId: "atd1",
   phone: "01012345678",
+  schoolId: "school-b",
   approvedTotal: 2000,
   remaining: 4000,
-  deposits: [
-    {
-      id: "d1",
-      amount: 2000,
-      label: "2000 EGP",
-      status: "approved",
-      createdAt: "2026-01-01T00:00:00.000Z",
-      rejectionReason: null,
-      paymentOptionId: "po1",
-      activeSlot: 1,
-      proof: { url: "https://cdn/x.jpg", publicId: "abc" },
-      reviewedBy: "admin1"
-    }
-  ]
+  progress: 0.33,
+  activeDepositCount: 2,
+  deposits: [{ id: "d0", amount: 1000, status: "approved", proof: { url: "https://cdn/x.jpg", publicId: "abc" } }],
+  paymentConfirmation: {
+    ...RAW_SUMMARY.paymentConfirmation,
+    amount: 7000,
+    label: "Big one",
+    approvedAt: "2026-01-03T00:00:00.000Z",
+    paymentOptionId: "po1",
+    activeSlot: 1,
+    proof: { url: "https://cdn/x.jpg", publicId: "abc" },
+    reviewedBy: "admin1",
+    customerConfirmationPending: true
+  },
+  latestRejection: { reason: "Blurry.", reviewedBy: "admin1", depositId: "d9" }
 };
 
 beforeEach(() => {
@@ -61,16 +62,7 @@ describe("fetchCustomerPaymentSummary", () => {
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({ attendeeId: "atd1", phone: "01012345678" });
 
-    expect(summary.ticketPrice).toBe(6000);
-    expect(summary.activeDepositCount).toBe(2);
-    expect(summary.fullPaymentConfirmed).toBe(false);
-    expect(summary.deposits).toHaveLength(2);
-  });
-
-  test("the summary is EXACTLY {ticketPrice, activeDepositCount, fullPaymentConfirmed, deposits} — no payment-progress field", async () => {
-    fetch.mockResolvedValue(jsonResponse(200, { success: true, summary: RAW_SUMMARY }));
-    const summary = await fetchCustomerPaymentSummary({ attendeeId: "atd1", phone: "01012345678" });
-    expect(Object.keys(summary).sort()).toEqual(["activeDepositCount", "deposits", "fullPaymentConfirmed", "ticketPrice"]);
+    expect(summary).toEqual(RAW_SUMMARY);
   });
 
   test("never sends phone in the URL/query string", async () => {
@@ -81,44 +73,58 @@ describe("fetchCustomerPaymentSummary", () => {
     expect(url).not.toContain("phone=");
   });
 
-  test("strips approvedTotal/remaining/attendeeId/phone and every deposit-internal field, even if the backend sent them", async () => {
+  test("strips history, totals, progress, ids, a previous amount and deposit internals", async () => {
     fetch.mockResolvedValue(jsonResponse(200, { success: true, summary: OVERSHARING_SUMMARY }));
     const summary = await fetchCustomerPaymentSummary({ attendeeId: "atd1", phone: "01012345678" });
 
-    expect(summary).not.toHaveProperty("approvedTotal");
-    expect(summary).not.toHaveProperty("remaining");
-    expect(summary).not.toHaveProperty("attendeeId");
-    expect(summary).not.toHaveProperty("phone");
-    expect(summary.deposits[0]).toEqual({
-      id: "d1",
-      amount: 2000,
-      label: "2000 EGP",
-      status: "approved",
-      createdAt: "2026-01-01T00:00:00.000Z",
-      rejectionReason: null
-    });
-    expect(JSON.stringify(summary)).not.toMatch(/approvedTotal|remaining|paymentOptionId|activeSlot|publicId|reviewedBy|cdn/);
+    expect(summary).toEqual({ ...RAW_SUMMARY, latestRejection: { reason: "Blurry." } });
+    expect(JSON.stringify(summary)).not.toMatch(
+      /approvedTotal|remaining|progress|activeDepositCount|7000|Big one|schoolId|label|paymentOptionId|activeSlot|publicId|reviewedBy|customerConfirmation|cdn|d0|d9/
+    );
   });
 
-  test("an unknown deposit status falls back to pending rather than leaking a raw value", async () => {
+  test("a hidden ticket price is never carried — even if an amount slipped into the response", async () => {
     fetch.mockResolvedValue(
-      jsonResponse(200, {
-        success: true,
-        summary: { ...RAW_SUMMARY, deposits: [{ id: "d1", amount: 1, status: "weird-internal-state" }] }
-      })
+      jsonResponse(200, { success: true, summary: { ...RAW_SUMMARY, ticketPriceVisible: false, ticketPrice: 4500 } })
     );
     const summary = await fetchCustomerPaymentSummary({ attendeeId: "a", phone: "p" });
-    expect(summary.deposits[0].status).toBe("pending");
+    expect(summary.ticketPriceVisible).toBe(false);
+    expect(summary.ticketPrice).toBeNull();
+    expect(JSON.stringify(summary)).not.toContain("4500");
   });
 
-  test("fullPaymentConfirmed reflects the backend boolean exactly (never inferred)", async () => {
-    fetch.mockResolvedValue(jsonResponse(200, { success: true, summary: { ...RAW_SUMMARY, fullPaymentConfirmed: false } }));
+  test("visibility must be explicitly true — a missing flag hides the price", async () => {
+    const { ticketPriceVisible, ...withoutFlag } = RAW_SUMMARY;
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, summary: withoutFlag }));
     const summary = await fetchCustomerPaymentSummary({ attendeeId: "a", phone: "p" });
-    expect(summary.fullPaymentConfirmed).toBe(false);
+    expect(summary.ticketPriceVisible).toBe(false);
+    expect(summary.ticketPrice).toBeNull();
+  });
 
-    fetch.mockResolvedValue(jsonResponse(200, { success: true, summary: { ...RAW_SUMMARY, fullPaymentConfirmed: true } }));
-    const confirmed = await fetchCustomerPaymentSummary({ attendeeId: "a", phone: "p" });
-    expect(confirmed.fullPaymentConfirmed).toBe(true);
+  test("a confirmation without a depositId is dropped (never an un-acknowledgeable popup)", async () => {
+    fetch.mockResolvedValue(
+      jsonResponse(200, { success: true, summary: { ...RAW_SUMMARY, paymentConfirmation: { approvedAt: "2026-01-03" } } })
+    );
+    const summary = await fetchCustomerPaymentSummary({ attendeeId: "a", phone: "p" });
+    expect(summary.paymentConfirmation).toBeNull();
+  });
+
+  test("an unknown status is never treated as payable", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, summary: { ...RAW_SUMMARY, paymentStatus: "weird" } }));
+    const summary = await fetchCustomerPaymentSummary({ attendeeId: "a", phone: "p" });
+    expect(summary.paymentStatus).not.toBe("ready");
+  });
+
+  test("the summary is exactly the five current-state fields — nothing else", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, summary: RAW_SUMMARY }));
+    const summary = await fetchCustomerPaymentSummary({ attendeeId: "a", phone: "p" });
+    expect(Object.keys(summary).sort()).toEqual([
+      "latestRejection",
+      "paymentConfirmation",
+      "paymentStatus",
+      "ticketPrice",
+      "ticketPriceVisible"
+    ]);
   });
 
   test("surfaces the generic ownership-mismatch 404 message from the backend", async () => {
@@ -146,6 +152,34 @@ describe("fetchCustomerPaymentSummary", () => {
   });
 });
 
+describe("acknowledgePaymentConfirmation", () => {
+  test("POSTs exactly { attendeeId, phone, depositId } as JSON — phone never in the URL", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true }));
+    await acknowledgePaymentConfirmation({ attendeeId: "atd1", phone: "01012345678", depositId: "dep1" });
+
+    const [url, options] = fetch.mock.calls[0];
+    expect(url).toMatch(/\/api\/payments\/acknowledge-confirmation$/);
+    expect(url).not.toContain("01012345678");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({ attendeeId: "atd1", phone: "01012345678", depositId: "dep1" });
+  });
+
+  test("rejects (so the popup stays open) when the backend refuses", async () => {
+    fetch.mockResolvedValue(jsonResponse(404, { success: false, message: "Payment confirmation not found." }));
+    await expect(
+      acknowledgePaymentConfirmation({ attendeeId: "a", phone: "p", depositId: "someone-elses" })
+    ).rejects.toMatchObject({ status: 404, message: "Payment confirmation not found." });
+  });
+
+  test("a network failure rejects with a retryable ApiError", async () => {
+    fetch.mockRejectedValue(new TypeError("Failed to fetch"));
+    const error = await acknowledgePaymentConfirmation({ attendeeId: "a", phone: "p", depositId: "d" }).catch((e) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.isRetryable).toBe(true);
+  });
+});
+
 describe("fetchCustomerPaymentOptions", () => {
   test("posts { attendeeId, phone } to the school-specific customer-options endpoint (never GET /api/payment-options)", async () => {
     fetch.mockResolvedValue(
@@ -167,7 +201,7 @@ describe("fetchCustomerPaymentOptions", () => {
     expect(body).not.toHaveProperty("schoolId");
   });
 
-  test("returns [] when the School has no options that currently fit (or full payment is confirmed)", async () => {
+  test("returns [] when the School has no enabled options (or full payment is confirmed)", async () => {
     fetch.mockResolvedValue(jsonResponse(200, { success: true, paymentOptions: [] }));
     expect(await fetchCustomerPaymentOptions({ attendeeId: "a", phone: "p" })).toEqual([]);
   });
@@ -188,6 +222,17 @@ describe("fetchCustomerPaymentOptions", () => {
   test("surfaces the generic ownership-mismatch error", async () => {
     fetch.mockResolvedValue(jsonResponse(404, { success: false, message: "We couldn't verify this account. Check your details and try again." }));
     await expect(fetchCustomerPaymentOptions({ attendeeId: "a", phone: "wrong" })).rejects.toMatchObject({ status: 404 });
+  });
+
+  test("keeps every option the backend returns, including amounts above the ticket price", async () => {
+    fetch.mockResolvedValue(
+      jsonResponse(200, { success: true, paymentOptions: [{ id: "a", amount: 500, label: null }, { id: "b", amount: 7000, label: "Full + extras" }] })
+    );
+    const options = await fetchCustomerPaymentOptions({ attendeeId: "a", phone: "p" });
+    expect(options).toEqual([
+      { id: "a", amount: 500, label: null },
+      { id: "b", amount: 7000, label: "Full + extras" }
+    ]);
   });
 });
 
@@ -257,12 +302,12 @@ describe("createDeposit", () => {
     ).rejects.toMatchObject({ status: 422, message: "Full payment has already been confirmed." });
   });
 
-  test("surfaces the max-5 422", async () => {
-    fetch.mockResolvedValue(jsonResponse(422, { success: false, message: "This attendee already has the maximum of 5 active deposits." }));
+  test("surfaces the one-payment-at-a-time 409", async () => {
+    fetch.mockResolvedValue(jsonResponse(409, { success: false, message: "You already have a payment in progress." }));
     const proof = new File(["x"], "proof.jpg", { type: "image/jpeg" });
     await expect(
       createDeposit({ attendeeId: "atd1", phone: "01012345678", paymentOptionId: "po1", paymentProof: proof })
-    ).rejects.toMatchObject({ status: 422 });
+    ).rejects.toMatchObject({ status: 409, message: "You already have a payment in progress." });
   });
 
   test("a network failure during submit is a retryable ApiError (state is preserved by the caller, not here)", async () => {

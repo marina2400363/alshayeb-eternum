@@ -1,1 +1,69 @@
-/* Page-specific overrides beyond admin-shared.css, if any are ever needed. */
+/* Page-specific overrides beyond admin-shared.css. */
+
+/* "Show ticket price to customer" switch. */
+.s2-root .s2-price-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2-space-3);
+  width: auto; /* overrides Season 1's global button width */
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--s2-text-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.s2-root .s2-price-switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.s2-price-switch-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: var(--s2-radius-pill);
+  border: 1px solid var(--s2-border-strong);
+  background: var(--s2-bg-2);
+  transition: background var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+.s2-price-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--s2-radius-pill);
+  background: var(--s2-text-muted);
+  transition: transform var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+.s2-price-switch.is-on .s2-price-switch-track {
+  background: var(--s2-accent-soft);
+  border-color: var(--s2-accent);
+}
+
+.s2-price-switch.is-on .s2-price-switch-thumb {
+  transform: translateX(18px);
+  background: var(--s2-accent);
+}
+
+.s2-price-switch-text {
+  font-size: 12px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+}
+
+.s2-root .s2-price-switch:focus-visible {
+  outline: 2px solid var(--s2-accent);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-price-switch-track,
+  .s2-price-switch-thumb {
+    transition: none;
+  }
+}

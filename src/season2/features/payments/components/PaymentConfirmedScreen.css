@@ -1,0 +1,104 @@
+/* Fullscreen, opaque: nothing of the payment screen (and certainly no
+   history) is visible behind it. */
+.s2-pay-confirmed {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--s2-space-7) var(--s2-gutter) max(var(--s2-space-7), env(safe-area-inset-bottom));
+  background:
+    radial-gradient(120% 70% at 50% 0%, var(--s2-accent-soft), transparent 60%),
+    var(--s2-bg-0);
+  color: var(--s2-text-primary);
+  overflow-y: auto;
+  animation: s2-pay-confirmed-in 0.5s var(--s2-ease-out);
+}
+
+.s2-pay-confirmed-inner {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.s2-pay-confirmed-mark {
+  display: block;
+  width: 48px;
+  height: 2px;
+  margin-bottom: var(--s2-space-6);
+  background: var(--s2-accent);
+}
+
+/* "CONFIRMED" is the wider line (measured 7.0em in Archivo 800 @ 112%),
+   inside the shared --s2-fit-title budget. */
+.s2-pay-confirmed-title > span {
+  white-space: nowrap;
+}
+
+.s2-pay-confirmed-title {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  font-stretch: var(--s2-stretch-display);
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-tight);
+  line-height: 0.92;
+  font-size: min(calc(100cqw / var(--s2-fit-title)), 112px);
+}
+
+.s2-pay-confirmed-copy {
+  margin: var(--s2-space-5) 0 0;
+  max-width: 32ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--s2-text-secondary);
+}
+
+.s2-pay-confirmed-actions {
+  margin-top: var(--s2-space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-3);
+}
+
+.s2-root .s2-pay-confirmed-ok {
+  width: 100%;
+}
+
+.s2-pay-confirmed-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--s2-status-declined);
+}
+
+@media (min-width: 768px) {
+  .s2-pay-confirmed {
+    align-items: center;
+  }
+
+  .s2-root .s2-pay-confirmed-ok {
+    width: auto;
+    min-width: 200px;
+    align-self: flex-start;
+  }
+}
+
+@keyframes s2-pay-confirmed-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-pay-confirmed {
+    animation: none;
+  }
+}

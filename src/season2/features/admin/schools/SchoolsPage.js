@@ -8,6 +8,11 @@ import PaymentOptionsEditor from "./PaymentOptionsEditor";
 import "../components/admin-shared.css";
 import "./SchoolsPage.css";
 
+// Schools created before the setting existed show the price (the default).
+function priceVisible(school) {
+  return school.showTicketPriceToCustomer !== false;
+}
+
 function parsePrice(raw) {
   const price = Number(raw);
   if (!Number.isFinite(price) || price < 0) return null;
@@ -35,7 +40,7 @@ export default function SchoolsPage() {
   const [priceDraft, setPriceDraft] = useState("");
   const [nameDraft, setNameDraft] = useState("");
   const [detailError, setDetailError] = useState("");
-  const [detailSaving, setDetailSaving] = useState(null); // "name" | "price" | null
+  const [detailSaving, setDetailSaving] = useState(null); // "name" | "price" | "visibility" | null
 
   useEffect(() => {
     if (selectedSchool) {
@@ -100,6 +105,19 @@ export default function SchoolsPage() {
       await editSchool(selectedSchool._id, { ticketPrice: price });
     } catch (failure) {
       setDetailError(failure?.message || "Couldn't save the ticket price.");
+    } finally {
+      setDetailSaving(null);
+    }
+  }
+
+  // Visibility only — never touches the ticket price or any payment data.
+  async function handleToggleVisibility() {
+    setDetailError("");
+    setDetailSaving("visibility");
+    try {
+      await editSchool(selectedSchool._id, { showTicketPriceToCustomer: !priceVisible(selectedSchool) });
+    } catch (failure) {
+      setDetailError(failure?.message || "Couldn't change the ticket price visibility.");
     } finally {
       setDetailSaving(null);
     }
@@ -170,7 +188,10 @@ export default function SchoolsPage() {
                 onClick={() => setSelectedId(school._id)}
               >
                 <span className="s2-admin-rail-item-name">{school.name}</span>
-                <span className="s2-admin-rail-item-meta">{formatCurrency(school.ticketPrice)}</span>
+                <span className="s2-admin-rail-item-meta">
+                  {formatCurrency(school.ticketPrice)}
+                  {!priceVisible(school) && " · price hidden"}
+                </span>
               </button>
             ))}
           </div>
@@ -206,8 +227,34 @@ export default function SchoolsPage() {
                     </Button>
                   </div>
                   <p className="s2-admin-muted-text">
-                    Changing this affects new registrations only. Attendees who already registered keep the ticket
-                    price they were given at the time — it is never retroactively changed.
+                    Customers who haven't made a payment request yet move to the new price. A customer's price
+                    locks at their first payment request — after that, changes here never affect them.
+                  </p>
+                </div>
+
+                <div className="s2-admin-field-row">
+                  <span className="s2-admin-field-label" id="s2-price-visibility-label">
+                    Show ticket price to customer
+                  </span>
+                  <div className="s2-admin-inline-form">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={priceVisible(selectedSchool)}
+                      aria-labelledby="s2-price-visibility-label"
+                      className={`s2-price-switch ${priceVisible(selectedSchool) ? "is-on" : ""}`}
+                      disabled={detailSaving === "visibility"}
+                      onClick={handleToggleVisibility}
+                    >
+                      <span className="s2-price-switch-track" aria-hidden="true">
+                        <span className="s2-price-switch-thumb" />
+                      </span>
+                      <span className="s2-price-switch-text">{priceVisible(selectedSchool) ? "Shown" : "Hidden"}</span>
+                    </button>
+                  </div>
+                  <p className="s2-admin-muted-text">
+                    When hidden, customers of this School don't see a ticket price at all — it isn't sent to their
+                    screen. Payments and finance are unaffected.
                   </p>
                 </div>
 

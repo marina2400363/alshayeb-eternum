@@ -7,21 +7,29 @@ import PaymentOverview from "./components/PaymentOverview";
 import PaymentOptionPicker from "./components/PaymentOptionPicker";
 import InstaPayPanel from "./components/InstaPayPanel";
 import ProofPicker from "./components/ProofPicker";
-import DepositHistory from "./components/DepositHistory";
+import PaymentStatePanel from "./components/PaymentStatePanel";
+import PaymentConfirmedScreen from "./components/PaymentConfirmedScreen";
 import usePaymentSummary from "./hooks/usePaymentSummary";
 import useCustomerPaymentOptions from "./hooks/useCustomerPaymentOptions";
 import useInstaPayLink from "./hooks/useInstaPayLink";
 import { processProof } from "./utils/proof";
-import { createDeposit } from "../../services/payments.api";
+import { acknowledgePaymentConfirmation, createDeposit } from "../../services/payments.api";
 import "./PaymentArea.css";
-
-const MAX_ACTIVE_DEPOSITS = 5;
 
 // Sandra's payment body for the Customer Area. Reads only {id, phone} from
 // Marina's session (via useCustomer(), read-only — see that hook's own
 // comment: "Customer Area content (Sandra's) reads customer.id from here").
-// Owns everything below that: payment overview, choose-payment, InstaPay
-// instructions, proof upload/compression and submit, deposit history.
+// Owns everything below that: ticket price (when the School shows it),
+// choose-payment, InstaPay instructions, proof upload/compression and submit.
+//
+// Product rules:
+//   • the customer chooses ANY enabled Payment Option of their own School,
+//     every time — there is no sequence or plan;
+//   • one payment at a time: nothing can be submitted while a payment is
+//     under review or awaiting the customer's OK on PAYMENT CONFIRMED;
+//   • no payment history — the screen only reflects CURRENT state. Every
+//     Deposit still exists server-side for Admin, finance, Sheets and Full
+//     Payment.
 export default function PaymentArea() {
   const { customer } = useCustomer();
   const attendeeId = customer?.id;
@@ -31,6 +39,7 @@ export default function PaymentArea() {
     status: summaryStatus,
     summary,
     error: summaryError,
+    refreshing: summaryRefreshing,
     retry: retrySummary,
     refetch: refetchSummary
   } = usePaymentSummary({ attendeeId, phone });
@@ -39,8 +48,20 @@ export default function PaymentArea() {
     status: optionsStatus,
     options,
     error: optionsError,
-    retry: retryOptions
+    retry: retryOptions,
+    refetch: refetchOptions
   } = useCustomerPaymentOptions({ attendeeId, phone });
+
+  // depositIds the backend has CONFIRMED as acknowledged during this visit.
+  // In-memory only (never storage): it just keeps the screen from flashing
+  // back while the post-acknowledgement refetch is in flight. The source of
+  // truth for "never show again" is the server.
+  const [acknowledgedIds, setAcknowledgedIds] = useState(() => new Set());
+  // The summary object that was on screen when OK succeeded — the screen
+  // stays up until a DIFFERENT (refetched) summary replaces it.
+  const [summaryAtAcknowledge, setSummaryAtAcknowledge] = useState(null);
+  const [acknowledging, setAcknowledging] = useState(false);
+  const [acknowledgeError, setAcknowledgeError] = useState(null);
 
   const { link: instaPayLink } = useInstaPayLink();
 
@@ -106,10 +127,8 @@ export default function PaymentArea() {
     try {
       await createDeposit({ attendeeId, phone, paymentOptionId: selectedOptionId, paymentProof: proofFile });
       // Never trust the POST response as the full source of truth — refetch
-      // the summary so activeDepositCount/history reflect the server's own
-      // recalculation. (Payment Options are not refetched here: only an
-      // *approved* deposit can change what fits the customer's — internal,
-      // never-exposed — remaining balance, and a fresh deposit starts pending.)
+      // the summary so the screen reflects the server's own state (it moves
+      // to PAYMENT UNDER REVIEW).
       setSelectedOptionId(null);
       clearProof();
       refetchSummary();
@@ -117,9 +136,37 @@ export default function PaymentArea() {
       // Preserve the chosen option and proof so the customer can retry
       // without redoing the upload.
       setSubmitError(failure?.message || "Something went wrong. Please try again.");
+      // 409: a payment is already in progress (e.g. from another tab) —
+      // refresh so the screen shows it.
+      if (failure?.status === 409) refetchSummary();
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleAcknowledge(confirmation) {
+    if (acknowledging || !attendeeId || !phone) return;
+
+    setAcknowledging(true);
+    setAcknowledgeError(null);
+
+    try {
+      await acknowledgePaymentConfirmation({ attendeeId, phone, depositId: confirmation.depositId });
+    } catch (failure) {
+      // Stays open — closing without the server knowing would only bring it
+      // back next visit.
+      setAcknowledgeError(failure);
+      setAcknowledging(false);
+      return;
+    }
+
+    setAcknowledgedIds((previous) => new Set(previous).add(confirmation.depositId));
+    setSummaryAtAcknowledge(summary);
+    setAcknowledging(false);
+    setSubmitError("");
+    // Back to a clean payment screen with the School's current options.
+    refetchSummary();
+    refetchOptions();
   }
 
   if (summaryStatus === "loading") {
@@ -136,16 +183,48 @@ export default function PaymentArea() {
     );
   }
 
-  const fullPaymentConfirmed = summary.fullPaymentConfirmed;
-  const atMaxDeposits = summary.activeDepositCount >= MAX_ACTIVE_DEPOSITS;
-  const canSubmitNewDeposit = !fullPaymentConfirmed && !atMaxDeposits;
+  const confirmation = summary.paymentConfirmation;
+  const confirmationAcknowledged = Boolean(confirmation) && acknowledgedIds.has(confirmation.depositId);
+  // If the refetch itself fails, the server has still recorded the OK, so
+  // the screen is released onto the (stale but history-free) summary.
+  const awaitingRefetch =
+    confirmationAcknowledged && summary === summaryAtAcknowledge && !(summaryError && !summaryRefreshing);
+
+  // Shown alone — nothing of the payment screen renders behind it. Held
+  // open (in its "One moment…" state) after a successful acknowledgement
+  // until the refetched summary arrives, then the normal screen returns.
+  if (confirmation && (!confirmationAcknowledged || awaitingRefetch)) {
+    return (
+      <PaymentConfirmedScreen
+        key={confirmation.depositId}
+        acknowledging={acknowledging || confirmationAcknowledged}
+        error={acknowledgeError}
+        onAcknowledge={() => handleAcknowledge(confirmation)}
+      />
+    );
+  }
+
+  const { paymentStatus, latestRejection } = summary;
+  const canPay = paymentStatus === "ready";
   const selectedOption = options.find((option) => option.id === selectedOptionId);
 
   return (
     <div className="s2-pay-area">
-      <PaymentOverview summary={summary} />
+      {/* Hidden price: no block at all — and the amount isn't in the API
+          response either (see paymentRoutes.js). */}
+      {summary.ticketPriceVisible && <PaymentOverview summary={summary} />}
 
-      {canSubmitNewDeposit && (
+      {!canPay && <PaymentStatePanel state={paymentStatus} />}
+
+      {canPay && latestRejection && (
+        <section className="s2-pay-rejected" role="status">
+          <span className="s2-pay-rejected-title">Your last payment wasn't accepted</span>
+          {latestRejection.reason && <p className="s2-pay-rejected-reason">{latestRejection.reason}</p>}
+          <p className="s2-pay-rejected-hint">Choose a payment below to try again.</p>
+        </section>
+      )}
+
+      {canPay && (
         <section className="s2-pay-section">
           <span className="s2-pay-eyebrow">Choose your payment</span>
           {optionsStatus === "loading" && <LoadingState label="Loading payment options" />}
@@ -167,7 +246,7 @@ export default function PaymentArea() {
         </section>
       )}
 
-      {canSubmitNewDeposit && selectedOption && (
+      {canPay && selectedOption && (
         <section className="s2-pay-section s2-pay-reveal">
           <InstaPayPanel amount={selectedOption.amount} link={instaPayLink} />
 
@@ -192,21 +271,10 @@ export default function PaymentArea() {
             disabled={submitting || proofProcessing || !proofFile}
             onClick={handleSubmit}
           >
-            {submitting ? "Submitting…" : "Submit deposit"}
+            {submitting ? "Submitting…" : "Submit payment"}
           </Button>
         </section>
       )}
-
-      {atMaxDeposits && !fullPaymentConfirmed && (
-        <p className="s2-pay-notice">
-          You've reached the maximum of 5 active payments. Wait for one to be reviewed before adding another.
-        </p>
-      )}
-
-      <section className="s2-pay-section">
-        <span className="s2-pay-eyebrow">Deposit history</span>
-        <DepositHistory deposits={summary.deposits} />
-      </section>
     </div>
   );
 }

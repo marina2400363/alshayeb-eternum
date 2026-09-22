@@ -6,11 +6,10 @@ const Deposit = require("../models/Deposit");
 const DepositApprovalLock = require("../models/DepositApprovalLock");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
-const { calculateApprovedTotalPaid } = require("../utils/paymentCalculations");
 
 const router = express.Router();
 
-const ATTENDEE_POPULATE_FIELDS = "fullName phone schoolId ticketPrice attendeeType";
+const ATTENDEE_POPULATE_FIELDS = "fullName phone schoolId ticketPrice ticketPriceLocked attendeeType";
 const PAYMENT_OPTION_POPULATE_FIELDS = "label amount enabled";
 
 // Nested populate so the Admin Portal's Deposit Review can show the
@@ -84,14 +83,14 @@ router.get(
   })
 );
 
-// Approving a Deposit is wrapped in a MongoDB transaction so the
-// ticketPrice invariant holds even when two DIFFERENT pending Deposits for
-// the SAME attendee are approved concurrently. A transaction alone does not
-// guarantee this: the two approvals write to two different Deposit
-// documents, so MongoDB's write-conflict detection (the thing that would
-// normally force a retry) never triggers between them on its own — both
-// could read the same pre-commit approvedTotalPaid and both pass the check.
-// DepositApprovalLock exists to close exactly that gap: touching it (upsert)
+// Approving a Deposit is wrapped in a MongoDB transaction, and approvals for
+// the SAME attendee are serialized through DepositApprovalLock. (The ticket
+// price is no longer a payment ceiling — see the product-rule note inside
+// the handler — but approvals of one attendee's Deposits still never
+// interleave.) A transaction alone does not serialize them: two approvals
+// write to two different Deposit documents, so MongoDB's write-conflict
+// detection never triggers between them on its own. DepositApprovalLock
+// closes that gap: touching it (upsert)
 // as the transaction's first write gives the two transactions a shared
 // document to collide on. Once that lock document exists, a losing
 // transaction is aborted with a TransientTransactionError, which
@@ -132,47 +131,36 @@ router.put(
             throw apiError("Only pending deposits can be approved.", 409);
           }
 
-          // Serialization anchor — see comment above. Must happen before the
-          // balance recalculation below so a concurrent transaction for the
-          // same attendee is forced to wait/retry rather than read stale
-          // data.
+          // Serialization anchor — see comment above. Taken before anything
+          // else is read so concurrent approvals for the same attendee are
+          // forced to wait/retry rather than act on stale data.
           await DepositApprovalLock.findOneAndUpdate(
             { attendeeId: deposit.attendeeId },
             { $set: { attendeeId: deposit.attendeeId } },
             { upsert: true, session }
           );
 
-          const attendee = await Attendee.findById(deposit.attendeeId)
-            .select("ticketPrice")
-            .session(session);
+          const attendee = await Attendee.findById(deposit.attendeeId).select("_id").session(session);
 
           if (!attendee) {
             throw apiError("Associated attendee was not found.", 404);
           }
 
-          if (!Number.isFinite(attendee.ticketPrice) || attendee.ticketPrice < 0) {
-            throw apiError("This attendee has no valid ticket price on record.", 422);
-          }
+          // Product rule: the ticket price is NOT a payment ceiling. Admin
+          // configures which amounts customers may pay (an option may even
+          // exceed the ticket price), so approval never compares approved
+          // totals against it. Full Payment is decided only by the
+          // accountant's DONE (FullPaymentStatus).
 
-          // Recalculated fresh from MongoDB, inside this transaction
-          // attempt's own snapshot, right before the decision — never
-          // trusted from the request body, a cached summary, or a prior
-          // (failed) attempt.
-          const approvedDeposits = await Deposit.find({
-            attendeeId: deposit.attendeeId,
-            status: "approved"
-          }).session(session);
-          const approvedTotalPaid = calculateApprovedTotalPaid(approvedDeposits);
-
-          if (approvedTotalPaid + deposit.amount > attendee.ticketPrice) {
-            throw apiError(
-              `Approving this deposit (${deposit.amount}) would push the approved total ` +
-                `(${approvedTotalPaid}) above the ticket price (${attendee.ticketPrice}).`,
-              422
-            );
-          }
-
-          const setFields = { status: "approved", reviewedAt: new Date() };
+          // customerConfirmation*: raises the customer's one-time "PAYMENT
+          // CONFIRMED" notification in the same atomic write as the approval,
+          // so it can never exist without the approval (or vice versa).
+          const setFields = {
+            status: "approved",
+            reviewedAt: new Date(),
+            customerConfirmationPending: true,
+            customerConfirmationAcknowledgedAt: null
+          };
           const reviewerId = resolveReviewerId(req);
           if (reviewerId) {
             setFields.reviewedBy = reviewerId;
@@ -180,8 +168,8 @@ router.put(
 
           // Still conditional on status still being "pending" as a defense-
           // in-depth guard against the same deposit being approved twice.
-          // activeSlot is left untouched — an approved deposit keeps
-          // occupying its slot.
+          // activeCycle is left set until the customer acknowledges the
+          // confirmation — only then may they pay again.
           const updated = await Deposit.findOneAndUpdate(
             { _id: id, status: "pending" },
             { $set: setFields },
@@ -236,15 +224,14 @@ router.put(
       setFields.reviewedBy = reviewerId;
     }
 
-    // $unset releases the active slot (see the partial unique index on
-    // Deposit) so the customer regains one of their 5 slots. The rejected
-    // document itself is kept forever — only status/activeSlot/review
-    // fields change.
+    // $unset releases the payment cycle (see Deposit.js) so the customer can
+    // pay again, plus the legacy activeSlot. The rejected document itself is
+    // kept forever — only status/markers/review fields change.
     const updated = await Deposit.findOneAndUpdate(
       { _id: id, status: "pending" },
       {
         $set: setFields,
-        $unset: { activeSlot: 1 }
+        $unset: { activeSlot: 1, activeCycle: 1 }
       },
       { new: true }
     );

@@ -33,9 +33,8 @@ export default function DepositDetailPanel({ deposit, onApprove, onReject, onClo
     try {
       await onApprove(deposit._id);
     } catch (failure) {
-      // 409 (already reviewed) and 422 (would exceed ticket price) both
-      // surface the backend's own message verbatim — no client-side
-      // recalculation, the backend already ran the authoritative check.
+      // 409 (already reviewed) and any other refusal surface the backend's
+      // own message verbatim — the backend runs the authoritative checks.
       setActionError(failure?.message || "Couldn't approve this deposit.");
     } finally {
       setBusy(false);
@@ -85,16 +84,21 @@ export default function DepositDetailPanel({ deposit, onApprove, onReject, onClo
           <span className="s2-dep-value">{schoolName || "—"}</span>
         </div>
         <div className="s2-dep-field">
-          <span className="s2-admin-field-label">Ticket price</span>
+          {/* Locked at the customer's first payment request; until then it
+              follows the School's current price. */}
+          <span className="s2-admin-field-label">
+            Ticket price {attendee ? (attendee.ticketPriceLocked ? "(locked)" : "(current)") : ""}
+          </span>
           <span className="s2-dep-value">{attendee ? formatCurrency(attendee.ticketPrice) : "—"}</span>
         </div>
         <div className="s2-dep-field">
-          <span className="s2-admin-field-label">Deposit amount</span>
-          <span className="s2-dep-value">{formatCurrency(deposit.amount)}</span>
-        </div>
-        <div className="s2-dep-field">
-          <span className="s2-admin-field-label">Option label</span>
-          <span className="s2-dep-value">{deposit.paymentOptionSnapshot?.label || "—"}</span>
+          <span className="s2-admin-field-label">Payment option</span>
+          {/* Frozen on the Deposit at submission — never re-read from the
+              live PaymentOption, which Admin may since have edited. */}
+          <span className="s2-dep-value">
+            {formatCurrency(deposit.amount)}
+            {deposit.paymentOptionSnapshot?.label ? ` · ${deposit.paymentOptionSnapshot.label}` : ""}
+          </span>
         </div>
         <div className="s2-dep-field">
           <span className="s2-admin-field-label">Status</span>

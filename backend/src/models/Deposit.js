@@ -4,6 +4,10 @@ const mongoose = require("mongoose");
 // embedded in Attendee and never overwritten — each is its own permanent
 // document. Historical financial correctness depends on paymentOptionSnapshot
 // and amount, which must never be recomputed from the live PaymentOption.
+//
+// Legacy only: the old "max 5 active deposits" slot. New Deposits never set
+// activeSlot (there is no lifetime payment limit); the field and its index
+// stay so historical documents keep their meaning.
 const MAX_ACTIVE_DEPOSITS = 5;
 
 const depositSchema = new mongoose.Schema(
@@ -67,11 +71,31 @@ const depositSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
-    // Concurrency-safe active-deposit-slot mechanism. Present (1..5) only
-    // while status is "pending" or "approved". Unset entirely (not set to
-    // null) when a deposit is rejected, so the sparse unique index below
-    // frees the slot for reuse while this document remains in history
-    // forever. See the compound index for the actual enforcement.
+    // Customer-facing one-time "PAYMENT CONFIRMED" notification. Set to true
+    // ONLY by the Admin approval transaction (depositAdminRoutes.js), so
+    // Deposits approved before this field existed default to false and never
+    // raise a notification retroactively. Cleared (and acknowledgedAt set)
+    // only by the customer's own POST /api/payments/acknowledge-confirmation.
+    // Purely UI state — never read by finance, Sheets or Full Payment logic.
+    customerConfirmationPending: {
+      type: Boolean,
+      default: false
+    },
+    customerConfirmationAcknowledgedAt: {
+      type: Date,
+      default: null
+    },
+    // ONE current payment cycle per attendee, enforced by the partial unique
+    // index below: set (always 1) while the Deposit is pending OR approved-
+    // but-not-yet-acknowledged by the customer; unset on rejection or on the
+    // customer's OK. A concurrent second submission collides on the index.
+    activeCycle: {
+      type: Number,
+      enum: [1]
+    },
+    // LEGACY: the old 5-slot mechanism. Never set on new Deposits (see the
+    // header comment); still unset on rejection so historical documents stay
+    // consistent.
     activeSlot: {
       type: Number,
       min: 1,
@@ -81,12 +105,8 @@ const depositSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Enforces "max 5 non-rejected deposits per attendee" at the database level.
-// Partial: a document is only included in this index while activeSlot exists,
-// so rejected deposits (activeSlot unset) never collide and are never capped.
-// A partial filter is used instead of `sparse` so the exclusion rule is
-// explicit ("activeSlot exists") rather than implied by the compound index's
-// general sparse behavior.
+// LEGACY index for historical activeSlot values (new Deposits never set it,
+// so it never limits new payments).
 depositSchema.index(
   { attendeeId: 1, activeSlot: 1 },
   {
@@ -96,11 +116,19 @@ depositSchema.index(
   }
 );
 
+depositSchema.index(
+  { attendeeId: 1, activeCycle: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { activeCycle: { $exists: true } },
+    name: "attendee_active_cycle_unique"
+  }
+);
+
 // Supports fetching an attendee's deposit history in creation order without
 // a collection scan (used by financial summaries and future admin views).
 depositSchema.index({ attendeeId: 1, createdAt: 1 });
 
 const Deposit = mongoose.model("Deposit", depositSchema);
-Deposit.MAX_ACTIVE_DEPOSITS = MAX_ACTIVE_DEPOSITS;
 
 module.exports = Deposit;

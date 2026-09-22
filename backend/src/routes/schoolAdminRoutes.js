@@ -3,8 +3,16 @@ const express = require("express");
 const School = require("../models/School");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
+const { applySchoolTicketPrice } = require("../utils/ticketPriceLock");
 
 const router = express.Router();
+
+function parseVisibility(value) {
+  if (typeof value !== "boolean") {
+    throw apiError("showTicketPriceToCustomer must be true or false.", 422);
+  }
+  return value;
+}
 
 router.get(
   "/",
@@ -28,7 +36,12 @@ router.post(
       throw apiError("A valid ticket price is required.");
     }
 
-    const school = await School.create({ name, ticketPrice });
+    const fields = { name, ticketPrice };
+    if (req.body.showTicketPriceToCustomer !== undefined) {
+      fields.showTicketPriceToCustomer = parseVisibility(req.body.showTicketPriceToCustomer);
+    }
+
+    const school = await School.create(fields);
     res.status(201).json({ success: true, school });
   })
 );
@@ -54,6 +67,11 @@ router.put(
       update.ticketPrice = ticketPrice;
     }
 
+    // Visibility only — never touches any price or financial data.
+    if (req.body.showTicketPriceToCustomer !== undefined) {
+      update.showTicketPriceToCustomer = parseVisibility(req.body.showTicketPriceToCustomer);
+    }
+
     const school = await School.findByIdAndUpdate(req.params.id, update, {
       new: true,
       runValidators: true
@@ -61,6 +79,13 @@ router.put(
 
     if (!school) {
       throw apiError("School not found.", 404);
+    }
+
+    // New price reaches this School's customers who have not made a payment
+    // request yet; customers with a locked price keep theirs (see
+    // utils/ticketPriceLock.js).
+    if (update.ticketPrice !== undefined) {
+      await applySchoolTicketPrice(school._id, school.ticketPrice);
     }
 
     res.json({ success: true, school });

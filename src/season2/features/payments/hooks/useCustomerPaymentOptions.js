@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchCustomerPaymentOptions } from "../../../services/payments.api";
 
 // Fetches the calling customer's own School's enabled Payment Options
-// (already affordability-filtered server-side). Requires {attendeeId, phone}
+// (all of them — never filtered by any balance). Requires {attendeeId, phone}
 // — the same ownership pair every payment endpoint uses — since the option
 // list is now School-specific rather than global. Independent of
 // usePaymentSummary — see that hook's comment for why these two are never

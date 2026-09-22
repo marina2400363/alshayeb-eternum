@@ -27,14 +27,6 @@
   flex-direction: column;
 }
 
-.s2-pay-notice {
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--s2-text-secondary);
-  padding: var(--s2-space-4) 0;
-  border-top: 1px solid var(--s2-border);
-}
-
 .s2-pay-submit-error {
   margin: var(--s2-space-4) 0 0;
   font-size: 13px;
@@ -88,4 +80,38 @@
   .s2-pay-reveal {
     animation: none;
   }
+}
+
+/* Current-state only: the customer's MOST RECENT request was rejected.
+   One quiet block, never a list — it disappears once a new payment is
+   submitted. */
+.s2-pay-rejected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-2);
+  padding: var(--s2-space-5) 0 var(--s2-space-5) var(--s2-space-4);
+  border-left: 2px solid var(--s2-status-declined);
+}
+
+.s2-pay-rejected-title {
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-wide);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--s2-text-primary);
+}
+
+.s2-pay-rejected-reason {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--s2-text-secondary);
+}
+
+.s2-pay-rejected-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--s2-text-muted);
 }

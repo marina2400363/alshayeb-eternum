@@ -16,11 +16,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
-const { v2: cloudinary } = require("cloudinary");
 
 const Attendee = require("../src/models/Attendee");
 const PaymentOption = require("../src/models/PaymentOption");
 const School = require("../src/models/School");
+const { createMemoryDb } = require("./support/memoryDb");
 const Deposit = require("../src/models/Deposit");
 const FullPaymentStatus = require("../src/models/FullPaymentStatus");
 const app = require("../src/app");
@@ -66,20 +66,6 @@ async function withServer(fn) {
   }
 }
 
-function stubCloudinaryUploadStream(result) {
-  return stub(cloudinary.uploader, "upload_stream", (options, callback) => ({
-    end: () => {
-      // Real cloudinary streams call back asynchronously; mirror that so any
-      // accidental sync-assumption in the route would fail like production.
-      setImmediate(() => callback(null, result));
-    }
-  }));
-}
-
-function stubCloudinaryDestroy(impl) {
-  return stub(cloudinary.uploader, "destroy", impl || (async () => ({ result: "ok" })));
-}
-
 const FORBIDDEN_SUMMARY_KEYS = [
   "attendeeId",
   "phone",
@@ -110,7 +96,14 @@ const FORBIDDEN_SUMMARY_KEYS = [
   "schoolId",
   "enabled",
   "displayOrder",
-  "createdAt2"
+  "createdAt2",
+  // Product rule (no customer payment history): no history array, no
+  // progress, no internal notification bookkeeping, no proof object.
+  "deposits",
+  "progress",
+  "paymentProof",
+  "customerConfirmationPending",
+  "customerConfirmationAcknowledgedAt"
 ];
 
 function assertNoForbiddenKeys(value, path = "") {
@@ -127,17 +120,6 @@ function assertNoForbiddenKeys(value, path = "") {
       assertNoForbiddenKeys(val, `${path}.${key}`);
     }
   }
-}
-
-function fakeAttendee(overrides = {}) {
-  return {
-    _id: makeId(),
-    attendeeType: "incomer",
-    phoneNormalized: "01012345678",
-    ticketPrice: 1000,
-    schoolId: makeId(),
-    ...overrides
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +169,7 @@ test("POST /api/payments/customer-summary", async (t) => {
 
     const restoreDepositFind = stub(Deposit, "find", () => queryResult([approved, pending, rejected]));
     const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult({ confirmed: true }));
+    const restoreSchool = stub(School, "findById", () => queryResult(null));
 
     try {
       await withServer(async (base) => {
@@ -200,24 +183,28 @@ test("POST /api/payments/customer-summary", async (t) => {
         assert.equal(res.status, 200);
         assert.equal(body.success, true);
 
-        // Exactly these four keys — no approvedTotal, no remaining.
+        // Exactly these keys — no approvedTotal, no remaining, and (product
+        // rule) no deposits history array.
         assert.deepEqual(Object.keys(body.summary).sort(), [
-          "activeDepositCount",
-          "deposits",
-          "fullPaymentConfirmed",
-          "ticketPrice"
+          "latestRejection",
+          "paymentConfirmation",
+          "paymentStatus",
+          "ticketPrice",
+          "ticketPriceVisible"
         ]);
+        assert.equal(body.summary.ticketPriceVisible, true);
         assert.equal(body.summary.ticketPrice, 1000);
-        assert.equal(body.summary.activeDepositCount, 2);
-        assert.equal(body.summary.fullPaymentConfirmed, true);
-        assert.equal(body.summary.deposits.length, 3);
-
-        const rejectedLine = body.summary.deposits.find((d) => d.status === "rejected");
-        assert.equal(rejectedLine.rejectionReason, "Screenshot illegible.");
-        assert.equal(rejectedLine.label, "300 EGP");
-
-        const approvedLine = body.summary.deposits.find((d) => d.status === "approved");
-        assert.equal(approvedLine.rejectionReason, null);
+        // Full Payment DONE outranks everything else on the normal screen.
+        assert.equal(body.summary.paymentStatus, "full_payment_complete");
+        // paymentStatus is the only state field the UI needs.
+        assert.equal(body.summary.fullPaymentConfirmed, undefined);
+        assert.equal(body.summary.hasPendingPayment, undefined);
+        // The approved fixture predates the feature (no
+        // customerConfirmationPending field) — it must NOT raise a popup.
+        assert.equal(body.summary.paymentConfirmation, null);
+        // A pending request exists, so the older rejection is not "current".
+        assert.equal(body.summary.latestRejection, null);
+        assert.equal(body.summary.deposits, undefined);
 
         assertNoForbiddenKeys(body.summary);
       });
@@ -225,16 +212,18 @@ test("POST /api/payments/customer-summary", async (t) => {
       restoreFind();
       restoreDepositFind();
       restoreFullPayment();
+      restoreSchool();
     }
   });
 
-  await t.test("no FullPaymentStatus document yields fullPaymentConfirmed: false", async () => {
+  await t.test("no FullPaymentStatus document leaves the customer able to pay", async () => {
     const attendeeId = makeId();
     const restoreFind = stub(Attendee, "findById", () =>
       queryResult({ _id: attendeeId, attendeeType: "incomer", phoneNormalized: "01012345678", ticketPrice: 500, schoolId: makeId() })
     );
     const restoreDepositFind = stub(Deposit, "find", () => queryResult([]));
     const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
+    const restoreSchool = stub(School, "findById", () => queryResult(null));
 
     try {
       await withServer(async (base) => {
@@ -245,13 +234,13 @@ test("POST /api/payments/customer-summary", async (t) => {
         });
         const body = await res.json();
         assert.equal(res.status, 200);
-        assert.equal(body.summary.fullPaymentConfirmed, false);
-        assert.equal(body.summary.activeDepositCount, 0);
+        assert.equal(body.summary.paymentStatus, "ready");
       });
     } finally {
       restoreFind();
       restoreDepositFind();
       restoreFullPayment();
+      restoreSchool();
     }
   });
 
@@ -339,651 +328,150 @@ test("POST /api/payments/customer-summary", async (t) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/payments/customer-options — school-specific, remaining-filtered
+// POST /api/deposits — ownership, validation, safe shape, locks.
+// Payment Options, cycles, the price lock and visibility are covered end to
+// end in paymentOptions.test.js.
 // ---------------------------------------------------------------------------
 
-test("POST /api/payments/customer-options", async (t) => {
-  await t.test("School A's customer sees only School A's enabled options, sorted", async () => {
-    const schoolAId = makeId();
-    const schoolBId = makeId();
-    const attendeeId = makeId();
-
-    const restoreAttendeeFind = stub(Attendee, "findById", () =>
-      queryResult(fakeAttendee({ _id: attendeeId, schoolId: schoolAId, ticketPrice: 6000 }))
-    );
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
-    const restoreDepositFind = stub(Deposit, "find", () => queryResult([]));
-
-    let queriedFilter = null;
-    const restorePaymentOptionFind = stub(PaymentOption, "find", (filter) => {
-      queriedFilter = filter;
-      // Simulate the real Mongo filter: only School A's enabled docs match.
-      const allDocs = [
-        { _id: makeId(), schoolId: schoolAId, amount: 500, label: "500 EGP", enabled: true, displayOrder: 2, createdAt: new Date("2026-01-02") },
-        { _id: makeId(), schoolId: schoolAId, amount: 1000, label: "1000 EGP", enabled: true, displayOrder: 1, createdAt: new Date("2026-01-01") },
-        { _id: makeId(), schoolId: schoolAId, amount: 9999, label: "Disabled", enabled: false, displayOrder: 3, createdAt: new Date("2026-01-03") },
-        { _id: makeId(), schoolId: schoolBId, amount: 750, label: "750 EGP (School B)", enabled: true, displayOrder: 1, createdAt: new Date("2026-01-01") }
-      ];
-      // Real Mongo applies .sort({displayOrder:1, createdAt:1}) server-side;
-      // this mock does it explicitly so the test actually proves the route
-      // asks for the right order, not just the right filter.
-      const matched = allDocs
-        .filter((doc) => String(doc.schoolId) === String(filter.schoolId) && doc.enabled === filter.enabled)
-        .sort((a, b) => a.displayOrder - b.displayOrder || a.createdAt - b.createdAt);
-      return queryResult(matched);
-    });
-
-    try {
-      await withServer(async (base) => {
-        const res = await fetch(`${base}/api/payments/customer-options`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attendeeId: String(attendeeId), phone: "01012345678" })
-        });
-        const body = await res.json();
-
-        assert.equal(res.status, 200);
-        assert.equal(String(queriedFilter.schoolId), String(schoolAId));
-        assert.equal(queriedFilter.enabled, true);
-
-        // 1000 sorts before 500 (displayOrder 1 < 2); School B's 750 and the
-        // disabled 9999 never appear.
-        assert.deepEqual(
-          body.paymentOptions.map((o) => o.amount),
-          [1000, 500]
-        );
-        for (const option of body.paymentOptions) {
-          assert.deepEqual(Object.keys(option).sort(), ["amount", "id", "label"]);
-        }
-        assertNoForbiddenKeys(body.paymentOptions);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restoreFullPayment();
-      restoreDepositFind();
-      restorePaymentOptionFind();
-    }
-  });
-
-  await t.test("School B's customer never sees School A's options (independent query)", async () => {
-    const schoolBId = makeId();
-    const attendeeId = makeId();
-
-    const restoreAttendeeFind = stub(Attendee, "findById", () =>
-      queryResult(fakeAttendee({ _id: attendeeId, schoolId: schoolBId, ticketPrice: 4000 }))
-    );
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
-    const restoreDepositFind = stub(Deposit, "find", () => queryResult([]));
-    const restorePaymentOptionFind = stub(PaymentOption, "find", (filter) =>
-      queryResult(
-        String(filter.schoolId) === String(schoolBId)
-          ? [{ _id: makeId(), schoolId: schoolBId, amount: 2000, label: null, enabled: true, displayOrder: 1, createdAt: new Date() }]
-          : []
-      )
-    );
-
-    try {
-      await withServer(async (base) => {
-        const res = await fetch(`${base}/api/payments/customer-options`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attendeeId: String(attendeeId), phone: "01012345678" })
-        });
-        const body = await res.json();
-        assert.deepEqual(body.paymentOptions.map((o) => o.amount), [2000]);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restoreFullPayment();
-      restoreDepositFind();
-      restorePaymentOptionFind();
-    }
-  });
-
-  await t.test("options greater than the internal remaining balance are filtered out, not disabled", async () => {
-    const schoolId = makeId();
-    const attendeeId = makeId();
-
-    const restoreAttendeeFind = stub(Attendee, "findById", () =>
-      queryResult(fakeAttendee({ _id: attendeeId, schoolId, ticketPrice: 1000 }))
-    );
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
-    // approvedTotalPaid = 700 → remainingBalance = 300 (internal only)
-    const restoreDepositFind = stub(Deposit, "find", () => queryResult([{ amount: 700, status: "approved" }]));
-    const restorePaymentOptionFind = stub(PaymentOption, "find", () =>
-      queryResult([
-        { _id: makeId(), schoolId, amount: 200, label: "Fits", enabled: true, displayOrder: 1, createdAt: new Date() },
-        { _id: makeId(), schoolId, amount: 500, label: "Too big", enabled: true, displayOrder: 2, createdAt: new Date() }
-      ])
-    );
-
-    try {
-      await withServer(async (base) => {
-        const res = await fetch(`${base}/api/payments/customer-options`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attendeeId: String(attendeeId), phone: "01012345678" })
-        });
-        const body = await res.json();
-        assert.deepEqual(body.paymentOptions.map((o) => o.amount), [200]);
-        // remainingBalance (300) itself is never in the response.
-        assertNoForbiddenKeys(body);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restoreFullPayment();
-      restoreDepositFind();
-      restorePaymentOptionFind();
-    }
-  });
-
-  await t.test("fullPaymentConfirmed=true returns an empty option list without querying PaymentOption", async () => {
-    const attendeeId = makeId();
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(fakeAttendee({ _id: attendeeId })));
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult({ confirmed: true }));
-    let paymentOptionQueried = false;
-    const restorePaymentOptionFind = stub(PaymentOption, "find", () => {
-      paymentOptionQueried = true;
-      return queryResult([]);
-    });
-
-    try {
-      await withServer(async (base) => {
-        const res = await fetch(`${base}/api/payments/customer-options`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attendeeId: String(attendeeId), phone: "01012345678" })
-        });
-        const body = await res.json();
-        assert.equal(res.status, 200);
-        assert.deepEqual(body.paymentOptions, []);
-        assert.equal(paymentOptionQueried, false);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restoreFullPayment();
-      restorePaymentOptionFind();
-    }
-  });
-
-  await t.test("wrong phone is rejected with the same generic ownership error", async () => {
-    const attendeeId = makeId();
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(fakeAttendee({ _id: attendeeId })));
-
-    try {
-      await withServer(async (base) => {
-        const res = await fetch(`${base}/api/payments/customer-options`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attendeeId: String(attendeeId), phone: "01000000000" })
-        });
-        const body = await res.json();
-        assert.equal(res.status, 404);
-        assert.equal(body.message, "We couldn't verify this account. Check your details and try again.");
-      });
-    } finally {
-      restoreAttendeeFind();
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// POST /api/deposits
-// ---------------------------------------------------------------------------
-
-function buildDepositForm({ attendeeId, paymentOptionId, phone, includeFile = true }) {
+function buildDepositForm(fields, { withProof = true } = {}) {
   const form = new FormData();
-  if (attendeeId !== undefined) form.append("attendeeId", attendeeId);
-  if (paymentOptionId !== undefined) form.append("paymentOptionId", paymentOptionId);
-  if (phone !== undefined) form.append("phone", phone);
-  if (includeFile) {
-    form.append("paymentProof", new Blob([Buffer.from("fake-image-bytes")], { type: "image/png" }), "proof.png");
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+  if (withProof) {
+    form.append("paymentProof", new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }), "proof.png");
   }
   return form;
 }
 
 test("POST /api/deposits", async (t) => {
-  await t.test("correct phone + matching-school option creates a deposit and returns only the safe shape", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-    const schoolId = makeId();
-    const attendee = fakeAttendee({ _id: attendeeId, schoolId });
+  let db;
+  t.beforeEach(() => {
+    db = createMemoryDb();
+  });
+  t.afterEach(() => db.restore());
 
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(attendee));
-    const restorePaymentOptionFind = stub(PaymentOption, "findById", () =>
-      queryResult({ _id: paymentOptionId, schoolId, amount: 300, label: "300 EGP", enabled: true })
-    );
-    // getAttendeeFinancialSummary() calls Attendee.findById(...).select(...) and Deposit.find(...).sort(...)
-    const restoreDepositFind = stub(Deposit, "find", () => queryResult([]));
-    const restoreCount = stub(Deposit, "countDocuments", async () => 0);
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
+  const postDeposit = (base, fields, options) =>
+    fetch(`${base}/api/deposits`, { method: "POST", body: buildDepositForm(fields, options) }).then(async (res) => ({
+      status: res.status,
+      body: await res.json()
+    }));
 
-    let createCallCount = 0;
-    let createdWith = null;
-    const restoreCreate = stub(Deposit, "create", async (data) => {
-      createCallCount += 1;
-      createdWith = data;
-      return {
-        _id: makeId(),
-        amount: data.amount,
-        status: "pending",
-        createdAt: new Date("2026-01-05T00:00:00.000Z"),
-        paymentOptionSnapshot: data.paymentOptionSnapshot,
-        paymentProof: data.paymentProof,
-        activeSlot: data.activeSlot
-      };
-    });
-
-    const uploadResult = { secure_url: "https://cloudinary.example/proof.png", public_id: "alshayeb/incomer-deposit-proofs/abc123" };
-    const restoreUpload = stubCloudinaryUploadStream(uploadResult);
-    let destroyCalled = false;
-    const restoreDestroy = stubCloudinaryDestroy(async () => {
-      destroyCalled = true;
-      return { result: "ok" };
-    });
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-
-        assert.equal(res.status, 201);
-        assert.equal(body.success, true);
-        assert.equal(createCallCount, 1);
-        assert.equal(destroyCalled, false, "no cleanup should run on the success path");
-        assert.equal(createdWith.amount, 300, "amount must come from the server-side PaymentOption, not the request");
-
-        assert.deepEqual(Object.keys(body.deposit).sort(), ["amount", "createdAt", "id", "label", "status"]);
-        assert.equal(body.deposit.amount, 300);
-        assert.equal(body.deposit.label, "300 EGP");
-        assert.equal(body.deposit.status, "pending");
-        assertNoForbiddenKeys(body.deposit);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restorePaymentOptionFind();
-      restoreDepositFind();
-      restoreCount();
-      restoreCreate();
-      restoreUpload();
-      restoreDestroy();
-      restoreFullPayment();
-    }
+  const fieldsFor = (attendee, option, overrides = {}) => ({
+    attendeeId: String(attendee._id),
+    phone: attendee.phoneNormalized,
+    paymentOptionId: String(option._id),
+    ...overrides
   });
 
-  await t.test("a PaymentOption belonging to a DIFFERENT School is rejected with the same generic message, no upload", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-    const attendeeSchoolId = makeId();
-    const otherSchoolId = makeId();
-    const attendee = fakeAttendee({ _id: attendeeId, schoolId: attendeeSchoolId });
+  await t.test("creates a Deposit for the chosen option and returns only the safe shape", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [{ amount: 1000, label: "First" }] });
+    const attendee = db.addAttendee(school);
 
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(attendee));
-    // A real, enabled option — just owned by a different School.
-    const restorePaymentOptionFind = stub(PaymentOption, "findById", () =>
-      queryResult({ _id: paymentOptionId, schoolId: otherSchoolId, amount: 300, label: "300 EGP", enabled: true })
-    );
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
-    let uploadCalled = false;
-    const restoreUpload = stub(cloudinary.uploader, "upload_stream", () => {
-      uploadCalled = true;
-      return { end: () => {} };
-    });
-    let createCalled = false;
-    const restoreCreate = stub(Deposit, "create", async () => {
-      createCalled = true;
-      return null;
-    });
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-
-        assert.equal(res.status, 422);
-        // Same message as "disabled"/"missing" — never reveals the real reason.
-        assert.equal(body.message, "Selected payment option is not available.");
-        assert.equal(uploadCalled, false);
-        assert.equal(createCalled, false);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restorePaymentOptionFind();
-      restoreFullPayment();
-      restoreUpload();
-      restoreCreate();
-    }
-  });
-
-  await t.test("wrong phone is rejected before any upload or Deposit.create", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-    const attendee = fakeAttendee({ _id: attendeeId });
-
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(attendee));
-    let uploadCalled = false;
-    const restoreUpload = stub(cloudinary.uploader, "upload_stream", () => {
-      uploadCalled = true;
-      return { end: () => {} };
-    });
-    let createCalled = false;
-    const restoreCreate = stub(Deposit, "create", async () => {
-      createCalled = true;
-      return null;
-    });
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01099999999"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-
-        assert.equal(res.status, 404);
-        assert.equal(body.message, "We couldn't verify this account. Check your details and try again.");
-        assert.equal(uploadCalled, false);
-        assert.equal(createCalled, false);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restoreUpload();
-      restoreCreate();
-    }
-  });
-
-  await t.test("missing phone field is a 422 validation error", async () => {
     await withServer(async (base) => {
-      const form = buildDepositForm({ attendeeId: String(makeId()), paymentOptionId: String(makeId()) });
-      const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-      const body = await res.json();
+      const res = await postDeposit(base, fieldsFor(attendee, db.optionOf(school, 1000)));
+      assert.equal(res.status, 201);
+      assert.deepEqual(Object.keys(res.body.deposit).sort(), ["amount", "createdAt", "id", "label", "status"]);
+      assert.equal(res.body.deposit.amount, 1000);
+      assert.equal(res.body.deposit.label, "First");
+      assert.equal(res.body.deposit.status, "pending");
+      assertNoForbiddenKeys(res.body.deposit);
+      assert.equal(db.destroyed.length, 0, "no cleanup on the success path");
+    });
+  });
+
+  await t.test("wrong phone is rejected with the generic ownership error before any upload", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [1000] });
+    const attendee = db.addAttendee(school);
+
+    await withServer(async (base) => {
+      const res = await postDeposit(base, fieldsFor(attendee, db.optionOf(school, 1000), { phone: "01099999999" }));
+      assert.equal(res.status, 404);
+      assert.equal(res.body.message, "We couldn't verify this account. Check your details and try again.");
+      assert.equal(db.uploads.length, 0);
+      assert.equal(db.deposits.length, 0);
+    });
+  });
+
+  await t.test("an Outcomer is rejected the same way", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [1000] });
+    const outcomer = db.addAttendee(school, { attendeeType: "outcomer" });
+
+    await withServer(async (base) => {
+      const res = await postDeposit(base, fieldsFor(outcomer, db.optionOf(school, 1000)));
+      assert.equal(res.status, 404);
+      assert.equal(db.uploads.length, 0);
+    });
+  });
+
+  await t.test("missing phone / malformed ids / missing proof are 422 validation errors", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [1000] });
+    const attendee = db.addAttendee(school);
+    const option = db.optionOf(school, 1000);
+
+    await withServer(async (base) => {
+      assert.equal((await postDeposit(base, fieldsFor(attendee, option, { phone: "" }))).status, 422);
+      assert.equal((await postDeposit(base, fieldsFor(attendee, option, { attendeeId: "nope" }))).status, 422);
+      assert.equal((await postDeposit(base, fieldsFor(attendee, option, { paymentOptionId: "nope" }))).status, 422);
+      const noProof = await postDeposit(base, fieldsFor(attendee, option), { withProof: false });
+      assert.equal(noProof.status, 422);
+      assert.equal(noProof.body.message, "Payment proof image is required.");
+      assert.equal(db.uploads.length, 0);
+    });
+  });
+
+  await t.test("an unknown option id is refused with the same generic message", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [1000] });
+    const attendee = db.addAttendee(school);
+
+    await withServer(async (base) => {
+      const res = await postDeposit(base, fieldsFor(attendee, { _id: makeId() }));
       assert.equal(res.status, 422);
-      assert.equal(body.message, "A valid phone number is required.");
+      assert.equal(res.body.message, "Selected payment option is not available.");
     });
   });
 
-  await t.test("max-5 active deposits: claimActiveSlot exhausts all slots, upload is cleaned up", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-    const schoolId = makeId();
-    const attendee = fakeAttendee({ _id: attendeeId, schoolId });
+  await t.test("Full Payment confirmed → refused with no upload and no Deposit", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [1000] });
+    const attendee = db.addAttendee(school);
+    db.fullPayments.push({ attendeeId: attendee._id, confirmed: true });
 
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(attendee));
-    const restorePaymentOptionFind = stub(PaymentOption, "findById", () =>
-      queryResult({ _id: paymentOptionId, schoolId, amount: 100, label: "100 EGP", enabled: true })
-    );
-    const restoreDepositFind = stub(Deposit, "find", () => queryResult([]));
-    // Pre-check under-counts on purpose (simulating a race) so the real
-    // authority — claimActiveSlot's duplicate-key loop — is what's exercised.
-    const restoreCount = stub(Deposit, "countDocuments", async () => 0);
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
-
-    const dupError = Object.assign(new Error("E11000 duplicate key"), { code: 11000 });
-    const restoreCreate = stub(Deposit, "create", async () => {
-      throw dupError;
+    await withServer(async (base) => {
+      const res = await postDeposit(base, fieldsFor(attendee, db.optionOf(school, 1000)));
+      assert.equal(res.status, 422);
+      assert.equal(res.body.message, "Full payment has already been confirmed.");
+      assert.equal(db.uploads.length, 0);
+      assert.equal(db.deposits.length, 0);
     });
-
-    const uploadResult = { secure_url: "https://cloudinary.example/proof.png", public_id: "alshayeb/incomer-deposit-proofs/full123" };
-    const restoreUpload = stubCloudinaryUploadStream(uploadResult);
-    let destroyedPublicId = null;
-    const restoreDestroy = stubCloudinaryDestroy(async (publicId) => {
-      destroyedPublicId = publicId;
-      return { result: "ok" };
-    });
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-
-        assert.equal(res.status, 422);
-        assert.match(body.message, /maximum of 5 active deposits/);
-        assert.equal(destroyedPublicId, uploadResult.public_id, "orphaned upload must be cleaned up");
-      });
-    } finally {
-      restoreAttendeeFind();
-      restorePaymentOptionFind();
-      restoreDepositFind();
-      restoreCount();
-      restoreCreate();
-      restoreUpload();
-      restoreDestroy();
-      restoreFullPayment();
-    }
   });
 
-  await t.test("amount over the internal remaining balance is still rejected server-side without reaching upload", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-    const schoolId = makeId();
-    const attendee = fakeAttendee({ _id: attendeeId, schoolId, ticketPrice: 100 });
+  await t.test("Full Payment confirmed=false behaves normally", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [1000] });
+    const attendee = db.addAttendee(school);
+    db.fullPayments.push({ attendeeId: attendee._id, confirmed: false });
 
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(attendee));
-    const restorePaymentOptionFind = stub(PaymentOption, "findById", () =>
-      queryResult({ _id: paymentOptionId, schoolId, amount: 500, label: "500 EGP", enabled: true })
-    );
-    // Already fully paid: approvedTotalPaid === ticketPrice → remaining 0
-    const restoreDepositFind = stub(Deposit, "find", () =>
-      queryResult([{ amount: 100, status: "approved" }])
-    );
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
-    let uploadCalled = false;
-    const restoreUpload = stub(cloudinary.uploader, "upload_stream", () => {
-      uploadCalled = true;
-      return { end: () => {} };
+    await withServer(async (base) => {
+      assert.equal((await postDeposit(base, fieldsFor(attendee, db.optionOf(school, 1000)))).status, 201);
     });
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-        assert.equal(res.status, 422);
-        assert.match(body.message, /exceeds the remaining balance/);
-        assert.equal(uploadCalled, false);
-      });
-    } finally {
-      restoreAttendeeFind();
-      restorePaymentOptionFind();
-      restoreDepositFind();
-      restoreUpload();
-      restoreFullPayment();
-    }
   });
 
-  await t.test("disabled/unknown PaymentOption is rejected", async () => {
-    const attendeeId = makeId();
-    const attendee = fakeAttendee({ _id: attendeeId });
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(attendee));
-    const restorePaymentOptionFind = stub(PaymentOption, "findById", () => queryResult(null));
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult(null));
+  await t.test("already-approved money past the ticket price never blocks a new payment", async () => {
+    const school = db.addSchool({ ticketPrice: 3000, options: [7000] });
+    const attendee = db.addAttendee(school);
+    db.deposits.push({
+      _id: makeId(),
+      attendeeId: attendee._id,
+      amount: 2500,
+      status: "approved",
+      customerConfirmationPending: false,
+      createdAt: new Date("2026-01-01T00:00:00Z")
+    });
 
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(makeId()),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-        assert.equal(res.status, 422);
-        assert.equal(body.message, "Selected payment option is not available.");
-      });
-    } finally {
-      restoreAttendeeFind();
-      restorePaymentOptionFind();
-      restoreFullPayment();
-    }
+    await withServer(async (base) => {
+      const res = await postDeposit(base, fieldsFor(attendee, db.optionOf(school, 7000)));
+      assert.equal(res.status, 201);
+      assert.equal(res.body.deposit.amount, 7000);
+    });
   });
 });
-
-// ---------------------------------------------------------------------------
-// POST /api/deposits — Full Payment lock (Step 0 guard)
-// ---------------------------------------------------------------------------
-
-test("POST /api/deposits — Full Payment lock", async (t) => {
-  function stubHappyPathUpTo({ attendee, paymentOption, fullPaymentDoc }) {
-    const restores = [
-      stub(Attendee, "findById", () => queryResult(attendee)),
-      stub(PaymentOption, "findById", () => queryResult(paymentOption)),
-      stub(Deposit, "find", () => queryResult([])),
-      stub(Deposit, "countDocuments", async () => 0),
-      stub(FullPaymentStatus, "findOne", () => queryResult(fullPaymentDoc))
-    ];
-    return () => restores.forEach((restore) => restore());
-  }
-
-  await t.test("confirmed=false → deposit creation still works", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-    const schoolId = makeId();
-    const restoreAll = stubHappyPathUpTo({
-      attendee: fakeAttendee({ _id: attendeeId, schoolId }),
-      paymentOption: { _id: paymentOptionId, schoolId, amount: 250, label: "250 EGP", enabled: true },
-      fullPaymentDoc: { confirmed: false }
-    });
-    const restoreCreate = stub(Deposit, "create", async (data) => ({
-      _id: makeId(),
-      amount: data.amount,
-      status: "pending",
-      createdAt: new Date(),
-      paymentOptionSnapshot: data.paymentOptionSnapshot
-    }));
-    const restoreUpload = stubCloudinaryUploadStream({
-      secure_url: "https://cloudinary.example/proof.png",
-      public_id: "alshayeb/incomer-deposit-proofs/full-lock-false"
-    });
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-        assert.equal(res.status, 201);
-        assert.equal(body.deposit.status, "pending");
-      });
-    } finally {
-      restoreAll();
-      restoreCreate();
-      restoreUpload();
-    }
-  });
-
-  await t.test("no FullPaymentStatus row → works normally", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-    const schoolId = makeId();
-    const restoreAll = stubHappyPathUpTo({
-      attendee: fakeAttendee({ _id: attendeeId, schoolId }),
-      paymentOption: { _id: paymentOptionId, schoolId, amount: 250, label: "250 EGP", enabled: true },
-      fullPaymentDoc: null
-    });
-    const restoreCreate = stub(Deposit, "create", async (data) => ({
-      _id: makeId(),
-      amount: data.amount,
-      status: "pending",
-      createdAt: new Date(),
-      paymentOptionSnapshot: data.paymentOptionSnapshot
-    }));
-    const restoreUpload = stubCloudinaryUploadStream({
-      secure_url: "https://cloudinary.example/proof.png",
-      public_id: "alshayeb/incomer-deposit-proofs/full-lock-none"
-    });
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-        assert.equal(res.status, 201);
-        assert.equal(body.deposit.status, "pending");
-      });
-    } finally {
-      restoreAll();
-      restoreCreate();
-      restoreUpload();
-    }
-  });
-
-  await t.test("confirmed=true → rejected with no Cloudinary upload and no Deposit.create", async () => {
-    const attendeeId = makeId();
-    const paymentOptionId = makeId();
-
-    const restoreAttendeeFind = stub(Attendee, "findById", () => queryResult(fakeAttendee({ _id: attendeeId })));
-    const restoreFullPayment = stub(FullPaymentStatus, "findOne", () => queryResult({ confirmed: true }));
-
-    let uploadCalled = false;
-    const restoreUpload = stub(cloudinary.uploader, "upload_stream", () => {
-      uploadCalled = true;
-      return { end: () => {} };
-    });
-    let createCalled = false;
-    const restoreCreate = stub(Deposit, "create", async () => {
-      createCalled = true;
-      return null;
-    });
-    // If the guard didn't short-circuit, the next call would be
-    // PaymentOption.findById — leaving it unstubbed would surface as a
-    // thrown error (undefined has no query methods) rather than a silent
-    // false pass, so this doubles as a "did we even get this far" tripwire.
-
-    try {
-      await withServer(async (base) => {
-        const form = buildDepositForm({
-          attendeeId: String(attendeeId),
-          paymentOptionId: String(paymentOptionId),
-          phone: "01012345678"
-        });
-        const res = await fetch(`${base}/api/deposits`, { method: "POST", body: form });
-        const body = await res.json();
-
-        assert.equal(res.status, 422);
-        assert.equal(body.message, "Full payment has already been confirmed.");
-        assert.equal(uploadCalled, false, "Cloudinary must never be called once Full Payment is confirmed");
-        assert.equal(createCalled, false, "Deposit.create must never be called once Full Payment is confirmed");
-      });
-    } finally {
-      restoreAttendeeFind();
-      restoreFullPayment();
-      restoreUpload();
-      restoreCreate();
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Admin endpoints — payment options now require a valid schoolId
-// ---------------------------------------------------------------------------
 
 function adminToken() {
   return jwt.sign({ email: "admin@example.com", role: "admin" }, process.env.JWT_SECRET, { expiresIn: "1h" });

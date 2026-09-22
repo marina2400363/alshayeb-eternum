@@ -1,26 +1,29 @@
 // Customer-facing payment serializers. Every shape here is deliberately
 // minimal — see backend/src/routes/paymentRoutes.js and depositRoutes.js for
 // the full list of fields these are NOT allowed to leak (proof metadata,
-// Mongo internals, admin review fields, PaymentOption ids, Sheet/finance
-// config, QR/Event data). Admin-facing responses never use these.
+// Mongo internals, admin review fields, Sheet/finance config, QR/Event
+// data). Admin-facing responses never use these.
 
-// One line of a customer's deposit history. label comes from the frozen
-// paymentOptionSnapshot, never from the live PaymentOption — a Deposit's
-// history must never change because Admin later edited/deleted an option.
-function serializeCustomerDepositHistoryItem(deposit) {
+// The customer never sees a deposit history — only that ONE approved Deposit
+// is awaiting their "PAYMENT CONFIRMED" acknowledgement. The id is all the
+// screen needs (to acknowledge it): deliberately no amount and no review
+// date, so a previous payment is never shown or datable.
+function serializeCustomerPaymentConfirmation(deposit) {
   return {
-    id: String(deposit._id),
-    amount: deposit.amount,
-    label: deposit.paymentOptionSnapshot?.label || null,
-    status: deposit.status,
-    createdAt: deposit.createdAt,
-    rejectionReason: deposit.rejectionReason || null
+    depositId: String(deposit._id)
   };
 }
 
-// The response to a just-created Deposit. Deliberately narrower than the
-// history item above (no rejectionReason — a brand new Deposit is always
-// "pending" and can't have one yet).
+// Current-state only: the reason the customer's MOST RECENT request was
+// rejected. Never a list — see paymentRoutes.js for when this is surfaced.
+function serializeCustomerLatestRejection(deposit) {
+  return {
+    reason: deposit.rejectionReason || null
+  };
+}
+
+// The response to a just-created Deposit (always "pending"). label comes
+// from the frozen paymentOptionSnapshot, never from the live PaymentOption.
 function serializeCustomerDepositCreated(deposit) {
   return {
     id: String(deposit._id),
@@ -31,9 +34,9 @@ function serializeCustomerDepositCreated(deposit) {
   };
 }
 
-// The public PaymentOption list. No createdAt/updatedAt/enabled/displayOrder —
-// the customer only ever needs to pick from an already-filtered, already-
-// ordered list.
+// The public PaymentOption list. No schoolId/createdAt/updatedAt/enabled/
+// displayOrder — the customer only ever needs to pick from an already-
+// filtered, already-ordered list.
 function serializeCustomerPaymentOption(paymentOption) {
   return {
     id: String(paymentOption._id),
@@ -43,7 +46,8 @@ function serializeCustomerPaymentOption(paymentOption) {
 }
 
 module.exports = {
-  serializeCustomerDepositHistoryItem,
+  serializeCustomerPaymentConfirmation,
+  serializeCustomerLatestRejection,
   serializeCustomerDepositCreated,
   serializeCustomerPaymentOption
 };
