@@ -10,7 +10,7 @@ export default function SiteFooter() {
       <div className="s2-footer-row">
         <div className="s2-footer-brand">
           <p className="s2-footer-mark">Alshayeb</p>
-          <p className="s2-footer-tag">Experience &mdash; Season 02</p>
+          <p className="s2-footer-tag">Experience</p>
         </div>
         <nav className="s2-footer-nav" aria-label="Social">
           {SOCIAL_LINKS.map((link) => (
@@ -24,7 +24,7 @@ export default function SiteFooter() {
           ))}
         </nav>
       </div>
-      <p className="s2-footer-fine">&copy; 2026</p>
+      <p className="s2-footer-fine">&copy; 2024</p>
     </footer>
   );
 }

@@ -19,7 +19,6 @@ export default function HomePage() {
         ref={enterRef}
         aria-labelledby="s2-enter-title"
       >
-        <p className="s2-enter-eyebrow">Season 02</p>
         <h2 className="s2-enter-title" id="s2-enter-title">
           <span>Enter your</span> <span>experience</span>
         </h2>

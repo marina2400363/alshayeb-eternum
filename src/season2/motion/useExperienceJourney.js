@@ -232,11 +232,18 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
         return target - rest.y;
       };
 
-      // Earlier cards stack above later ones while scattered, so no title
-      // (bottom-left of each card) is ever covered by the next card.
-      const stackCards = () => cards.forEach((card, i) => gsap.set(card, { zIndex: cards.length - i }));
-      const releaseStack = () => gsap.set(cards, { clearProps: "zIndex" });
-      stackCards();
+      // Previously: earlier cards were forced above later ones (z-index)
+      // while scattered, so no card's bottom-left TITLE was ever covered by
+      // the next card. Titles are no longer rendered on these cards (see
+      // ExperienceCard.js), so that priority order has no job left to do —
+      // and it was actively causing a visible defect: whichever card sits
+      // earlier in the anchor list can still cross paths with a later card
+      // as both converge toward the rail, and forcing the earlier one on
+      // top made it visibly bite into the later card's photo mid-transition
+      // (looked like a torn/duplicated edge). No explicit z-index at all —
+      // natural DOM order stacking — matches what desktop's buildEntry
+      // already does (it never set z-index either) and keeps a card's own
+      // photo intact through the whole transition.
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -246,14 +253,8 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
           pin: true,
           scrub,
           invalidateOnRefresh: true,
-          onLeave: () => {
-            rail.classList.add("s2-rail--landed");
-            releaseStack();
-          },
-          onEnterBack: () => {
-            rail.classList.remove("s2-rail--landed");
-            stackCards();
-          }
+          onLeave: () => rail.classList.add("s2-rail--landed"),
+          onEnterBack: () => rail.classList.remove("s2-rail--landed")
         }
       });
 
@@ -284,7 +285,6 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
       return () => {
         if (tl.scrollTrigger) tl.scrollTrigger.kill();
         tl.kill();
-        releaseStack();
       };
     }
 

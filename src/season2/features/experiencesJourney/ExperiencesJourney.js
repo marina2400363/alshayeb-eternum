@@ -26,7 +26,7 @@ export default function ExperiencesJourney() {
 
   return (
     <div className="s2-journey">
-      <Hero />
+      <Hero posterSrc="/season2/media/home/hero-main.png" />
       <div className="s2-transition" ref={journeyRef}>
         <h2 className="s2-experiences-heading" ref={headingRef}>
           Alshayeb Experiences

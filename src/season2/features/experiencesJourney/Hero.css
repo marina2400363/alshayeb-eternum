@@ -48,12 +48,36 @@
   animation-delay: 0.15s;
 }
 
+/* Local readability backdrop for the hero copy only — the hero image itself
+   stays untouched and visually dominant everywhere outside this small
+   radial area. Sized/positioned to the content box (with a little breathing
+   room via inset) rather than the whole .s2-hero, so it never reads as a
+   darkened hero or a visible box: strongest (~30% black) at the exact
+   center of the text, smoothly gone well before the gradient's own edges.
+   z-index -1 keeps it behind the text but still above .s2-hero-media/.s2-tint
+   (same technique as .s2-card-content::before in ExperienceCard.css). */
+.s2-hero-content::before {
+  content: "";
+  position: absolute;
+  inset: -12% -18%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 62% 58% at 50% 42%,
+    rgba(0, 0, 0, 0.32) 0%,
+    rgba(0, 0, 0, 0.18) 40%,
+    rgba(0, 0, 0, 0.06) 65%,
+    transparent 82%
+  );
+}
+
 .s2-hero-title {
   margin: 0;
   font-family: var(--s2-font-display);
   font-weight: 800;
   text-transform: uppercase;
   line-height: 0.88;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
 }
 
 .s2-hero-title-line {
@@ -71,7 +95,7 @@
   font-weight: 400;
   font-size: clamp(14px, 2.4vw, 20px);
   letter-spacing: var(--s2-tracking-wider);
-  color: var(--s2-text-secondary);
+  color: var(--s2-text-primary);
   margin-top: var(--s2-space-3);
 }
 
@@ -82,7 +106,8 @@
   font-size: 11px;
   letter-spacing: var(--s2-tracking-wide);
   text-transform: uppercase;
-  color: var(--s2-text-secondary);
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
 }
 
 .s2-scroll-cue i {

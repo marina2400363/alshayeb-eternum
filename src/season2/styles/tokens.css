@@ -129,6 +129,7 @@
   position: relative;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   filter: grayscale(1) contrast(1.2) brightness(0.62);
 }
 
@@ -143,6 +144,29 @@
     rgba(0, 0, 0, 0.92)
   );
   mix-blend-mode: multiply;
+}
+
+/* Color-preserving sibling of .s2-photo-treatment, for real ALSHAYEB
+   photography that must stay in full color (homepage hero + Experience
+   cards) — no grayscale/contrast/brightness filter, and a much lighter
+   normal-blend gradient (not multiply) so the image's real colors read
+   through instead of being crushed to near-black. Deliberately does NOT set
+   `position`: every element this is applied to (.s2-hero-media,
+   .s2-card-media) already establishes its own positioning context, so this
+   class can never re-trigger the .s2-photo-treatment cascade-order clash
+   documented in ExperienceCard.css. Onboarding's ChoiceCard/OnboardingStage
+   keep using .s2-photo-treatment unchanged — this class is opt-in only. */
+.s2-photo-treatment-color {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.s2-photo-treatment-color::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.02) 35%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 /* Subtle blue lift/tint, screened over the crushed photo treatment */

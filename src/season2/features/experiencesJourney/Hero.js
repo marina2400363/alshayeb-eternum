@@ -1,5 +1,4 @@
 import React from "react";
-import StatusBadge from "../../components/StatusBadge";
 import "./Hero.css";
 
 // Standalone, full-bleed hero moment — no longer shares a pinned frame with
@@ -12,7 +11,7 @@ import "./Hero.css";
 export default function Hero({ videoSrc, posterSrc }) {
   return (
     <section className="s2-hero">
-      <div className="s2-hero-media s2-photo-treatment">
+      <div className="s2-hero-media s2-photo-treatment-color">
         {videoSrc ? (
           <video
             className="s2-hero-video"
@@ -32,7 +31,6 @@ export default function Hero({ videoSrc, posterSrc }) {
       </div>
       <div className="s2-tint" />
       <div className="s2-hero-content">
-        <StatusBadge status="live">Season 02 — Registration Open</StatusBadge>
         <h1 className="s2-hero-title">
           <span className="s2-hero-title-line">Alshayeb</span>
           <span className="s2-hero-title-line s2-hero-title-line--sub">Experience</span>

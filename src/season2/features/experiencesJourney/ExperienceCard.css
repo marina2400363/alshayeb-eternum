@@ -92,3 +92,17 @@
     font-size: 24px;
   }
 }
+
+/* Parallax overscan (tablet + desktop). motion/useRailParallax shifts each
+   card's media layer horizontally by up to PARALLAX_CLAMP (18px). With the
+   layer exactly the card's size, that shift uncovered an empty vertical strip
+   of the card surface on one edge (and, since real photos landed, it reads as
+   a misaligned strip inside the card). Extending the layer by the same 18px
+   on both sides means the card's overflow:hidden always crops photo, never
+   empty surface. Keep in sync with PARALLAX_CLAMP. Mobile has no parallax, so
+   its framing is left exactly as-is. */
+@media (min-width: 768px) {
+  .s2-exp-card .s2-card-media {
+    inset: 0 -18px;
+  }
+}

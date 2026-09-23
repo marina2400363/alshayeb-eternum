@@ -58,26 +58,32 @@
 
 /* Subtle edge hint instead of a visible scrollbar — signals "more content"
    without looking like a browser overflow accident. Only relevant once the
-   rail is actually a scroller. */
-.s2-rail--landed::before,
-.s2-rail--landed::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 56px;
-  pointer-events: none;
-  z-index: 3;
-}
+   rail is actually a scroller.
 
-.s2-rail--landed::before {
-  left: 0;
-  background: linear-gradient(90deg, var(--s2-bg-0), transparent);
-}
-
-.s2-rail--landed::after {
-  right: 0;
-  background: linear-gradient(270deg, var(--s2-bg-0), transparent);
+   Applied as a mask on the scroller itself, NOT as ::before/::after overlays:
+   absolutely-positioned pseudo-elements inside a scroll container live in
+   scrolled CONTENT coordinates, so they scroll away with the cards instead of
+   staying at the viewport edges. On mobile the right-edge one (content
+   x = railWidth-32..railWidth) always lands inside Card 2, painting a hard-
+   edged dark vertical band over its photo as soon as the rail is scrolled.
+   A mask is fixed to the element's box, so the fade always sits at the real
+   left/right edges. */
+.s2-rail--landed {
+  --s2-rail-fade: 56px;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--s2-rail-fade),
+    #000 calc(100% - var(--s2-rail-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--s2-rail-fade),
+    #000 calc(100% - var(--s2-rail-fade)),
+    transparent 100%
+  );
 }
 
 .s2-rail-track {
@@ -176,8 +182,7 @@
     scroll-padding-inline: 8vw;
   }
 
-  .s2-rail--landed::before,
-  .s2-rail--landed::after {
-    width: 32px;
+  .s2-rail--landed {
+    --s2-rail-fade: 32px;
   }
 }

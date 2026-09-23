@@ -14,11 +14,7 @@ const OUTCOMER_MEDIA = "radial-gradient(85% 125% at 14% 4%, #bcc0cc 0%, #454955 
 export default function EnterExperience() {
   return (
     <OnboardingStage backTo={PATHS.home} backLabel="Home" progress={0.18} variant="split">
-      <OnboardingHeading
-        eyebrow="Season 02"
-        title={["Enter your", "experience"]}
-        lede="Choose how you're joining."
-      />
+      <OnboardingHeading title={["Enter your", "experience"]} lede="Choose how you're joining." />
       <div className="s2-ob-choices s2-ob-choices--columns">
         {/* Final wording for what each term means is still to be supplied —
             titles only, deliberately no definitions. */}
