@@ -16,6 +16,9 @@ import {
   syncFullPayment,
   fetchAdminSettings,
   saveInstaPayLink,
+  fetchAdminDashboard,
+  fetchAdminCustomers,
+  fetchAdminCustomer,
   ApiError
 } from "./admin.api";
 import { setAdminSession, clearAdminSession } from "../state/adminSession";
@@ -125,6 +128,24 @@ describe("deposits", () => {
     expect(fetch.mock.calls[0][0]).toMatch(/\/api\/admin\/deposits\?status=pending$/);
   });
 
+  test("fetchDeposits sends page, pageSize and the trimmed search, and returns the page with its pagination", async () => {
+    fetch.mockResolvedValue(
+      jsonResponse(200, { success: true, deposits: [{ _id: "d1" }], pagination: { page: 2, pageSize: 50, total: 120, totalPages: 3 } })
+    );
+    const result = await fetchDeposits({ status: "approved", page: 2, pageSize: 50, q: "  youssef " });
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe("/api/admin/deposits");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ status: "approved", page: "2", pageSize: "50", q: "youssef" });
+    expect(result.deposits).toEqual([{ _id: "d1" }]);
+    expect(result.pagination).toEqual({ page: 2, pageSize: 50, total: 120, totalPages: 3 });
+  });
+
+  test("fetchDeposits tolerates a response without pagination", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, deposits: [{ _id: "d1" }, { _id: "d2" }] }));
+    const result = await fetchDeposits({});
+    expect(result.pagination).toMatchObject({ page: 1, total: 2, totalPages: 1 });
+  });
+
   test("fetchDeposits omits the query string entirely for 'all'", async () => {
     fetch.mockResolvedValue(jsonResponse(200, { success: true, deposits: [] }));
     await fetchDeposits({});
@@ -218,6 +239,54 @@ describe("settings (InstaPay link)", () => {
     expect(url).toMatch(/\/api\/admin\/settings$/);
     expect(options.method).toBe("PUT");
     expect(JSON.parse(options.body)).toEqual({ instapayLink: "https://real" });
+  });
+});
+
+describe("dashboard + registered customers", () => {
+  test("fetchAdminDashboard GETs the admin-only dashboard endpoint with the Bearer token and fills missing sections", async () => {
+    setAdminSession({ email: "a@b.com", token: "jwt-xyz" });
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, kpis: { totalRegisteredIncomers: 5 } }));
+    const dashboard = await fetchAdminDashboard();
+    const [url, options] = fetch.mock.calls[0];
+    expect(url).toMatch(/\/api\/admin\/season2\/dashboard$/);
+    expect(options.headers.Authorization).toBe("Bearer jwt-xyz");
+    expect(dashboard.kpis.totalRegisteredIncomers).toBe(5);
+    expect(dashboard.schools).toEqual([]);
+    expect(dashboard.recent).toEqual({ registrations: [], depositSubmissions: [], approvedPayments: [] });
+  });
+
+  test("fetchAdminCustomers sends only the non-empty params, as a query string", async () => {
+    fetch.mockResolvedValue(
+      jsonResponse(200, { success: true, customers: [{ id: "c1" }], pagination: { page: 2, pageSize: 25, total: 60, totalPages: 3 } })
+    );
+    const result = await fetchAdminCustomers({ page: 2, pageSize: 25, q: " amira ", schoolId: "", payment: "none", fullPayment: undefined, from: "2026-09-01" });
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe("/api/admin/season2/customers");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ page: "2", pageSize: "25", q: "amira", payment: "none", from: "2026-09-01" });
+    expect(result.customers).toEqual([{ id: "c1" }]);
+    expect(result.pagination.total).toBe(60);
+  });
+
+  test("fetchAdminCustomers with no params has no query string and tolerates an empty body", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true }));
+    const result = await fetchAdminCustomers();
+    expect(fetch.mock.calls[0][0]).toMatch(/\/api\/admin\/season2\/customers$/);
+    expect(result.customers).toEqual([]);
+    expect(result.pagination.total).toBe(0);
+  });
+
+  test("fetchAdminCustomer GETs one customer by id (url-encoded) and returns it", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, customer: { id: "c1", deposits: [] } }));
+    const customer = await fetchAdminCustomer("c1");
+    expect(fetch.mock.calls[0][0]).toMatch(/\/api\/admin\/season2\/customers\/c1$/);
+    expect(customer).toEqual({ id: "c1", deposits: [] });
+  });
+
+  test("a 401 on the dashboard signs the admin out like every other admin call", async () => {
+    setAdminSession({ email: "a@b.com", token: "expired" });
+    fetch.mockResolvedValue(jsonResponse(401, { success: false, message: "Admin session has expired. Please log in again." }));
+    await expect(fetchAdminDashboard()).rejects.toMatchObject({ status: 401, kind: "auth" });
+    expect(JSON.parse(window.localStorage.getItem("alshayebAdminSession") || "null")).toBeNull();
   });
 });
 

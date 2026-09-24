@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Attendee = require("../models/Attendee");
 const Deposit = require("../models/Deposit");
 const DepositApprovalLock = require("../models/DepositApprovalLock");
+const School = require("../models/School");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { sendSeason2PaymentConfirmedEmail, sendSeason2PaymentRejectedEmail } = require("../utils/season2Email");
@@ -38,6 +39,51 @@ function resolveReviewerId(req) {
   return candidate && mongoose.Types.ObjectId.isValid(candidate) ? candidate : undefined;
 }
 
+const DEFAULT_PAGE_SIZE = 25;
+const MAX_PAGE_SIZE = 100;
+const MAX_SEARCH_LENGTH = 100;
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parsePaging(query) {
+  const page = query.page === undefined || query.page === "" ? 1 : Number(query.page);
+  const pageSize = query.pageSize === undefined || query.pageSize === "" ? DEFAULT_PAGE_SIZE : Number(query.pageSize);
+
+  if (!Number.isInteger(page) || page < 1) {
+    throw apiError("page must be a whole number of 1 or more.", 422);
+  }
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
+    throw apiError(`pageSize must be a whole number from 1 to ${MAX_PAGE_SIZE}.`, 422);
+  }
+  return { page, pageSize };
+}
+
+// The Admin's free-text search: the customer's name, phone or School name —
+// the same three things the Deposits page has always searched. It runs on the
+// server so it covers EVERY deposit, not just the page currently on screen.
+async function findAttendeeIdsMatching(q) {
+  const pattern = { $regex: escapeRegExp(q), $options: "i" };
+  const matchingSchools = await School.find({ name: pattern }).select("_id").lean();
+
+  const clauses = [{ fullName: pattern }];
+  const digits = q.replace(/\D/g, "");
+  if (digits.length >= 3) {
+    clauses.push({ phoneNormalized: { $regex: escapeRegExp(digits) } }, { phone: { $regex: escapeRegExp(digits) } });
+  }
+  if (matchingSchools.length) {
+    clauses.push({ schoolId: { $in: matchingSchools.map((school) => school._id) } });
+  }
+
+  const attendees = await Attendee.find({ $or: clauses }).select("_id").lean();
+  return attendees.map((attendee) => attendee._id);
+}
+
+// One page of deposits (newest first) plus the total for the current filter.
+// Query: status, attendeeId, q (name/phone/School), page, pageSize (default 25,
+// max 100). Nothing about a single deposit's shape has changed — only how many
+// are returned per request.
 router.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -59,12 +105,33 @@ router.get(
       filters.attendeeId = attendeeId;
     }
 
-    const deposits = await Deposit.find(filters)
-      .populate(ATTENDEE_POPULATE)
-      .populate("paymentOptionId", PAYMENT_OPTION_POPULATE_FIELDS)
-      .sort({ createdAt: -1 });
+    const { page, pageSize } = parsePaging(req.query);
 
-    res.json({ success: true, deposits });
+    const q = String(req.query.q || "").trim().slice(0, MAX_SEARCH_LENGTH);
+    if (q) {
+      let matchingIds = await findAttendeeIdsMatching(q);
+      if (attendeeId) {
+        matchingIds = matchingIds.filter((id) => String(id) === attendeeId);
+      }
+      filters.attendeeId = { $in: matchingIds };
+    }
+
+    const [total, deposits] = await Promise.all([
+      Deposit.countDocuments(filters),
+      Deposit.find(filters)
+        .populate(ATTENDEE_POPULATE)
+        .populate("paymentOptionId", PAYMENT_OPTION_POPULATE_FIELDS)
+        // _id breaks ties so a page boundary can never repeat or skip a deposit.
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+    ]);
+
+    res.json({
+      success: true,
+      deposits,
+      pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) }
+    });
   })
 );
 

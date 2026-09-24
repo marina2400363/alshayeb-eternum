@@ -17,7 +17,7 @@
 //   POST /api/admin/payment-options                             → 201 { success, paymentOption }
 //   PUT  /api/admin/payment-options/:id                         → { success, paymentOption }
 //   DELETE /api/admin/payment-options/:id                       → { success, message }
-//   GET  /api/admin/deposits?status=                            → { success, deposits:[Deposit populated] }
+//   GET  /api/admin/deposits?status&q&page&pageSize            → { success, deposits:[Deposit populated], pagination:{page,pageSize,total,totalPages} }
 //   GET  /api/admin/deposits/:id                                → { success, deposit }
 //   PUT  /api/admin/deposits/:id/approve                        → { success, message, deposit }
 //   PUT  /api/admin/deposits/:id/reject                         → { success, message, deposit }
@@ -28,6 +28,10 @@
 //   POST /api/admin/school-finance-config/:schoolId/sync-full-payment → { success, syncedCount, confirmedCount, unconfirmedCount, skippedUnknown, skippedWrongSchool, duplicateCustomerIds } | { success:false, skipped, reason } | { success:false, error }
 //   GET  /api/admin/site-settings                                → { success, settings }
 //   PUT  /api/admin/settings                                     → { success, message, settings }
+//   GET  /api/admin/season2/dashboard                            → { success, generatedAt, kpis, schools:[row], recent:{registrations,depositSubmissions,approvedPayments} }
+//   GET  /api/admin/season2/customers?page&pageSize&q&schoolId&payment&fullPayment&from&to
+//                                                                → { success, customers:[row], pagination:{page,pageSize,total,totalPages} }
+//   GET  /api/admin/season2/customers/:id                        → { success, customer }
 
 import { getSnapshot, clearAdminSession } from "../state/adminSession";
 
@@ -195,10 +199,22 @@ export async function deletePaymentOption(id) {
 // Deposits
 // ---------------------------------------------------------------------------
 
-export async function fetchDeposits({ status } = {}, { signal } = {}) {
-  const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  const body = await request(`/api/admin/deposits${query}`, { signal });
-  return Array.isArray(body.deposits) ? body.deposits : [];
+// One page of deposits. params: { status, page, pageSize, q } — empty values are
+// simply not sent. Search (q: name, phone or School) and paging are done by the
+// server across ALL deposits; the browser only ever holds one page.
+export async function fetchDeposits({ status, page, pageSize, q } = {}, { signal } = {}) {
+  const query = new URLSearchParams();
+  if (status) query.set("status", status);
+  if (page) query.set("page", String(page));
+  if (pageSize) query.set("pageSize", String(pageSize));
+  if (q && String(q).trim()) query.set("q", String(q).trim());
+  const suffix = query.toString() ? "?" + query.toString() : "";
+  const body = await request("/api/admin/deposits" + suffix, { signal });
+  const deposits = Array.isArray(body.deposits) ? body.deposits : [];
+  return {
+    deposits,
+    pagination: body.pagination || { page: 1, pageSize: deposits.length || 25, total: deposits.length, totalPages: 1 }
+  };
 }
 
 export async function approveDeposit(id) {
@@ -240,6 +256,47 @@ export async function syncFullPayment(schoolId) {
     method: "POST",
     timeoutMs: 45000
   });
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard + Registered Customers (read-only reporting; all aggregation runs
+// in MongoDB — the browser never joins customers to deposits itself).
+// ---------------------------------------------------------------------------
+
+export async function fetchAdminDashboard({ signal } = {}) {
+  const body = await request("/api/admin/season2/dashboard", { signal });
+  return {
+    generatedAt: body.generatedAt || null,
+    kpis: body.kpis || {},
+    schools: Array.isArray(body.schools) ? body.schools : [],
+    recent: {
+      registrations: body.recent?.registrations || [],
+      depositSubmissions: body.recent?.depositSubmissions || [],
+      approvedPayments: body.recent?.approvedPayments || []
+    }
+  };
+}
+
+// params: { page, pageSize, q, schoolId, payment, fullPayment, from, to } —
+// empty values are simply not sent.
+export async function fetchAdminCustomers(params = {}, { signal } = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      query.set(key, String(value).trim());
+    }
+  });
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const body = await request(`/api/admin/season2/customers${suffix}`, { signal });
+  return {
+    customers: Array.isArray(body.customers) ? body.customers : [],
+    pagination: body.pagination || { page: 1, pageSize: 25, total: 0, totalPages: 1 }
+  };
+}
+
+export async function fetchAdminCustomer(id, { signal } = {}) {
+  const body = await request(`/api/admin/season2/customers/${encodeURIComponent(id)}`, { signal });
+  return body.customer;
 }
 
 // ---------------------------------------------------------------------------

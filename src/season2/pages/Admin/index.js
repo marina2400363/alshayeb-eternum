@@ -2,6 +2,8 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AdminLogin from "../../features/admin/components/AdminLogin";
 import AdminShell from "../../features/admin/components/AdminShell";
+import DashboardPage from "../../features/admin/dashboard/DashboardPage";
+import CustomersPage from "../../features/admin/customers/CustomersPage";
 import SchoolsPage from "../../features/admin/schools/SchoolsPage";
 import DepositsPage from "../../features/admin/deposits/DepositsPage";
 import FinancePage from "../../features/admin/finance/FinancePage";
@@ -16,12 +18,14 @@ export default function AdminPage() {
     <Routes>
       <Route path="login" element={<AdminLogin />} />
       <Route element={<AdminShell />}>
-        <Route index element={<Navigate to="/season2/admin/schools" replace />} />
+        <Route index element={<Navigate to="/season2/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="customers" element={<CustomersPage />} />
         <Route path="schools" element={<SchoolsPage />} />
         <Route path="deposits" element={<DepositsPage />} />
         <Route path="finance" element={<FinancePage />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/season2/admin/schools" replace />} />
+        <Route path="*" element={<Navigate to="/season2/admin/dashboard" replace />} />
       </Route>
     </Routes>
   );

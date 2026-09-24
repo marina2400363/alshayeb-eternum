@@ -36,14 +36,18 @@ function capturingQuery(result, captured) {
     return query;
   };
   query.sort = () => query;
+  query.skip = () => query;
+  query.limit = () => query;
   return query;
 }
 
 test("admin deposit list and detail select incomerPhoto.url for the attendee, never a publicId", async () => {
   const originalFind = Deposit.find;
   const originalFindById = Deposit.findById;
+  const originalCount = Deposit.countDocuments;
   const captured = [];
   Deposit.find = () => capturingQuery([], captured);
+  Deposit.countDocuments = async () => 0;
   Deposit.findById = () => capturingQuery({ _id: "dep1" }, captured);
 
   try {
@@ -54,6 +58,7 @@ test("admin deposit list and detail select incomerPhoto.url for the attendee, ne
   } finally {
     Deposit.find = originalFind;
     Deposit.findById = originalFindById;
+    Deposit.countDocuments = originalCount;
   }
 
   const attendeePopulates = captured.map(([arg]) => arg).filter((arg) => arg && arg.path === "attendeeId");

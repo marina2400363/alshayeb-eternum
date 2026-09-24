@@ -49,6 +49,9 @@ function queryResult(value) {
   const promise = Promise.resolve(value);
   promise.select = () => queryResult(value);
   promise.sort = () => queryResult(value);
+  // Paging (the admin deposits list).
+  promise.skip = () => queryResult(value);
+  promise.limit = () => queryResult(value);
   promise.populate = () => queryResult(value);
   promise.session = () => queryResult(value);
   return promise;
@@ -705,6 +708,7 @@ test("admin Deposit history stays complete", async () => {
     adminFilter = filter;
     return queryResult([approvedAcknowledged, approvedLegacy, rejected, pending]);
   });
+  stub(Deposit, "countDocuments", async () => 4);
 
   await withServer(async (base) => {
     const res = await fetch(`${base}/api/admin/deposits?attendeeId=${attendee._id}`, {

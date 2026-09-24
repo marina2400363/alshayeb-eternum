@@ -1,0 +1,149 @@
+.s2-cust-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s2-space-3);
+}
+
+.s2-cust-search {
+  flex: 1 1 260px;
+  min-width: 200px;
+}
+
+.s2-cust-filter {
+  flex: 0 1 190px;
+  width: auto;
+}
+
+.s2-cust-date {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-1);
+  flex: 0 1 150px;
+}
+
+@media (max-width: 599px) {
+  .s2-cust-filter,
+  .s2-cust-date {
+    flex: 1 1 100%;
+  }
+}
+
+.s2-cust-table {
+  /* Thirteen columns: scroll sideways inside .s2-admin-table-overflow rather
+     than crushing the cells. Below 768px the shared stacked-row layout takes over. */
+  min-width: 1320px;
+}
+
+/* Phones: one tidy block per customer. Labels are longer than the shared
+   stacked layout expects, so each line is label-left / value-right, with the
+   photo and name leading the block. */
+@media (max-width: 767px) {
+  .s2-cust-table {
+    min-width: 0;
+  }
+
+  .s2-admin-table.s2-cust-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--s2-space-4);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .s2-admin-table.s2-cust-table td[data-label]::before {
+    min-width: 0;
+    flex: none;
+    text-align: left;
+  }
+
+  .s2-admin-table.s2-cust-table td.s2-cust-photo-cell {
+    display: block;
+    width: auto;
+    text-align: left;
+  }
+
+  .s2-admin-table.s2-cust-table td.s2-cust-name-cell {
+    display: block;
+    text-align: left;
+    font-size: 15px;
+  }
+
+  .s2-admin-table.s2-cust-table td.s2-cust-name-cell::before {
+    display: none;
+  }
+}
+
+.s2-cust-table tbody tr {
+  cursor: pointer;
+}
+
+.s2-cust-table tbody tr:hover,
+.s2-cust-table tbody tr:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.s2-cust-table tbody tr.is-selected {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 3px 0 0 var(--s2-accent);
+}
+
+.s2-cust-table .s2-cust-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .s2-cust-table .s2-cust-num {
+    text-align: left;
+  }
+}
+
+.s2-cust-name-cell {
+  font-weight: 700;
+}
+
+.s2-cust-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--s2-text-secondary);
+  user-select: all;
+}
+
+.s2-cust-photo-cell {
+  width: 52px;
+}
+
+.s2-cust-thumb {
+  display: block;
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border: 1px solid var(--s2-border);
+  background: var(--s2-bg-2);
+}
+
+.s2-cust-thumb--empty {
+  display: block;
+}
+
+.is-refreshing {
+  opacity: 0.55;
+  transition: opacity var(--s2-duration-fast) linear;
+}
+
+.s2-cust-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s2-space-3);
+}
+
+.s2-cust-pager-page {
+  font-size: 12px;
+  color: var(--s2-text-secondary);
+  align-self: center;
+}

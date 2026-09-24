@@ -11,7 +11,8 @@
   display: flex;
   align-items: center;
   gap: var(--s2-space-6);
-  padding: var(--s2-space-4) var(--s2-gutter);
+  row-gap: var(--s2-space-2);
+  padding: var(--s2-space-4) var(--s2-gutter) var(--s2-space-2);
   border-bottom: 1px solid var(--s2-border);
   background: var(--s2-bg-0);
   flex-wrap: wrap;
@@ -26,10 +27,14 @@
   white-space: nowrap;
 }
 
+/* The six section labels (~1,275px of uppercase text) cannot share a row with
+   the wordmark and account block, so the nav takes its own full-width row
+   under them (order 3) and wraps only if the screen is narrower than that. */
 .s2-admin-nav {
   display: flex;
-  gap: var(--s2-space-5);
-  flex: 1;
+  gap: 0 var(--s2-space-5);
+  flex: 1 1 100%;
+  order: 3;
   flex-wrap: wrap;
 }
 
@@ -84,10 +89,23 @@
     gap: var(--s2-space-3);
   }
 
+  /* Phones: one compact swipeable row instead of a tall wrapped block. */
   .s2-admin-nav {
     order: 3;
     width: 100%;
     gap: var(--s2-space-4);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .s2-admin-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .s2-admin-nav-link {
+    flex: none;
+    white-space: nowrap;
   }
 
   .s2-admin-account-email {

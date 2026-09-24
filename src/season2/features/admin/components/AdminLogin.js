@@ -16,7 +16,7 @@ export default function AdminLogin() {
   const [submitting, setSubmitting] = useState(false);
 
   if (isAuthenticated) {
-    return <Navigate to="/season2/admin/schools" replace />;
+    return <Navigate to="/season2/admin/dashboard" replace />;
   }
 
   async function handleSubmit(event) {
@@ -27,7 +27,7 @@ export default function AdminLogin() {
     try {
       const result = await loginAdmin({ email: email.trim(), password });
       signIn({ email: email.trim().toLowerCase(), token: result.token });
-      navigate("/season2/admin/schools", { replace: true });
+      navigate("/season2/admin/dashboard", { replace: true });
     } catch (failure) {
       setError(failure?.message || "Invalid admin email or password.");
     } finally {

@@ -23,6 +23,9 @@ function queryResult(value) {
   const promise = Promise.resolve(value);
   promise.select = () => queryResult(value);
   promise.sort = () => queryResult(value);
+  // Paging (the admin deposits list): slice arrays exactly like skip/limit do.
+  promise.skip = (count) => queryResult(Array.isArray(value) ? value.slice(count) : value);
+  promise.limit = (count) => queryResult(Array.isArray(value) ? value.slice(0, count) : value);
   promise.populate = () => queryResult(value);
   promise.session = () => queryResult(value);
   promise.lean = () => queryResult(value);

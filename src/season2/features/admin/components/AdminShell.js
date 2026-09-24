@@ -3,10 +3,14 @@ import { NavLink, Navigate, Outlet } from "react-router-dom";
 import useAdminSession from "../hooks/useAdminSession";
 import "./AdminShell.css";
 
+// Payment Options are edited per School, inside the Schools screen — so that
+// one item covers both rather than linking the same page twice.
 const NAV_ITEMS = [
-  { to: "/season2/admin/schools", label: "Schools" },
-  { to: "/season2/admin/deposits", label: "Deposits" },
-  { to: "/season2/admin/finance", label: "Finance" },
+  { to: "/season2/admin/dashboard", label: "Dashboard" },
+  { to: "/season2/admin/customers", label: "Registered Customers" },
+  { to: "/season2/admin/deposits", label: "Payments / Deposits" },
+  { to: "/season2/admin/schools", label: "Schools & Payment Options" },
+  { to: "/season2/admin/finance", label: "Finance / Google Sheets" },
   { to: "/season2/admin/settings", label: "Settings" }
 ];
 

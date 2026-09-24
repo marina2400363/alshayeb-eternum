@@ -1,18 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchDeposits, approveDeposit, rejectDeposit } from "../../services/admin.api";
 
-// Loads the Deposit Review queue for one status filter ("" = all) and
-// exposes approve/reject actions. Never recomputes approval math client-
-// side — every action calls the backend and refetches the authoritative
-// list afterward.
+// Loads ONE PAGE of the Deposit Review queue for the given filters and exposes
+// approve/reject actions. Paging and searching happen on the server, so the
+// page in memory is always small however many deposits exist. Never
+// recomputes approval math client-side — every action calls the backend and
+// refetches the authoritative page afterward.
+//   params: { status ("" = all), page, pageSize, q }
 //   status: "loading" | "ready" | "error"   (network/load state — distinct
-//     from the `statusFilter` parameter, which is which Deposit.status to show)
-export default function useAdminDeposits(statusFilter) {
+//     from `params.status`, which is which Deposit.status to show)
+export default function useAdminDeposits(params) {
   const [status, setStatus] = useState("loading");
   const [deposits, setDeposits] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 25, total: 0, totalPages: 1 });
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
   const mounted = useRef(true);
+
+  // The params object is rebuilt on every render; compare by content.
+  const key = JSON.stringify(params);
 
   useEffect(() => {
     mounted.current = true;
@@ -26,10 +32,12 @@ export default function useAdminDeposits(statusFilter) {
       setStatus("loading");
       setError(null);
 
-      return fetchDeposits({ status: statusFilter || undefined }, { signal })
+      const { status: statusFilter, page, pageSize, q } = JSON.parse(key);
+      return fetchDeposits({ status: statusFilter || undefined, page, pageSize, q }, { signal })
         .then((result) => {
           if (!mounted.current) return;
-          setDeposits(result);
+          setDeposits(result.deposits);
+          setPagination(result.pagination);
           setStatus("ready");
         })
         .catch((failure) => {
@@ -38,7 +46,7 @@ export default function useAdminDeposits(statusFilter) {
           setStatus("error");
         });
     },
-    [statusFilter]
+    [key]
   );
 
   useEffect(() => {
@@ -77,5 +85,5 @@ export default function useAdminDeposits(statusFilter) {
     [load]
   );
 
-  return { status, deposits, error, retry, refetch, approve, reject };
+  return { status, deposits, pagination, error, retry, refetch, approve, reject };
 }

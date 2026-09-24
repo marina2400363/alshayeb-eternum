@@ -87,6 +87,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const depositRoutes = require("./routes/depositRoutes");
 const depositAdminRoutes = require("./routes/depositAdminRoutes");
 const schoolFinanceConfigAdminRoutes = require("./routes/schoolFinanceConfigAdminRoutes");
+const season2AdminRoutes = require("./routes/season2AdminRoutes");
 
 app.use("/api/settings", settingsRoutes);
 app.use("/api/rooms", roomRoutes);
@@ -98,6 +99,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/deposits", depositRoutes);
 app.use("/api/admin/deposits", requireAdmin, depositAdminRoutes);
 app.use("/api/admin/school-finance-config", requireAdmin, schoolFinanceConfigAdminRoutes);
+app.use("/api/admin/season2", requireAdmin, season2AdminRoutes);
 app.use("/api", syncRoutes);
 
 app.use(notFound);
