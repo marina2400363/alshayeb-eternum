@@ -1,6 +1,6 @@
 import { optimizeImage } from "./optimizeImage";
 
-// Personal-photo rules. The backend accepts PNG/JPG/JPEG up to 5MB, but the
+// Personal-photo rules. The backend accepts PNG/JPG/JPEG up to 4MB (Vercel body limit), but the
 // serverless request-body ceiling is lower than that, so the *optimized*
 // photo is held to a safer target. HEIC/HEIF are deliberately not accepted —
 // no reliance on a browser or OS converting them.

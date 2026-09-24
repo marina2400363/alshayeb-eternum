@@ -11,9 +11,24 @@ const {
   serializeCustomerPaymentConfirmation,
   serializeCustomerPaymentOption
 } = require("../utils/paymentSerializers");
-const { requireValidObjectId, requireValidPhone, resolveOwnedIncomer } = require("../utils/customerOwnership");
+const { requireValidObjectId, requireValidPhone } = require("../utils/customerOwnership");
+const { limitRequest, guardFailures } = require("../middleware/rateLimit");
+const {
+  summaryRules,
+  optionsRules,
+  acknowledgeRules,
+  ownershipFailureRules,
+  resolveOwnedIncomerCounted
+} = require("../config/rateLimits");
 
 const router = express.Router();
+
+// Rate limits (see config/rateLimits.js): identity (attendeeId) is the primary
+// key; the IP rules are broad flood ceilings plus a tight counter of ownership
+// FAILURES (wrong attendeeId+phone pair), which is shared by every customer
+// payment endpoint. The failure guard runs first so a blocked IP costs no
+// further database work.
+const ownershipFailureGuard = guardFailures(ownershipFailureRules);
 
 // Public, but NOT open lookup-by-id: the request body must carry the
 // customer's own {attendeeId, phone} (the same pair the Season 2 session
@@ -36,11 +51,13 @@ const router = express.Router();
 //   "ready"                 — the customer may choose a Payment Option now
 router.post(
   "/customer-summary",
+  ownershipFailureGuard,
+  limitRequest(summaryRules),
   asyncHandler(async (req, res) => {
     const attendeeId = requireValidObjectId(req.body.attendeeId, "A valid attendeeId is required.");
     const phone = requireValidPhone(req.body.phone);
 
-    const attendee = await resolveOwnedIncomer(attendeeId, phone);
+    const attendee = await resolveOwnedIncomerCounted(req, attendeeId, phone);
 
     const [deposits, fullPaymentStatus, school] = await Promise.all([
       Deposit.find({ attendeeId: attendee._id }).sort({ createdAt: 1 }),
@@ -113,11 +130,13 @@ function approvalTime(deposit) {
 // (Admin decides what customers may pay).
 router.post(
   "/customer-options",
+  ownershipFailureGuard,
+  limitRequest(optionsRules),
   asyncHandler(async (req, res) => {
     const attendeeId = requireValidObjectId(req.body.attendeeId, "A valid attendeeId is required.");
     const phone = requireValidPhone(req.body.phone);
 
-    const attendee = await resolveOwnedIncomer(attendeeId, phone);
+    const attendee = await resolveOwnedIncomerCounted(req, attendeeId, phone);
 
     const fullPaymentStatus = await FullPaymentStatus.findOne({ attendeeId: attendee._id }).select("confirmed");
     if (fullPaymentStatus?.confirmed) {
@@ -153,12 +172,14 @@ router.post(
 // endpoint can't be used to probe Deposit ids.
 router.post(
   "/acknowledge-confirmation",
+  ownershipFailureGuard,
+  limitRequest(acknowledgeRules),
   asyncHandler(async (req, res) => {
     const attendeeId = requireValidObjectId(req.body.attendeeId, "A valid attendeeId is required.");
     const phone = requireValidPhone(req.body.phone);
     const depositId = requireValidObjectId(req.body.depositId, "A valid depositId is required.");
 
-    const attendee = await resolveOwnedIncomer(attendeeId, phone);
+    const attendee = await resolveOwnedIncomerCounted(req, attendeeId, phone);
 
     const acknowledged = await Deposit.findOneAndUpdate(
       {

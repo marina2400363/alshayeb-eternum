@@ -8,6 +8,7 @@ const multer = require("multer");
 const { sendRoomStatusEmail } = require("../utils/email");
 const { syncRoomsGoogleSheet } = require("../services/googleSheetsRoomsSync");
 const { cleanPhone } = require("../utils/phone");
+const { requireCronSecret } = require("../middleware/requireCronSecret");
 
 const router = express.Router();
 
@@ -189,9 +190,11 @@ We will notify you once your reservation has been confirmed by our team.`;
   })
 );
 
-// Force Google Sheets Sync (For debugging, temporarily public)
+// Force Google Sheets Sync — no longer anonymous: requires
+// `Authorization: Bearer <CRON_SECRET>` (header only).
 router.get(
   "/force-sync",
+  requireCronSecret,
   asyncHandler(async (req, res) => {
     try {
       const result = await syncRoomsGoogleSheet();

@@ -11,4 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Hit Sync Endpoint
-        run: curl -X GET https://www.alshayebexperience.com/api/cron/sync-all
+        env:
+          # Repository secret: Settings -> Secrets and variables -> Actions.
+          # Must equal the CRON_SECRET environment variable on Vercel.
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repository secret is not set."
+            exit 1
+          fi
+          # -f: fail the run on 401/5xx. The secret travels only in the header.
+          curl -fsS --max-time 60 -X GET \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://www.alshayebexperience.com/api/cron/sync-all

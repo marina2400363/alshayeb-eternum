@@ -8,12 +8,19 @@ const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { cleanEmail, isValidEmail } = require("../utils/emailAddress");
-const { generateQrToken, generateUniqueQrId } = require("../utils/qr");
 const { serializeAttendee } = require("../utils/serializers");
 const { requireAdmin } = require("../middleware/requireAdmin");
 const { uploadIncomerPhoto, deleteIncomerPhoto } = require("../utils/cloudinaryUpload");
 const { sendSeason2RegistrationReceivedEmail } = require("../utils/season2Email");
-const Event = require("../models/Event");
+const { MAX_CUSTOMER_UPLOAD_LABEL, MULTER_FILE_SIZE_LIMIT } = require("../utils/uploadLimits");
+const { limitRequest, enforceLimits } = require("../middleware/rateLimit");
+const {
+  lookupRules,
+  registerPreParseRules,
+  registerPhoneRules,
+  registerEmailRules,
+  REGISTER_MESSAGE
+} = require("../config/rateLimits");
 
 const router = express.Router();
 
@@ -22,7 +29,7 @@ const router = express.Router();
 // parsing when the content-type isn't multipart.
 const incomerPhotoUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MULTER_FILE_SIZE_LIMIT },
   fileFilter(req, file, callback) {
     if (!["image/png", "image/jpeg", "image/jpg"].includes(file.mimetype)) {
       callback(apiError("Only PNG, JPG, or JPEG photos are allowed.", 422));
@@ -40,7 +47,7 @@ function uploadIncomerPhotoMiddleware(req, res, next) {
     }
 
     if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-      next(apiError("Personal photo must be 5MB or smaller.", 422));
+      next(apiError(`Personal photo must be ${MAX_CUSTOMER_UPLOAD_LABEL} or smaller.`, 422));
       return;
     }
 
@@ -184,6 +191,7 @@ router.get(
 // the Season 1 QR / ticket flows still read every field it returns.
 router.get(
   "/season2/lookup",
+  limitRequest(lookupRules),
   asyncHandler(async (req, res) => {
     const phone = cleanPhone(req.query.phone);
 
@@ -254,6 +262,10 @@ async function registerIncomer(req, res) {
     throw apiError("A valid schoolId is required.", 422);
   }
 
+  // Rate limit per phone (attempts that passed validation), before any
+  // database read, upload or email.
+  await enforceLimits(registerPhoneRules(phone), { message: REGISTER_MESSAGE });
+
   const school = await School.findById(schoolId);
   if (!school) {
     throw apiError("Selected school was not found.", 422);
@@ -278,6 +290,11 @@ async function registerIncomer(req, res) {
   if (!req.file) {
     throw apiError("Personal photo is required.", 422);
   }
+
+  // A NEW registration is about to upload a photo and send an email: limit per
+  // email here (duplicates above never reach this point, and a blocked request
+  // uploads nothing and emails nobody).
+  await enforceLimits(registerEmailRules(email), { message: REGISTER_MESSAGE });
 
   const uploadedPhoto = await uploadIncomerPhoto(req.file);
   const incomerPhoto = {
@@ -353,89 +370,27 @@ async function registerIncomer(req, res) {
   });
 }
 
+// The legacy (Season 1) guest/outcomer registration that used to live in this
+// route — an unauthenticated upsert of Attendee documents — is retired: the
+// Season 1 event data was intentionally cleared and Season 2 only registers
+// Incomers. Anything that is not an Incomer now gets a stable 410 Gone.
+//
+// The IP ceiling runs BEFORE multipart parsing (it is the only identity known
+// that early); per-phone and per-email limits run inside registerIncomer once
+// the body is parsed and validated, and always before any Cloudinary upload or
+// email.
 router.post(
   "/register",
+  limitRequest(registerPreParseRules, { message: REGISTER_MESSAGE }),
   uploadIncomerPhotoMiddleware,
   asyncHandler(async (req, res) => {
-    const attendeeTypeEarly = String(req.body.attendeeType || "incomer").trim().toLowerCase();
-
-    if (attendeeTypeEarly === "incomer") {
-      await registerIncomer(req, res);
-      return;
-    }
-
-    const fullName = String(req.body.fullName || req.body.name || "").trim();
-    const phone = cleanPhone(req.body.phoneNumber || req.body.phone);
-    const email = String(req.body.email || "").trim().toLowerCase();
-    const university = String(req.body.schoolOrOriginProm || req.body.university || req.body.school || "").trim();
     const attendeeType = String(req.body.attendeeType || "incomer").trim().toLowerCase();
-    const accessType = String(req.body.accessType || attendeeType).trim().toUpperCase();
 
-    if (!fullName) {
-      throw apiError("Full name is required.", 422);
+    if (attendeeType !== "incomer") {
+      throw apiError("This registration is no longer available.", 410);
     }
 
-    if (!phone) {
-      throw apiError("Phone number is required.", 422);
-    }
-
-    if (!isEgyptianPhone(phone)) {
-      throw apiError("Enter an Egyptian phone number starting with 01 and 11 digits long.", 422);
-    }
-
-    if (!["guest", "incomer", "outcomer"].includes(attendeeType)) {
-      throw apiError("attendeeType must be guest, incomer, or outcomer.", 422);
-    }
-
-    const attendee = await Attendee.findOneAndUpdate(
-      { phone, attendeeType },
-      {
-        $set: {
-          fullName,
-          email,
-          university,
-          age: req.body.age,
-          instagram: req.body.instagramUsername || req.body.instagram,
-          notes: req.body.notes,
-          eventName: req.body.eventName || req.body.prom || req.body.event,
-          attendeeType,
-          accessType,
-          // SECURITY: status and paymentStatus are NEVER accepted from the request body
-          // on this public endpoint. They are always forced to safe defaults.
-          status: "pending",
-          paymentStatus: "not_required"
-        }
-      },
-      {
-        new: true,
-        upsert: true,
-        runValidators: true,
-        setDefaultsOnInsert: true
-      }
-    );
-
-    if (attendee.status === "approved") {
-      if (!attendee.qrId) {
-        let prefix = "ALSHAYEB-";
-        if (attendee.event) {
-          const ev = await Event.findById(attendee.event);
-          if (ev && ev.prefix) prefix = ev.prefix;
-        }
-        attendee.qrId = await generateUniqueQrId(Attendee, prefix);
-      }
-
-      if (!attendee.qrToken) {
-        attendee.qrToken = generateQrToken();
-        attendee.qrIssuedAt = new Date();
-      }
-
-      await attendee.save();
-    }
-
-    res.status(201).json({
-      success: true,
-      attendee: serializeAttendee(attendee)
-    });
+    await registerIncomer(req, res);
   })
 );
 

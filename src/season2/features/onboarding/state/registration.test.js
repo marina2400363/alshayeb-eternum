@@ -10,7 +10,7 @@ describe("mapRegistrationError", () => {
   test.each([
     ["Personal photo is required.", "photo"],
     ["Only PNG, JPG, or JPEG photos are allowed.", "photo"],
-    ["Personal photo must be 5MB or smaller.", "photo"],
+    ["Personal photo must be 4MB or smaller.", "photo"],
     ["A valid schoolId is required.", "school"],
     ["Selected school was not found.", "school"],
     ["Enter an Egyptian phone number starting with 01 and 11 digits long.", "phone"],

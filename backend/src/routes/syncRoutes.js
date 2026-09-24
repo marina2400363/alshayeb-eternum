@@ -7,11 +7,14 @@ const { importGuestListSheet, previewGuestListSheet } = require("../services/goo
 const { syncEventExportSheet } = require("../services/googleSheetsExportSync");
 const { syncRoomsGoogleSheet } = require("../services/googleSheetsRoomsSync");
 const { requireAdmin } = require("../middleware/requireAdmin");
+const { requireCronSecret } = require("../middleware/requireCronSecret");
 
 const router = express.Router();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC CRON ENDPOINT — called by external cron every 5 minutes
+// CRON ENDPOINT — called every 5 minutes by .github/workflows/cron-sync.yml.
+// Requires `Authorization: Bearer <CRON_SECRET>` (header only, never a query
+// parameter): it is no longer anonymously callable.
 // Syncs ALL 4 directions:
 //   1. Incomers    (Sheet   → MongoDB)
 //   2. Guest List  (Sheet   → MongoDB)
@@ -20,6 +23,7 @@ const router = express.Router();
 // ─────────────────────────────────────────────────────────────────────────────
 router.get(
   "/cron/sync-all",
+  requireCronSecret,
   asyncHandler(async (req, res) => {
     const results = [];
 

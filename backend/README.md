@@ -41,3 +41,22 @@ Payment proof screenshots are uploaded to Cloudinary. MongoDB stores only lightw
 - `PATCH /api/admin/attendees/:id/reject`
 - `POST /api/scanner/validate`
 - `GET /api/export/attendees`
+
+## Rate limiting (Season 2)
+
+Mongo-backed fixed-window limiter (`src/middleware/rateLimit.js`, rules in
+`src/config/rateLimits.js`); safe on Vercel serverless because counters live in
+the `ratelimits` collection, not instance memory. Identities are HMAC-hashed
+(`RATE_LIMIT_SECRET`, else `JWT_SECRET`); no phone/email/IP is stored. Blocked
+requests get `429` with a `Retry-After` header. Customer routes fail open on a
+limiter store error; admin login fails closed (503). `RATE_LIMIT_MODE` is
+`enforce` (default), `log` or `off`.
+
+Create the TTL index once in production (explicitly — never `syncIndexes`):
+
+```js
+db.ratelimits.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0, name: "ratelimits_expireAt_ttl" })
+```
+
+`GET /api/cron/sync-all` and `GET /api/rooms/force-sync` require
+`Authorization: Bearer <CRON_SECRET>` (see `.env.example`).

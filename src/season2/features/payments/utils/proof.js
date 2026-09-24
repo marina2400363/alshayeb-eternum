@@ -1,6 +1,6 @@
 import { optimizeProofImage } from "./proofImage";
 
-// Payment-proof rules. The backend accepts PNG/JPG/JPEG up to 5MB (see
+// Payment-proof rules. The backend accepts PNG/JPG/JPEG up to 4MB (see
 // backend/src/routes/depositRoutes.js), but the serverless request-body
 // ceiling is lower than that, so the *optimized* proof is held to a safer
 // target — mirrors the shape of Marina's onboarding/utils/photo.js.

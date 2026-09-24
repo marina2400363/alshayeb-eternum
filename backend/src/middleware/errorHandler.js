@@ -13,7 +13,15 @@ function errorHandler(error, req, res, next) {
     message = "Validation failed.";
   }
 
-  console.error("BACKEND ERROR:", error);
+  // Rate-limit rejections are expected traffic, not errors: no stack in the
+  // logs (the limiter itself logs one minimal line). They carry Retry-After.
+  const isRateLimited = statusCode === 429 && Number.isFinite(error.retryAfterSeconds);
+
+  if (!isRateLimited) {
+    console.error("BACKEND ERROR:", error);
+  } else {
+    res.set("Retry-After", String(error.retryAfterSeconds));
+  }
 
   const isDev = process.env.NODE_ENV === "development";
   const safeMessage = isCustomError ? message : "An internal server error occurred.";
@@ -21,6 +29,7 @@ function errorHandler(error, req, res, next) {
   res.status(statusCode).json({
     success: false,
     message: isDev ? (message || "Something went wrong.") : safeMessage,
+    ...(isRateLimited ? { retryAfterSeconds: error.retryAfterSeconds } : {}),
     ...(error.details ? { details: error.details } : {}),
     ...(isDev ? { stack: error.stack } : {})
   });

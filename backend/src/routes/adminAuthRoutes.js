@@ -3,14 +3,25 @@ const jwt = require("jsonwebtoken");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { getJwtSecret } = require("../middleware/requireAdmin");
+const { guardFailures, recordFailure } = require("../middleware/rateLimit");
+const { adminLoginFailureRules, adminLoginMessage } = require("../config/rateLimits");
 
 const router = express.Router();
 
 // Token validity: 8 hours — enough for a full event day.
 const TOKEN_EXPIRY = "8h";
 
+// Brute-force guard for the single admin credential. Counts FAILED logins only
+// (per IP and globally); if the limiter store is unavailable it FAILS CLOSED
+// (503) — the one place in the app where that is the right trade.
+const loginFailureGuard = guardFailures(adminLoginFailureRules, {
+  failClosed: true,
+  message: adminLoginMessage
+});
+
 router.post(
   "/login",
+  loginFailureGuard,
   asyncHandler(async (req, res) => {
     const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "");
@@ -28,6 +39,7 @@ router.post(
     }
 
     if (email !== configuredEmail || password !== configuredPassword) {
+      await recordFailure(adminLoginFailureRules(req));
       throw apiError("Invalid admin email or password.", 401);
     }
 

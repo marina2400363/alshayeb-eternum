@@ -8,15 +8,23 @@ const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { uploadIncomerDepositProof, deleteIncomerDepositProof } = require("../utils/cloudinaryUpload");
 const { serializeCustomerDepositCreated } = require("../utils/paymentSerializers");
-const { requireValidObjectId, requireValidPhone, resolveOwnedIncomer } = require("../utils/customerOwnership");
+const { requireValidObjectId, requireValidPhone } = require("../utils/customerOwnership");
 const { lockTicketPriceOnFirstDeposit } = require("../utils/ticketPriceLock");
 const { sendSeason2PaymentUnderReviewEmail } = require("../utils/season2Email");
+const { MAX_CUSTOMER_UPLOAD_LABEL, MULTER_FILE_SIZE_LIMIT } = require("../utils/uploadLimits");
+const { limitRequest, guardFailures, enforceLimits } = require("../middleware/rateLimit");
+const {
+  depositPreParseRules,
+  depositAttendeeRules,
+  ownershipFailureRules,
+  resolveOwnedIncomerCounted
+} = require("../config/rateLimits");
 
 const router = express.Router();
 
 const depositProofUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MULTER_FILE_SIZE_LIMIT },
   fileFilter(req, file, callback) {
     if (!["image/png", "image/jpeg", "image/jpg"].includes(file.mimetype)) {
       callback(apiError("Only PNG, JPG, or JPEG payment proof images are allowed.", 422));
@@ -34,7 +42,7 @@ function uploadDepositProofMiddleware(req, res, next) {
     }
 
     if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-      next(apiError("Payment proof image must be 5MB or smaller.", 422));
+      next(apiError(`Payment proof image must be ${MAX_CUSTOMER_UPLOAD_LABEL} or smaller.`, 422));
       return;
     }
 
@@ -54,8 +62,15 @@ const CYCLE_BUSY_MESSAGE = "You already have a payment in progress.";
 // pending, or approved but not yet acknowledged by the customer (OK on the
 // PAYMENT CONFIRMED screen). The partial unique index on
 // {attendeeId, activeCycle} (see Deposit.js) is the concurrency authority.
+//
+// Rate limits (config/rateLimits.js): the IP flood ceiling and the shared
+// ownership-failure guard run BEFORE multipart parsing (the only identity known
+// that early is the IP); the per-attendee limit runs after the body is parsed
+// and ownership is verified, and always before the Cloudinary upload.
 router.post(
   "/",
+  guardFailures(ownershipFailureRules),
+  limitRequest(depositPreParseRules),
   uploadDepositProofMiddleware,
   asyncHandler(async (req, res) => {
     const attendeeId = requireValidObjectId(req.body.attendeeId, "A valid attendeeId is required.");
@@ -70,7 +85,11 @@ router.post(
     // there is no OTP/password/JWT for customers. Collapses "no such
     // attendee", "not an Incomer" and "phone doesn't match" into one generic
     // error so attendeeId alone can never be used as a bearer token.
-    const attendee = await resolveOwnedIncomer(attendeeId, phone);
+    const attendee = await resolveOwnedIncomerCounted(req, attendeeId, phone);
+
+    // Only a verified owner can spend this attendee's submission quota (so a
+    // stranger who somehow knows an id cannot lock a customer out).
+    await enforceLimits(depositAttendeeRules(attendeeId));
 
     // Full Payment is never inferred from arithmetic — it is strictly the
     // accountant's DONE column, mirrored into FullPaymentStatus by the
