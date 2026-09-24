@@ -19,7 +19,9 @@ export default function EnterExperience() {
         {/* Final wording for what each term means is still to be supplied —
             titles only, deliberately no definitions. */}
         <ChoiceCard index="01" title="Incomer" to={PATHS.incomer} media={INCOMER_MEDIA} />
-        <ChoiceCard index="02" title="Outcomer" to={PATHS.outcomer} media={OUTCOMER_MEDIA} />
+        {/* Outcomer is not open yet: same panel, inert, labelled COMING SOON —
+            no link, so nothing can enter (or reach the retired Season 1) flow. */}
+        <ChoiceCard index="02" title="Outcomer" media={OUTCOMER_MEDIA} comingSoon />
       </div>
     </OnboardingStage>
   );

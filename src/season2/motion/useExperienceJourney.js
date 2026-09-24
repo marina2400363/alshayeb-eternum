@@ -52,8 +52,8 @@ const MOBILE_COMPOSITION = {
     { ax: 0.35, ay: 0.625, rotate: -5, scale: 0.76 },
     { ax: 0.66, ay: 0.775, rotate: 8, scale: 0.72 }
   ],
-  pin: 1.15, // pin distance, in viewport heights — more travel for a bigger move
-  scrub: 0.9, // tighter than desktop: touch scrolling already has native momentum
+  pin: 2.6, // travel, in viewport heights (invisible: the frame is held while it scrolls)
+  scrub: 0.2,
   ease: "power2.inOut",
   start: 0.04,
   stagger: 0.09,
@@ -70,8 +70,8 @@ const TABLET_PORTRAIT_COMPOSITION = {
     { ax: 0.3, ay: 0.66, rotate: -4, scale: 0.8 },
     { ax: 0.7, ay: 0.76, rotate: 7, scale: 0.78 }
   ],
-  pin: 1.1,
-  scrub: 1.0,
+  pin: 2.2,
+  scrub: 0.2,
   ease: "power2.inOut",
   start: 0.05,
   stagger: 0.09,
@@ -89,8 +89,8 @@ const TABLET_LANDSCAPE_COMPOSITION = {
     { ax: 0.62, ay: 0.34, rotate: -3, scale: 0.82 },
     { ax: 0.83, ay: 0.64, rotate: 7, scale: 0.8 }
   ],
-  pin: 1.0,
-  scrub: 1.1,
+  pin: 1.8,
+  scrub: 0.2,
   ease: "power3.out",
   start: 0.1,
   stagger: 0.08,
@@ -122,11 +122,12 @@ const EDGE_MARGIN = 6;
  * (no wheel hijacking, no drag logic) and vertical scrolling continues
  * normally.
  */
-export default function useExperienceJourney({ journeyRef, headingRef, railRef, cardRefs }) {
+export default function useExperienceJourney({ trackRef, journeyRef, headingRef, railRef, cardRefs }) {
   useLayoutEffect(() => {
+    const track = trackRef.current;
     const journey = journeyRef.current;
     const rail = railRef.current;
-    if (!journey || !rail) return undefined;
+    if (!track || !journey || !rail) return undefined;
 
     const ctx = gsap.context(() => {
       const cards = cardRefs.current.filter(Boolean);
@@ -201,10 +202,19 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
 
       const { anchors, pin, scrub, ease, start, stagger, duration, headingAt } = composition;
 
-      // The pinned frame IS the visible screen when the pin starts. All
+      // The held frame IS the visible screen when the hold starts. All
       // measurements are layout offsets (unaffected by GSAP's transforms).
       const frameWidth = () => journey.clientWidth;
       const frameHeight = () => journey.clientHeight;
+
+      // Touch tiers: NO JS pin. The frame is held by native CSS sticky inside
+      // `track`, whose height is the frame plus `pin` extra viewport heights
+      // of invisible travel (svh: stable while the Safari toolbar moves, so
+      // nothing here ever needs re-measuring mid-gesture). ScrollTrigger is
+      // used for progress only.
+      track.style.setProperty("--s2-track-vh", String(Math.round((1 + pin) * 1000) / 10));
+      track.classList.add("s2-journey-track--sticky");
+      document.documentElement.classList.add("s2-sticky-scroll");
 
       // Where a card's centre rests, in frame coordinates, before any scroll.
       const restCentre = (card) => ({
@@ -247,10 +257,12 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
 
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: journey,
+          trigger: track,
           start: "top top",
-          end: () => "+=" + window.innerHeight * pin,
-          pin: true,
+          // The moment sticky lets go: the track's bottom reaches the bottom
+          // of the (svh-tall) frame. Uses the frame's own height, not
+          // window.innerHeight, which changes with the Safari toolbar.
+          end: () => "bottom top+=" + frameHeight(),
           scrub,
           invalidateOnRefresh: true,
           onLeave: () => rail.classList.add("s2-rail--landed"),
@@ -285,6 +297,9 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
       return () => {
         if (tl.scrollTrigger) tl.scrollTrigger.kill();
         tl.kill();
+        track.classList.remove("s2-journey-track--sticky");
+        track.style.removeProperty("--s2-track-vh");
+        document.documentElement.classList.remove("s2-sticky-scroll");
       };
     }
 

@@ -491,6 +491,34 @@ body:has(.s2-ob-ca) {
   outline-offset: -4px;
 }
 
+/* Coming-soon panel (Outcomer): the same panel and grid, but inert — no
+   pointer cursor, and none of the link hover/focus responses above. The
+   label takes the arrow's cell. */
+.s2-ob-choice--soon {
+  cursor: default;
+}
+
+.s2-ob-choice--soon:hover .s2-card-media {
+  opacity: 1;
+  filter: grayscale(1) contrast(1.15) brightness(0.8);
+}
+
+.s2-ob-choice--soon:hover .s2-ob-choice-mark {
+  transform: none;
+}
+
+.s2-ob-choice-mark--soon {
+  align-items: center;
+  align-self: center;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--s2-text-primary);
+}
+
 /* ==================================================================
    Fields — large labels, line-based, nothing boxed
    ================================================================== */

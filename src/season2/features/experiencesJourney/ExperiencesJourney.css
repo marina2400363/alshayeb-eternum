@@ -17,6 +17,36 @@
   padding: var(--s2-space-8) 0;
 }
 
+/* Touch tiers (tablet + mobile) hold the frame with native CSS sticky instead
+   of a JS position:fixed pin. iOS scrolls on the compositor thread ahead of
+   the main thread, so a JS pin swaps `fixed` on late and the frame visibly
+   sticks and then jumps; sticky is resolved by the compositor itself. The
+   track is only the invisible scroll distance (set in JS as --s2-track-vh:
+   frame + travel, in viewport heights) — the frame inside is the same
+   full-screen `.s2-transition`. Desktop never gets this class. */
+.s2-journey-track--sticky {
+  height: calc(var(--s2-track-vh) * 1vh);
+  height: calc(var(--s2-track-vh) * 1svh);
+}
+
+.s2-journey-track--sticky > .s2-transition {
+  position: sticky;
+  top: 0;
+}
+
+/* position:sticky is silently dead if ANY ancestor is a scroll container.
+   The legacy global CSS makes <body> one (index.css `overflow-y: scroll`,
+   App.css `overflow-x: hidden`; at <=768px <html> too), so while the sticky
+   mode is active <html> owns the horizontal clip (it propagates to the
+   viewport) and <body> is left as a plain box. */
+html.s2-sticky-scroll {
+  overflow-x: hidden;
+}
+
+html.s2-sticky-scroll body {
+  overflow: visible;
+}
+
 .s2-experiences-heading {
   margin: 0;
   font-family: var(--s2-font-display);
