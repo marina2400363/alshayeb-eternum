@@ -68,3 +68,44 @@
 .s2-dep-reject-form textarea {
   resize: vertical;
 }
+
+/* Customer photo: a small square preview (lazy-loaded, ~96px) that opens the
+   full-size original in a new tab. The list never renders it. */
+.s2-dep-photo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-2);
+  margin: var(--s2-space-4) 0;
+  padding-top: var(--s2-space-4);
+  border-top: 1px solid var(--s2-border);
+}
+
+.s2-dep-photo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2-space-3);
+  width: fit-content;
+  color: inherit;
+  text-decoration: none;
+}
+
+.s2-dep-photo-image {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  background: var(--s2-bg-1);
+  border: 1px solid var(--s2-border);
+}
+
+.s2-dep-photo-open {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.s2-dep-photo-link:hover .s2-dep-photo-open,
+.s2-dep-photo-link:focus-visible .s2-dep-photo-open {
+  color: var(--s2-text-primary);
+}

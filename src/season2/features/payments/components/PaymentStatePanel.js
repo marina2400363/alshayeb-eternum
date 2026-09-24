@@ -7,7 +7,7 @@ import "./PaymentStatePanel.css";
 const STATES = {
   under_review: {
     tone: "pending",
-    status: "In review",
+    status: "Pending",
     title: ["Payment", "under review"],
     copy: ["Your payment proof has been received.", "We'll confirm it once it has been reviewed."]
   },

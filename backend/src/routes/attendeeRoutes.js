@@ -12,6 +12,7 @@ const { serializeAttendee } = require("../utils/serializers");
 const { requireAdmin } = require("../middleware/requireAdmin");
 const { uploadIncomerPhoto, deleteIncomerPhoto } = require("../utils/cloudinaryUpload");
 const { sendSeason2RegistrationReceivedEmail } = require("../utils/season2Email");
+const { requestSchoolFinanceSync } = require("../services/financeAutoSync");
 const { MAX_CUSTOMER_UPLOAD_LABEL, MULTER_FILE_SIZE_LIMIT } = require("../utils/uploadLimits");
 const { limitRequest, enforceLimits } = require("../middleware/rateLimit");
 const {
@@ -362,6 +363,10 @@ async function registerIncomer(req, res) {
       });
     }
   }
+
+  // The new customer belongs in their School's finance sheet. Fire-and-forget:
+  // never awaited, can never fail or slow this response (see financeAutoSync).
+  requestSchoolFinanceSync(school._id);
 
   res.status(201).json({
     success: true,

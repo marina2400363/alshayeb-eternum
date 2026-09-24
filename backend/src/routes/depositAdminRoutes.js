@@ -7,10 +7,14 @@ const DepositApprovalLock = require("../models/DepositApprovalLock");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { sendSeason2PaymentConfirmedEmail, sendSeason2PaymentRejectedEmail } = require("../utils/season2Email");
+const { requestSchoolFinanceSync } = require("../services/financeAutoSync");
 
 const router = express.Router();
 
-const ATTENDEE_POPULATE_FIELDS = "fullName phone schoolId ticketPrice ticketPriceLocked attendeeType";
+// incomerPhoto.url: the customer's registration photo URL (text only) so the
+// Admin details view can lazy-load a small preview. The image itself is never
+// loaded by the list — only by the details panel — and publicId is not selected.
+const ATTENDEE_POPULATE_FIELDS = "fullName phone schoolId ticketPrice ticketPriceLocked attendeeType incomerPhoto.url";
 const PAYMENT_OPTION_POPULATE_FIELDS = "label amount enabled";
 
 // Nested populate so the Admin Portal's Deposit Review can show the
@@ -145,7 +149,7 @@ router.put(
           // email/fullName: read-only, needed only for the Email C dispatch
           // after this transaction commits — never written, never part of
           // the approval decision itself.
-          const attendee = await Attendee.findById(deposit.attendeeId).select("_id email fullName").session(session);
+          const attendee = await Attendee.findById(deposit.attendeeId).select("_id email fullName schoolId").session(session);
 
           if (!attendee) {
             throw apiError("Associated attendee was not found.", 404);
@@ -218,6 +222,13 @@ router.put(
         });
       }
     }
+
+    // An approval changes the sheet's Approved Payments / Number of Payments /
+    // Total Paid / Payment Proof Link. Fire-and-forget: the approval above is
+    // already committed and this can never fail or roll it back. (Rejection
+    // changes nothing the sheet shows — approved-only columns — so it does not
+    // trigger a sync.)
+    requestSchoolFinanceSync(resultAttendee?.schoolId);
 
     res.json({ success: true, message: "Deposit approved.", deposit: result });
   })

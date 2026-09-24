@@ -34,6 +34,15 @@ const schoolFinanceConfigSchema = new mongoose.Schema(
       },
       message: String,
       syncedCount: Number
+    },
+    // Coordination for the AUTOMATIC Mongo -> Sheet sync (services/
+    // financeAutoSync.js): a short lease so at most one sync per School runs
+    // at a time across serverless instances, and a dirty flag so changes that
+    // arrive during a run are picked up by ONE follow-up run instead of one
+    // full sync per change. Internal bookkeeping only — never a source of truth.
+    autoSync: {
+      lockedUntil: Date,
+      dirty: Boolean
     }
   },
   { timestamps: true }

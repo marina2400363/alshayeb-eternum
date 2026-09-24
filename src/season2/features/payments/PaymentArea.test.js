@@ -320,6 +320,19 @@ describe("current-state panels", () => {
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   });
 
+  test("the small status label on the pending screen reads PENDING (not IN REVIEW); the heading is unchanged", async () => {
+    paymentsApi.fetchCustomerPaymentSummary.mockResolvedValue(baseSummary({ paymentStatus: "under_review" }));
+
+    const { container } = render(<PaymentArea />);
+    expect(await screen.findByRole("heading", { name: /payment under review/i })).toBeInTheDocument();
+
+    // The label is uppercased by CSS; the copy itself is "Pending".
+    expect(container.querySelector(".s2-pay-state-status")).toHaveTextContent(/^Pending$/);
+    expect(screen.queryByText(/in review/i)).not.toBeInTheDocument();
+    // customer-facing copy only: the underlying payment state/tone is untouched
+    expect(container.querySelector(".s2-pay-state--pending")).toBeInTheDocument();
+  });
+
   test("FULL PAYMENT COMPLETE: 'Your ticket is fully paid.' and no payment form", async () => {
     paymentsApi.fetchCustomerPaymentSummary.mockResolvedValue(
       baseSummary({ paymentStatus: "full_payment_complete" })

@@ -153,6 +153,22 @@ async function syncFullPaymentFromSchoolSheet(schoolId) {
         ? (wasConfirmed ? existing.confirmedAt : now)
         : (existing ? existing.confirmedAt : undefined);
 
+      if (item.confirmed) {
+        confirmedCount += 1;
+      } else {
+        unconfirmedCount += 1;
+      }
+
+      // This read now also runs on every scheduled cron cycle, so a row that
+      // is already recorded with the same confirmed flag and the same sheet
+      // value has nothing to apply: no write, and (because this `continue`
+      // precedes the email branch) an already-completed customer can never
+      // reach the email code again. A row is written only when it is new or
+      // its status/value actually changed.
+      if (existing && existing.confirmed === item.confirmed && String(existing.lastSheetValue ?? "") === item.sheetValue) {
+        continue;
+      }
+
       // eslint-disable-next-line no-await-in-loop
       await FullPaymentStatus.findOneAndUpdate(
         { attendeeId: item.attendeeId },
@@ -168,21 +184,16 @@ async function syncFullPaymentFromSchoolSheet(schoolId) {
         { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
       );
 
-      if (item.confirmed) {
-        confirmedCount += 1;
-      } else {
-        unconfirmedCount += 1;
-      }
-
       // Email E — Full payment complete. Fires ONLY on the false/absent ->
       // true transition computed above (wasConfirmed) — a repeated DONE sync
       // (true -> true) never re-enters this branch. The completionSentAt
-      // check is a defense-in-depth guard against a future re-run of this
-      // exact transition (e.g. after a crash between the write above and the
-      // send below). This sync is manual-only (no cron — see the admin
-      // route), so an admin re-clicking sync is the realistic retry case,
-      // and it's covered by both guards. Email failure must never fail the
-      // sync response — sendSeason2* never throws.
+      // check is a defense-in-depth guard against a re-run of this exact
+      // transition (e.g. after a crash between the write above and the send
+      // below, or a DONE that is cleared and re-entered). This runs
+      // automatically on the scheduled cron (services/financeAutoSync.js) and
+      // is also available as the admin's manual backup button; both guards
+      // cover both callers. Email failure must never fail the sync response —
+      // sendSeason2* never throws.
       if (item.confirmed && !wasConfirmed && !existing?.season2EmailNotifications?.completionSentAt) {
         const attendee = attendeeMap.get(item.attendeeId);
         // eslint-disable-next-line no-await-in-loop

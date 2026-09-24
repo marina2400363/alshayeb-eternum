@@ -24,6 +24,7 @@ const app = require("../src/app");
 const FullPaymentStatus = require("../src/models/FullPaymentStatus");
 const SchoolFinanceConfig = require("../src/models/SchoolFinanceConfig");
 const { parseSpreadsheetId, buildSpreadsheetUrl } = require("../src/utils/googleSheetUrl");
+const { HEADER_ROW } = require("../src/services/googleSheetsSchoolFinanceSync");
 const { createMemoryDb, queryResult } = require("./support/memoryDb");
 
 const SHEET_ID = "1AbCdEf123456789_ABCDEFGHIJKLMNOPQRSTUVWX";
@@ -125,6 +126,24 @@ function createFakeSheets() {
       }
       return null;
     },
+    // The full A:L image this sync produced for one customer: A:H from the
+    // "A{n}:H{n}" write, J:L from the matching "J{n}:L{n}" write. Column I is
+    // never written, so it stays `undefined` — the assertion that it was left alone.
+    imageFor: (customerId) => {
+      for (const write of state.writes) {
+        for (const entry of write.data) {
+          const match = entry.range.split("!")[1].match(/^A(\d+):H\d+$/);
+          if (match && String(entry.values[0][0]) === String(customerId)) {
+            const extra = write.data.find((candidate) => candidate.range.split("!")[1] === `J${match[1]}:L${match[1]}`);
+            const image = new Array(12).fill(undefined);
+            entry.values[0].forEach((value, index) => (image[index] = value));
+            (extra ? extra.values[0] : []).forEach((value, index) => (image[9 + index] = value));
+            return image;
+          }
+        }
+      }
+      return null;
+    },
     restore: () => {
       google.sheets = originalSheets;
       google.auth.JWT = originalJwt;
@@ -207,15 +226,23 @@ test.beforeEach(() => {
 });
 test.afterEach(() => finance.restore());
 
+// True when an A1 range like "A2:H2" / "J2:L2" spans column I (the accountant's
+// Full Payment column).
+function rangeCoversColumnI(range) {
+  const [from, to] = range.split(":").map((part) => part.replace(/\d+/g, ""));
+  return from <= "I" && "I" <= to;
+}
+
 // Adds an approved / pending / rejected Deposit straight into the store.
 let depositClock = Date.parse("2026-09-01T10:00:00Z");
-function addDeposit(attendee, { amount, status = "approved", customerConfirmationPending = false } = {}) {
+function addDeposit(attendee, { amount, status = "approved", customerConfirmationPending = false, proofUrl } = {}) {
   const deposit = {
     _id: new mongoose.Types.ObjectId(),
     attendeeId: attendee._id,
     amount,
     status,
     customerConfirmationPending,
+    ...(proofUrl ? { paymentProof: { url: proofUrl, publicId: "never-in-the-sheet" } } : {}),
     createdAt: new Date((depositClock += 1000))
   };
   db.deposits.push(deposit);
@@ -397,10 +424,16 @@ test("finance config endpoints", async (t) => {
 // ---------------------------------------------------------------------------
 
 test("sync customers to sheet", async (t) => {
-  await t.test("writes A:H per customer, never column I, and uses the configured sheet + tab", async () => {
+  await t.test("exact final A:L mapping: A:H and J:L are written, column I never is", async () => {
     const school = db.addSchool({ name: "Mega Heliopolis", ticketPrice: 6000 });
-    const customer = db.addAttendee(school, { fullName: "Marina Adel", phone: "01012345678", ticketPrice: 6000 });
-    addDeposit(customer, { amount: 500 });
+    const customer = db.addAttendee(school, {
+      fullName: "Marina Adel",
+      phone: "01012345678",
+      ticketPrice: 6000,
+      email: "marina@example.com",
+      incomerPhoto: { url: "https://res.cloudinary.com/demo/image/upload/v1/alshayeb/incomer-photos/marina.jpg", publicId: "secret-public-id" }
+    });
+    addDeposit(customer, { amount: 500, proofUrl: "https://res.cloudinary.com/demo/image/upload/v1/alshayeb/incomer-deposit-proofs/p1.png" });
     finance.addConfig(school, { tabName: "Finance" });
 
     await withServer(async (base) => {
@@ -411,15 +444,30 @@ test("sync customers to sheet", async (t) => {
     });
 
     assert.equal(sheet.state.reads[0].spreadsheetId, SHEET_ID);
-    assert.equal(sheet.state.reads[0].range, "'Finance'!A:I");
-    assert.ok(sheet.writtenRanges().every((range) => /^A\d+:H\d+$|^A1:I1$/.test(range)));
-    assert.ok(!sheet.writtenRanges().some((range) => /^A\d+:I\d+$/.test(range) && range !== "A1:I1"));
+    assert.equal(sheet.state.reads[0].range, "'Finance'!A:L");
+    // Every written range is A:H, J:L, or the fresh-sheet header — none other.
+    assert.ok(sheet.writtenRanges().every((range) => /^A\d+:H\d+$|^J\d+:L\d+$|^A1:L1$/.test(range)));
+    // …and no range touches column I on a data row.
+    assert.ok(!sheet.writtenRanges().some((range) => range !== "A1:L1" && /^[A-Z]\d+:[A-Z]\d+$/.test(range) && rangeCoversColumnI(range)));
 
-    const row = sheet.rowFor(customer._id);
-    assert.deepEqual(row, [String(customer._id), "Marina Adel", "01012345678", "Mega Heliopolis", 6000, "500", 500, "PAYMENTS ACTIVE"]);
+    assert.deepEqual(sheet.imageFor(customer._id), [
+      String(customer._id), // A Customer ID
+      "Marina Adel", //        B Full Name
+      "01012345678", //        C Phone
+      "Mega Heliopolis", //    D School
+      6000, //                 E Ticket Price
+      "500", //                F Approved Payments
+      1, //                    G Number of Payments
+      500, //                  H Total Paid
+      undefined, //            I Full Payment — never written by the backend
+      "marina@example.com", // J Email
+      "https://res.cloudinary.com/demo/image/upload/v1/alshayeb/incomer-photos/marina.jpg", // K Customer Photo Link
+      "https://res.cloudinary.com/demo/image/upload/v1/alshayeb/incomer-deposit-proofs/p1.png" // L Payment Proof Links
+    ]);
+    assert.ok(!JSON.stringify(sheet.state.writes).includes("public-id"), "no Cloudinary public ids in the sheet");
   });
 
-  await t.test("Approved Payments lists approved amounts only, oldest first; Approved Total sums them", async () => {
+  await t.test("Approved Payments lists approved amounts only, oldest first", async () => {
     const school = db.addSchool({ ticketPrice: 6000 });
     const customer = db.addAttendee(school);
     addDeposit(customer, { amount: 500 });
@@ -433,14 +481,44 @@ test("sync customers to sheet", async (t) => {
       await client(base).syncToSheet(school);
     });
 
-    const row = sheet.rowFor(customer._id);
-    assert.equal(row[5], "500, 1000, 2000", "no rejected or pending amounts");
-    assert.equal(row[6], 3500);
-    assert.equal(row[7], "UNDER REVIEW", "a pending deposit shows as under review");
-    assert.ok(!JSON.stringify(sheet.state.writes).includes("cloudinary"));
+    assert.equal(sheet.imageFor(customer._id)[5], "500, 1000, 2000", "no rejected or pending amounts");
   });
 
-  await t.test("a customer with no deposits is exported with an empty summary", async () => {
+  await t.test("Number of Payments counts APPROVED Deposits only (integer); Total Paid sums APPROVED only", async () => {
+    const school = db.addSchool({ ticketPrice: 6000 });
+    const mixed = db.addAttendee(school);
+    const pendingOnly = db.addAttendee(school);
+    const rejectedOnly = db.addAttendee(school);
+    const four = db.addAttendee(school);
+    addDeposit(mixed, { amount: 500 });
+    addDeposit(mixed, { amount: 1000 });
+    addDeposit(mixed, { amount: 300, status: "rejected" });
+    addDeposit(mixed, { amount: 2000 });
+    addDeposit(mixed, { amount: 750, status: "pending" });
+    addDeposit(pendingOnly, { amount: 500, status: "pending" });
+    addDeposit(rejectedOnly, { amount: 500, status: "rejected" });
+    for (const amount of [100, 200, 300, 400]) addDeposit(four, { amount });
+    finance.addConfig(school);
+
+    await withServer(async (base) => {
+      await client(base).syncToSheet(school);
+    });
+
+    const at = (customer) => sheet.imageFor(customer._id);
+    assert.equal(at(mixed)[6], 3, "3 approved of 5 deposits");
+    assert.equal(at(mixed)[7], 3500, "500 + 1000 + 2000, never the pending 750 or rejected 300");
+    assert.equal(at(pendingOnly)[6], 0);
+    assert.equal(at(pendingOnly)[7], 0);
+    assert.equal(at(rejectedOnly)[6], 0);
+    assert.equal(at(rejectedOnly)[7], 0);
+    assert.equal(at(four)[6], 4);
+    assert.equal(at(four)[7], 1000);
+    for (const customer of [mixed, pendingOnly, rejectedOnly, four]) {
+      assert.ok(Number.isInteger(at(customer)[6]));
+    }
+  });
+
+  await t.test("a customer with no deposits is exported with an empty summary and no proof link", async () => {
     const school = db.addSchool({ ticketPrice: 6000 });
     const customer = db.addAttendee(school);
     finance.addConfig(school);
@@ -449,10 +527,78 @@ test("sync customers to sheet", async (t) => {
       await client(base).syncToSheet(school);
     });
 
-    const row = sheet.rowFor(customer._id);
-    assert.equal(row[5], "");
-    assert.equal(row[6], 0);
-    assert.equal(row[7], "NO PAYMENT");
+    const image = sheet.imageFor(customer._id);
+    assert.equal(image[5], "");
+    assert.equal(image[6], 0);
+    assert.equal(image[7], 0);
+    assert.equal(image[11], "", "no approved deposit => no Payment Proof Links");
+  });
+
+  await t.test("J Email and K Customer Photo Link come from the attendee; both blank when absent", async () => {
+    const school = db.addSchool({ ticketPrice: 6000 });
+    const complete = db.addAttendee(school, { email: "a@example.com", incomerPhoto: { url: "https://cdn.example/a.jpg" } });
+    const bare = db.addAttendee(school);
+    finance.addConfig(school);
+
+    await withServer(async (base) => {
+      await client(base).syncToSheet(school);
+    });
+
+    assert.deepEqual(sheet.imageFor(complete._id).slice(9, 11), ["a@example.com", "https://cdn.example/a.jpg"]);
+    assert.deepEqual(sheet.imageFor(bare._id).slice(9, 11), ["", ""]);
+  });
+
+  await t.test("L Payment Proof Links holds ALL approved proofs, oldest first, in the same order as F — never pending or rejected", async () => {
+    const school = db.addSchool({ ticketPrice: 6000 });
+    const customer = db.addAttendee(school);
+    const pendingOnly = db.addAttendee(school);
+    const rejectedOnly = db.addAttendee(school);
+    const single = db.addAttendee(school);
+    addDeposit(customer, { amount: 500, proofUrl: "https://cdn.example/first.png" });
+    addDeposit(customer, { amount: 1000, proofUrl: "https://cdn.example/second.png" });
+    addDeposit(customer, { amount: 300, status: "rejected", proofUrl: "https://cdn.example/rejected.png" });
+    addDeposit(customer, { amount: 750, status: "pending", proofUrl: "https://cdn.example/pending.png" });
+    addDeposit(customer, { amount: 2000, proofUrl: "https://cdn.example/third.png" });
+    addDeposit(pendingOnly, { amount: 500, status: "pending", proofUrl: "https://cdn.example/only-pending.png" });
+    addDeposit(rejectedOnly, { amount: 500, status: "rejected", proofUrl: "https://cdn.example/only-rejected.png" });
+    addDeposit(single, { amount: 800, proofUrl: "https://cdn.example/single.png" });
+    finance.addConfig(school);
+
+    await withServer(async (base) => {
+      await client(base).syncToSheet(school);
+    });
+
+    const image = sheet.imageFor(customer._id);
+    assert.equal(image[5], "500, 1000, 2000");
+    assert.equal(
+      image[11],
+      "https://cdn.example/first.png, https://cdn.example/second.png, https://cdn.example/third.png",
+      "every approved proof, chronological, same order as Approved Payments"
+    );
+    // the Nth link belongs to the Nth amount
+    assert.equal(image[11].split(", ").length, image[6], "one link per approved payment (Number of Payments)");
+    assert.equal(sheet.imageFor(single._id)[11], "https://cdn.example/single.png");
+    assert.equal(sheet.imageFor(pendingOnly._id)[11], "", "blank when nothing is approved");
+    assert.equal(sheet.imageFor(rejectedOnly._id)[11], "");
+    const written = JSON.stringify(sheet.state.writes);
+    assert.ok(!written.includes("rejected.png") && !written.includes("pending.png"));
+    assert.ok(!written.includes("never-in-the-sheet"), "no Cloudinary public ids");
+  });
+
+  await t.test("an approved Deposit with no proof URL on file simply contributes no link", async () => {
+    const school = db.addSchool({ ticketPrice: 6000 });
+    const customer = db.addAttendee(school);
+    addDeposit(customer, { amount: 500 }); // no proofUrl
+    addDeposit(customer, { amount: 1000, proofUrl: "https://cdn.example/has-proof.png" });
+    finance.addConfig(school);
+
+    await withServer(async (base) => {
+      await client(base).syncToSheet(school);
+    });
+
+    const image = sheet.imageFor(customer._id);
+    assert.equal(image[5], "500, 1000");
+    assert.equal(image[11], "https://cdn.example/has-proof.png");
   });
 
   await t.test("column E is the customer's own locked ticket price, not the School's current one", async () => {
@@ -469,16 +615,13 @@ test("sync customers to sheet", async (t) => {
     assert.equal(sheet.rowFor(unlocked._id)[4], 9000);
   });
 
-  await t.test("Payment State covers every case", async () => {
+  await t.test("the Payment State column is gone: no state text is ever written", async () => {
     const school = db.addSchool({ ticketPrice: 6000 });
-    const none = db.addAttendee(school);
     const pending = db.addAttendee(school);
     const awaiting = db.addAttendee(school);
-    const active = db.addAttendee(school);
     const done = db.addAttendee(school);
     addDeposit(pending, { amount: 500, status: "pending" });
     addDeposit(awaiting, { amount: 500, customerConfirmationPending: true });
-    addDeposit(active, { amount: 500 });
     addDeposit(done, { amount: 6000 });
     db.fullPayments.push({ attendeeId: done._id, confirmed: true });
     finance.addConfig(school);
@@ -487,11 +630,14 @@ test("sync customers to sheet", async (t) => {
       await client(base).syncToSheet(school);
     });
 
-    assert.equal(sheet.rowFor(none._id)[7], "NO PAYMENT");
-    assert.equal(sheet.rowFor(pending._id)[7], "UNDER REVIEW");
-    assert.equal(sheet.rowFor(awaiting._id)[7], "AWAITING CUSTOMER CONFIRMATION");
-    assert.equal(sheet.rowFor(active._id)[7], "PAYMENTS ACTIVE");
-    assert.equal(sheet.rowFor(done._id)[7], "FULL PAYMENT COMPLETE");
+    const written = JSON.stringify(sheet.state.writes);
+    for (const stateText of ["Payment State", "NO PAYMENT", "UNDER REVIEW", "AWAITING", "PAYMENTS ACTIVE", "FULL PAYMENT COMPLETE"]) {
+      assert.equal(written.includes(stateText), false, `${stateText} must not be written`);
+    }
+    // Column H is Total Paid (a number) for every customer.
+    for (const customer of [pending, awaiting, done]) {
+      assert.equal(typeof sheet.imageFor(customer._id)[7], "number");
+    }
   });
 
   await t.test("only that School's customers are exported", async () => {
@@ -519,10 +665,11 @@ test("sync customers to sheet", async (t) => {
     addDeposit(existing, { amount: 500 });
     finance.addConfig(school);
 
-    // The sheet already has a header and this customer's row, with DONE in I.
+    // The sheet already has the CURRENT header and this customer's row, with
+    // DONE in I.
     sheet.setRows([
-      ["Customer ID", "Full Name", "Phone", "School", "Ticket Price", "Approved Payments", "Approved Total", "Payment State", "Full Payment"],
-      [String(existing._id), "Old Name", "old", "A", 1, "", 0, "NO PAYMENT", "DONE"]
+      HEADER_ROW,
+      [String(existing._id), "Old Name", "old", "A", 1, "", 0, 0, "DONE", "old@example.com", "", ""]
     ]);
 
     await withServer(async (base) => {
@@ -532,10 +679,78 @@ test("sync customers to sheet", async (t) => {
     });
 
     const ranges = sheet.writtenRanges();
-    assert.deepEqual(ranges, ["A2:H2", "A3:H3"], "row 2 updated in place, row 3 appended — never column I");
+    assert.deepEqual(
+      ranges,
+      ["A2:H2", "J2:L2", "A3:H3", "J3:L3"],
+      "row 2 updated in place, row 3 appended — A:H and J:L only, never column I"
+    );
     assert.equal(sheet.rowFor(existing._id)[1], "Existing");
     assert.equal(sheet.rowFor(fresh._id)[1], "Fresh");
     assert.ok(!JSON.stringify(sheet.state.writes).includes("DONE"), "the sync never writes DONE");
+    assert.equal(sheet.imageFor(existing._id)[8], undefined);
+  });
+
+  await t.test("column I survives the sync: DONE, other text and blanks are never written or cleared", async () => {
+    const school = db.addSchool({ name: "A", ticketPrice: 6000 });
+    const done = db.addAttendee(school);
+    const other = db.addAttendee(school);
+    const blank = db.addAttendee(school);
+    addDeposit(done, { amount: 500 });
+    finance.addConfig(school);
+
+    sheet.setRows([
+      HEADER_ROW,
+      [String(done._id), "n", "p", "A", 1, "", 0, 0, "DONE", "", "", ""],
+      [String(other._id), "n", "p", "A", 1, "", 0, 0, "waiting for bank", "", "", ""],
+      [String(blank._id), "n", "p", "A", 1, "", 0, 0]
+    ]);
+
+    await withServer(async (base) => {
+      assert.equal((await client(base).syncToSheet(school)).body.success, true);
+    });
+
+    // Every existing row was rewritten (A:H and J:L) and NOT ONE write range
+    // reaches column I, so the accountant's values cannot have changed.
+    assert.equal(sheet.writtenRanges().length, 6);
+    assert.ok(sheet.writtenRanges().every((range) => !rangeCoversColumnI(range)));
+    const written = JSON.stringify(sheet.state.writes);
+    assert.ok(!written.includes("DONE") && !written.includes("waiting for bank"));
+    for (const customer of [done, other, blank]) assert.equal(sheet.imageFor(customer._id)[8], undefined);
+  });
+
+  await t.test("an existing sheet with the OLD layout (Payment State) gets its system headers refreshed; I1 is never touched", async () => {
+    const school = db.addSchool({ name: "A", ticketPrice: 6000 });
+    const existing = db.addAttendee(school);
+    finance.addConfig(school);
+
+    sheet.setRows([
+      ["Customer ID", "Full Name", "Phone", "School", "Ticket Price", "Approved Payments", "Approved Total", "Payment State", "My Custom Full Payment"],
+      [String(existing._id), "n", "p", "A", 1, "", 0, "NO PAYMENT", "DONE"]
+    ]);
+
+    await withServer(async (base) => {
+      await client(base).syncToSheet(school);
+    });
+
+    const [first, second] = sheet.state.writes[0].data;
+    assert.equal(first.range, "'Sheet1'!A1:H1");
+    assert.deepEqual(first.values[0], HEADER_ROW.slice(0, 8));
+    assert.equal(second.range, "'Sheet1'!J1:L1");
+    assert.deepEqual(second.values[0], HEADER_ROW.slice(9, 12));
+    assert.ok(sheet.writtenRanges().every((range) => !rangeCoversColumnI(range)), "I1 (the accountant's header) is left alone");
+  });
+
+  await t.test("a current header is not rewritten on every sync", async () => {
+    const school = db.addSchool({ name: "A", ticketPrice: 6000 });
+    const existing = db.addAttendee(school);
+    finance.addConfig(school);
+    sheet.setRows([HEADER_ROW, [String(existing._id)]]);
+
+    await withServer(async (base) => {
+      await client(base).syncToSheet(school);
+    });
+
+    assert.ok(!sheet.writtenRanges().some((range) => /^[A-Z]1:[A-Z]1$/.test(range)));
   });
 
   await t.test("an empty sheet gets the header row first", async () => {
@@ -548,7 +763,7 @@ test("sync customers to sheet", async (t) => {
     });
 
     const header = sheet.state.writes[0].data[0];
-    assert.equal(header.range, "'Sheet1'!A1:I1");
+    assert.equal(header.range, "'Sheet1'!A1:L1");
     assert.deepEqual(header.values[0], [
       "Customer ID",
       "Full Name",
@@ -556,10 +771,14 @@ test("sync customers to sheet", async (t) => {
       "School",
       "Ticket Price",
       "Approved Payments",
-      "Approved Total",
-      "Payment State",
-      "Full Payment"
+      "Number of Payments",
+      "Total Paid",
+      "Full Payment",
+      "Email",
+      "Customer Photo Link",
+      "Payment Proof Links"
     ]);
+    assert.deepEqual(header.values[0], HEADER_ROW);
   });
 
   await t.test("disabled / unconfigured / missing config are skipped without touching Google", async () => {
@@ -601,8 +820,33 @@ test("sync customers to sheet", async (t) => {
 // ---------------------------------------------------------------------------
 
 test("sync full payment from sheet", async (t) => {
-  const headerRow = ["Customer ID", "Full Name", "Phone", "School", "Ticket Price", "Approved Payments", "Approved Total", "Payment State", "Full Payment"];
-  const rowFor = (attendee, fullPaymentCell) => [String(attendee._id), "N", "P", "S", 6000, "", 0, "NO PAYMENT", fullPaymentCell];
+  const headerRow = HEADER_ROW;
+  // A:L — column I (index 8) is the accountant's; J:L hold email / photo / proof links.
+  const rowFor = (attendee, fullPaymentCell) => [
+    String(attendee._id), "N", "P", "S", 6000, "", 0, 0, fullPaymentCell, "n@example.com", "https://cdn.example/photo.jpg", "https://cdn.example/proof.png"
+  ];
+
+  await t.test("DONE is read from column I even with the J:L columns populated (they never shift it)", async () => {
+    const school = db.addSchool({ ticketPrice: 6000 });
+    const done = db.addAttendee(school);
+    const notDone = db.addAttendee(school);
+    finance.addConfig(school);
+    // If the read mistakenly used J (index 9) it would see the email, never DONE.
+    sheet.setRows([headerRow, rowFor(done, "DONE"), rowFor(notDone, "")]);
+
+    await withServer(async (base) => {
+      const res = await client(base).syncFullPayment(school);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.confirmedCount, 1);
+    });
+
+    assert.equal(sheet.state.reads[0].range, "'Sheet1'!A:I", "the read only needs A:I");
+    const confirmedFor = (attendee) =>
+      db.fullPayments.find((status) => String(status.attendeeId) === String(attendee._id))?.confirmed;
+    assert.equal(confirmedFor(done), true);
+    assert.equal(confirmedFor(notDone), false);
+    assert.equal(sheet.state.writes.length, 0, "the read-back never writes the sheet");
+  });
 
   await t.test("DONE in any casing/whitespace confirms; anything else does not", async () => {
     const school = db.addSchool({ ticketPrice: 6000 });
@@ -837,8 +1081,8 @@ test("neither sync direction mutates Deposits", async (t) => {
   await t.test("Sheet → Mongo leaves Deposits and Attendees byte-for-byte identical", async () => {
     const { school, customer } = seedFullyLoadedSchool();
     sheet.setRows([
-      ["Customer ID", "Full Name", "Phone", "School", "Ticket Price", "Approved Payments", "Approved Total", "Payment State", "Full Payment"],
-      [String(customer._id), "Immutable Customer", "01099887766", "Immutability School", 6000, "500, 1000", 1500, "UNDER REVIEW", "DONE"]
+      HEADER_ROW,
+      [String(customer._id), "Immutable Customer", "01099887766", "Immutability School", 6000, "500, 1000", 2, 1500, "DONE", "c@example.com", "", ""]
     ]);
 
     const beforeDeposits = snapshot(db.deposits);
@@ -861,18 +1105,7 @@ test("neither sync direction mutates Deposits", async (t) => {
   await t.test("DONE changes ONLY FullPaymentStatus, nothing else in the database", async () => {
     const { school, customer } = seedFullyLoadedSchool();
     db.fullPayments.push({ attendeeId: customer._id, confirmed: false, lastSheetValue: "" });
-    const headerRow = [
-      "Customer ID",
-      "Full Name",
-      "Phone",
-      "School",
-      "Ticket Price",
-      "Approved Payments",
-      "Approved Total",
-      "Payment State",
-      "Full Payment"
-    ];
-    sheet.setRows([headerRow, [String(customer._id), "", "", "", "", "", "", "", "DONE"]]);
+    sheet.setRows([HEADER_ROW, [String(customer._id), "", "", "", "", "", "", "", "DONE", "", "", ""]]);
 
     const beforeEverythingElse = {
       deposits: snapshot(db.deposits),

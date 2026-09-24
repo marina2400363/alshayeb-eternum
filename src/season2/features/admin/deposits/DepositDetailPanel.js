@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import StatusBadge from "../../../components/StatusBadge";
 import Button from "../../../components/Button";
 import { formatCurrency } from "../../payments/utils/formatCurrency";
+import { customerPhotoThumbUrl } from "./customerPhoto";
 import "./DepositDetailPanel.css";
 
 const STATUS_BADGE_VARIANT = { pending: "pending", approved: "success", rejected: "declined" };
@@ -26,6 +27,10 @@ export default function DepositDetailPanel({ deposit, onApprove, onReject, onClo
   const attendee = typeof deposit.attendeeId === "object" ? deposit.attendeeId : null;
   const schoolName = attendee?.schoolId && typeof attendee.schoolId === "object" ? attendee.schoolId.name : null;
   const isPending = deposit.status === "pending";
+  // The registration photo's stored URL (text only in the list response). The
+  // <img> below exists only while this panel is open, is lazy-loaded, and asks
+  // Cloudinary for a small rendition — the list itself never loads a photo.
+  const customerPhotoUrl = attendee?.incomerPhoto?.url || "";
 
   async function handleApprove() {
     setActionError("");
@@ -122,6 +127,32 @@ export default function DepositDetailPanel({ deposit, onApprove, onReject, onClo
           <span className="s2-dep-value">{deposit.rejectionReason}</span>
         </div>
       )}
+
+      <div className="s2-dep-photo">
+        <span className="s2-admin-field-label">Customer photo</span>
+        {customerPhotoUrl ? (
+          <a
+            className="s2-dep-photo-link"
+            href={customerPhotoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open the customer photo full size"
+          >
+            <img
+              className="s2-dep-photo-image"
+              src={customerPhotoThumbUrl(customerPhotoUrl)}
+              alt="Registered customer"
+              width="96"
+              height="96"
+              loading="lazy"
+              decoding="async"
+            />
+            <span className="s2-dep-photo-open">View full size</span>
+          </a>
+        ) : (
+          <p className="s2-admin-muted-text">No photo on file.</p>
+        )}
+      </div>
 
       <div className="s2-dep-proof">
         <span className="s2-admin-field-label">Payment proof</span>

@@ -8,6 +8,7 @@ const { syncEventExportSheet } = require("../services/googleSheetsExportSync");
 const { syncRoomsGoogleSheet } = require("../services/googleSheetsRoomsSync");
 const { requireAdmin } = require("../middleware/requireAdmin");
 const { requireCronSecret } = require("../middleware/requireCronSecret");
+const { reconcileAllSchoolFinance } = require("../services/financeAutoSync");
 
 const router = express.Router();
 
@@ -109,6 +110,27 @@ router.get(
       }
     } catch (err) {
       results.push({ type: "rooms", status: "error", error: err.message });
+    }
+
+    // ── 5. Season 2 School finance (both directions) ──────────────────────────
+    // Mongo → Sheet: reconciliation/backup for the automatic sync that runs
+    // after each finance change (column I is never written).
+    // Sheet → Mongo: reads the accountant's column I every cycle — an exact
+    // DONE updates FullPaymentStatus and sends the completion email once. The
+    // admin's manual "Sync Full Payment" button is only a backup.
+    try {
+      const finance = await reconcileAllSchoolFinance();
+      results.push({
+        type: "school-finance",
+        status: "success",
+        schools: finance.length,
+        deferred: finance.filter((entry) => entry.status === "deferred").length,
+        busy: finance.filter((entry) => entry.status === "busy").length,
+        failed: finance.filter((entry) => entry.status === "error").length,
+        fullPaymentRead: finance.filter((entry) => entry.fullPayment && entry.fullPayment.success).length
+      });
+    } catch (err) {
+      results.push({ type: "school-finance", status: "error", error: err.message });
     }
 
     res.json({ success: true, results });

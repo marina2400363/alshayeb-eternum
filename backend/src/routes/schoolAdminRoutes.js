@@ -4,6 +4,7 @@ const School = require("../models/School");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
 const { applySchoolTicketPrice } = require("../utils/ticketPriceLock");
+const { requestSchoolFinanceSync } = require("../services/financeAutoSync");
 
 const router = express.Router();
 
@@ -86,6 +87,12 @@ router.put(
     // utils/ticketPriceLock.js).
     if (update.ticketPrice !== undefined) {
       await applySchoolTicketPrice(school._id, school.ticketPrice);
+    }
+
+    // The sheet shows the School name (D) and each customer's ticket price (E):
+    // refresh it after a price or name change. Fire-and-forget (never awaited).
+    if (update.ticketPrice !== undefined || update.name !== undefined) {
+      requestSchoolFinanceSync(school._id);
     }
 
     res.json({ success: true, school });

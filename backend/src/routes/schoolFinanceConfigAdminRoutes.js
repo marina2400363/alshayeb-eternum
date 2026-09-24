@@ -87,9 +87,11 @@ router.put(
   })
 );
 
-// Manual trigger only — no cron, no automatic hook from Deposit creation or
-// approval/rejection. Delegates entirely to the existing sync service; all
-// sync logic (row construction, idempotent matching, Full Payment
+// Manual RECOVERY trigger (Mongo -> Sheet). The sheet is also refreshed
+// automatically after registrations, approvals and School price/name changes
+// (services/financeAutoSync.js) and reconciled by the scheduled cron; this
+// button stays for admin recovery. Delegates entirely to the existing sync
+// service; all sync logic (row construction, idempotent matching, Full Payment
 // preservation, etc.) lives there, not here.
 router.post(
   "/:schoolId/sync",
@@ -109,9 +111,11 @@ router.post(
   })
 );
 
-// Manual trigger only — no cron, no automatic hook. Reads the accountant's
-// manual "Full Payment" column back into MongoDB. Delegates entirely to the
-// read-back service; no matching/normalization/ownership logic lives here.
+// Manual BACKUP trigger. The accountant's "Full Payment" column (I) is read
+// back into MongoDB automatically by the scheduled cron on every cycle
+// (services/financeAutoSync.js); this button is only for recovery. Delegates
+// entirely to the read-back service; no matching/normalization/ownership logic
+// lives here.
 router.post(
   "/:schoolId/sync-full-payment",
   asyncHandler(async (req, res) => {

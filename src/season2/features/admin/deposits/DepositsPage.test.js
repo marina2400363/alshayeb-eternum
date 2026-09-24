@@ -80,6 +80,73 @@ test("selecting a row shows the detail panel with the proof image and never the 
   expect(screen.getByText(/First deposit/)).toBeInTheDocument(); // option label, beside its amount
 });
 
+describe("customer photo in the details view", () => {
+  const PHOTO = "https://res.cloudinary.com/demo/image/upload/v1712/alshayeb/incomer-photos/marina.jpg";
+  const withPhoto = (extra = {}) =>
+    deposit({ attendeeId: { ...deposit().attendeeId, incomerPhoto: { url: PHOTO, ...extra } } });
+
+  test("the list never loads a photo; opening a customer shows ONE small lazy preview", async () => {
+    adminApi.fetchDeposits.mockResolvedValue([{ ...withPhoto(), _id: "dep1" }, { ...withPhoto(), _id: "dep2" }]);
+    render(<DepositsPage />);
+    await screen.findAllByText("Marina Adel");
+
+    // nothing photo-related exists in the table before a row is selected
+    expect(screen.queryByAltText(/registered customer/i)).not.toBeInTheDocument();
+    expect(document.querySelectorAll("img")).toHaveLength(0);
+
+    await userEvent.click(screen.getAllByText("Marina Adel")[0]);
+
+    const photo = await screen.findByAltText(/registered customer/i);
+    expect(photo).toHaveAttribute("loading", "lazy");
+    expect(photo).toHaveAttribute("decoding", "async");
+    // a small Cloudinary rendition of the SAME stored image (no upload, no copy)
+    expect(photo.getAttribute("src")).toBe(
+      "https://res.cloudinary.com/demo/image/upload/c_fill,g_face,w_160,h_160,q_auto,f_auto/v1712/alshayeb/incomer-photos/marina.jpg"
+    );
+    expect(photo).toHaveAttribute("width", "96");
+    // only the selected customer's photo is on the page
+    expect(document.querySelectorAll('img[alt="Registered customer"]')).toHaveLength(1);
+  });
+
+  test("the preview opens the untouched full-size original in a new tab; publicId is never rendered", async () => {
+    adminApi.fetchDeposits.mockResolvedValue([withPhoto({ publicId: "secret-photo-public-id" })]);
+    render(<DepositsPage />);
+    await userEvent.click(await screen.findByText("Marina Adel"));
+
+    const link = await screen.findByRole("link", { name: /open the customer photo full size/i });
+    expect(link).toHaveAttribute("href", PHOTO);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.getAttribute("rel")).toMatch(/noopener/);
+    expect(document.body.textContent).not.toMatch(/secret-photo-public-id/);
+  });
+
+  test("a non-Cloudinary photo URL is used as-is; a customer without a photo shows a clear empty state", async () => {
+    adminApi.fetchDeposits.mockResolvedValue([
+      deposit({ _id: "dep1", attendeeId: { ...deposit().attendeeId, incomerPhoto: { url: "https://cdn.example/plain.jpg" } } }),
+      deposit({ _id: "dep2", attendeeId: { ...deposit().attendeeId, fullName: "No Photo Person", incomerPhoto: undefined } })
+    ]);
+    render(<DepositsPage />);
+
+    await userEvent.click(await screen.findByText("Marina Adel"));
+    expect(await screen.findByAltText(/registered customer/i)).toHaveAttribute("src", "https://cdn.example/plain.jpg");
+
+    await userEvent.click(screen.getByText("No Photo Person"));
+    expect(await screen.findByText(/no photo on file/i)).toBeInTheDocument();
+    expect(screen.queryByAltText(/registered customer/i)).not.toBeInTheDocument();
+  });
+
+  test("customerPhotoThumbUrl only rewrites versioned Cloudinary upload URLs", () => {
+    const { customerPhotoThumbUrl } = require("./customerPhoto");
+    expect(customerPhotoThumbUrl("")).toBe("");
+    expect(customerPhotoThumbUrl(undefined)).toBe("");
+    expect(customerPhotoThumbUrl("https://cdn.example/a.jpg")).toBe("https://cdn.example/a.jpg");
+    // already transformed: left alone (never double-transformed)
+    const transformed = "https://res.cloudinary.com/demo/image/upload/c_fill,w_10/v1/a.jpg";
+    expect(customerPhotoThumbUrl(transformed)).toBe(transformed);
+    expect(customerPhotoThumbUrl(PHOTO)).toContain("/upload/c_fill,g_face,w_160,h_160,q_auto,f_auto/v1712/");
+  });
+});
+
 test("approve calls the API, refetches, and disables both actions while in flight", async () => {
   adminApi.fetchDeposits.mockResolvedValue([deposit()]);
   let resolveApprove;

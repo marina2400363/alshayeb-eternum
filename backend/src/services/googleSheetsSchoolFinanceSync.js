@@ -4,12 +4,19 @@ const Attendee = require("../models/Attendee");
 const Deposit = require("../models/Deposit");
 const School = require("../models/School");
 const SchoolFinanceConfig = require("../models/SchoolFinanceConfig");
-const FullPaymentStatus = require("../models/FullPaymentStatus");
 const { calculateApprovedTotalPaid } = require("../utils/paymentCalculations");
 
-// System-managed columns. Column I ("Full Payment") is deliberately excluded
-// from every write this service performs — it is the accountant's manually-
-// edited column and must survive every normal sync.
+// Final sheet layout (A:L). Column I ("Full Payment") sits in the MIDDLE of the
+// system columns on purpose: it is the accountant's manually-edited column and
+// must survive every sync, so every write below is split around it — A:H and
+// J:L, never I. (It is read back, never written, by
+// googleSheetsFullPaymentSync.js, which reads column I by position.)
+//
+//   A Customer ID          F Approved Payments   J Email
+//   B Full Name            G Number of Payments  K Customer Photo Link
+//   C Phone                H Total Paid          L Payment Proof Links
+//   D School               I Full Payment  (accountant-owned — never written)
+//   E Ticket Price
 const HEADER_ROW = [
   "Customer ID",
   "Full Name",
@@ -17,31 +24,16 @@ const HEADER_ROW = [
   "School",
   "Ticket Price",
   "Approved Payments",
-  "Approved Total",
-  "Payment State",
-  "Full Payment"
+  "Number of Payments",
+  "Total Paid",
+  "Full Payment",
+  "Email",
+  "Customer Photo Link",
+  "Payment Proof Links"
 ];
 
-// Column H — informational only, derived fresh from MongoDB on every sync.
-// Never read back as authority: only the accountant's column I decides Full
-// Payment (see googleSheetsFullPaymentSync.js).
-const PAYMENT_STATE = {
-  none: "NO PAYMENT",
-  underReview: "UNDER REVIEW",
-  awaitingConfirmation: "AWAITING CUSTOMER CONFIRMATION",
-  active: "PAYMENTS ACTIVE",
-  fullPayment: "FULL PAYMENT COMPLETE"
-};
-
-function paymentStateFor(deposits, fullPaymentConfirmed) {
-  if (fullPaymentConfirmed) return PAYMENT_STATE.fullPayment;
-  if (deposits.some((deposit) => deposit.status === "pending")) return PAYMENT_STATE.underReview;
-  if (deposits.some((deposit) => deposit.status === "approved" && deposit.customerConfirmationPending === true)) {
-    return PAYMENT_STATE.awaitingConfirmation;
-  }
-  if (deposits.some((deposit) => deposit.status === "approved")) return PAYMENT_STATE.active;
-  return PAYMENT_STATE.none;
-}
+const SYSTEM_HEADERS_A_TO_H = HEADER_ROW.slice(0, 8);
+const SYSTEM_HEADERS_J_TO_L = HEADER_ROW.slice(9, 12);
 
 function isGoogleConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
@@ -64,12 +56,30 @@ function getGoogleAuth() {
 }
 
 // Column F — APPROVED amounts only, oldest first, e.g. "500, 1000, 2000".
-// Pending and rejected Deposits are deliberately absent, as is any proof
-// or Cloudinary data.
+// Pending and rejected Deposits are deliberately absent.
 function formatApprovedPayments(deposits) {
   const approved = deposits.filter((deposit) => deposit.status === "approved");
   if (!approved.length) return "";
   return approved.map((deposit) => deposit.amount).join(", ");
+}
+
+// Column G — how many APPROVED Deposits (integer; 0 when none).
+function countApprovedPayments(deposits) {
+  return deposits.filter((deposit) => deposit.status === "approved").length;
+}
+
+// Column L — the payment-proof image URLs of ALL the customer's APPROVED
+// Deposits, oldest first (deposits arrive oldest-first), comma-separated: the
+// same chronological order and separator as column F, so the Nth link is the
+// proof for the Nth amount. Pending and rejected proofs are never included;
+// blank when nothing is approved. Only existing Cloudinary URLs are written:
+// nothing is uploaded or copied. (An approved Deposit that has no proof URL on
+// file simply contributes no link.)
+function formatApprovedProofLinks(deposits) {
+  return deposits
+    .filter((deposit) => deposit.status === "approved" && deposit.paymentProof && deposit.paymentProof.url)
+    .map((deposit) => deposit.paymentProof.url)
+    .join(", ");
 }
 
 function quotedRange(tabName, a1Range) {
@@ -86,11 +96,15 @@ async function recordSyncResult(config, status, message, syncedCount) {
   await config.save();
 }
 
-// Syncs one School's finance data (MongoDB -> Google Sheets only). Never
-// reads financial truth back from the Sheet. Idempotent: re-running updates
-// the same customer row (matched by Customer ID in column A) instead of
-// duplicating it, and only ever writes columns A:H — column I is never
-// touched for any row, existing or new.
+const headerMatches = (headerRow, startIndex, expected) =>
+  expected.every((title, offset) => String(headerRow[startIndex + offset] || "").trim() === title);
+
+// Syncs one School's finance data (MongoDB -> Google Sheets only). MongoDB is
+// the source of truth and financial truth is never read back from the Sheet.
+// Idempotent: re-running updates the same customer row (matched by Customer ID
+// in column A) instead of duplicating it. Writes A:H and J:L only — column I
+// (Full Payment) is never part of any written range, for an existing row or a
+// newly appended one.
 async function syncSchoolFinanceSheet(schoolId) {
   const config = await SchoolFinanceConfig.findOne({ schoolId });
 
@@ -119,27 +133,20 @@ async function syncSchoolFinanceSheet(schoolId) {
     }
 
     // ticketPrice is the CUSTOMER's own price (locked at their first payment
-    // request) — never the School's current price.
+    // request) — never the School's current price. Sorted so that new rows are
+    // assigned in a stable order even if two syncs ever overlap.
     const attendees = await Attendee.find({ schoolId, attendeeType: "incomer" })
-      .select("fullName phone ticketPrice")
+      .select("fullName phone ticketPrice email incomerPhoto.url")
+      .sort({ createdAt: 1, _id: 1 })
       .lean();
 
     const attendeeIds = attendees.map((attendee) => attendee._id);
     const deposits = attendeeIds.length
       ? await Deposit.find({ attendeeId: { $in: attendeeIds } })
-          .select("attendeeId amount status customerConfirmationPending createdAt")
+          .select("attendeeId amount status createdAt paymentProof.url")
           .sort({ createdAt: 1 })
           .lean()
       : [];
-
-    // Read-only here: this service never writes FullPaymentStatus, it only
-    // reports the accountant's decision in column H.
-    const fullPayments = attendeeIds.length
-      ? await FullPaymentStatus.find({ attendeeId: { $in: attendeeIds } }).select("attendeeId confirmed").lean()
-      : [];
-    const confirmedAttendeeIds = new Set(
-      fullPayments.filter((status) => status.confirmed).map((status) => String(status.attendeeId))
-    );
 
     const depositsByAttendee = new Map();
     for (const deposit of deposits) {
@@ -152,11 +159,10 @@ async function syncSchoolFinanceSheet(schoolId) {
 
     const rows = attendees.map((attendee) => {
       const attendeeDeposits = depositsByAttendee.get(String(attendee._id)) || [];
-      const approvedTotal = calculateApprovedTotalPaid(attendeeDeposits);
-      const fullPaymentConfirmed = confirmedAttendeeIds.has(String(attendee._id));
 
       return {
         customerId: String(attendee._id),
+        // A:H
         values: [
           String(attendee._id),
           attendee.fullName || "",
@@ -164,8 +170,14 @@ async function syncSchoolFinanceSheet(schoolId) {
           school.name || "",
           Number.isFinite(attendee.ticketPrice) ? attendee.ticketPrice : "",
           formatApprovedPayments(attendeeDeposits),
-          approvedTotal,
-          paymentStateFor(attendeeDeposits, fullPaymentConfirmed)
+          countApprovedPayments(attendeeDeposits),
+          calculateApprovedTotalPaid(attendeeDeposits)
+        ],
+        // J:L (column I sits between the two ranges and is never written)
+        extraValues: [
+          attendee.email || "",
+          (attendee.incomerPhoto && attendee.incomerPhoto.url) || "",
+          formatApprovedProofLinks(attendeeDeposits)
         ]
       };
     });
@@ -175,15 +187,15 @@ async function syncSchoolFinanceSheet(schoolId) {
 
     const existing = await sheets.spreadsheets.values.get({
       spreadsheetId: config.googleSheetId,
-      range: quotedRange(config.tabName, "A:I")
+      range: quotedRange(config.tabName, "A:L")
     });
     const existingValues = existing.data.values || [];
 
     const willWriteHeader = existingValues.length === 0;
 
-    // Row 1, if present, is always treated as the header and never touched
-    // again — data rows start at row 2. Existing customer rows are matched
-    // by Customer ID in column A so re-syncing updates in place.
+    // Row 1, if present, is the header — data rows start at row 2. Existing
+    // customer rows are matched by Customer ID in column A so re-syncing
+    // updates in place.
     const rowIndexByCustomerId = new Map();
     existingValues.slice(1).forEach((row, i) => {
       const customerId = row[0];
@@ -197,10 +209,21 @@ async function syncSchoolFinanceSheet(schoolId) {
     const data = [];
 
     if (willWriteHeader) {
+      // A brand-new sheet gets the whole header, including "Full Payment" in I.
       data.push({
-        range: quotedRange(config.tabName, "A1:I1"),
+        range: quotedRange(config.tabName, "A1:L1"),
         values: [HEADER_ROW]
       });
+    } else {
+      // An existing sheet built before this layout (e.g. with a "Payment State"
+      // column) has its SYSTEM headers refreshed in place. I1 is never touched.
+      const headerRow = existingValues[0] || [];
+      if (!headerMatches(headerRow, 0, SYSTEM_HEADERS_A_TO_H)) {
+        data.push({ range: quotedRange(config.tabName, "A1:H1"), values: [SYSTEM_HEADERS_A_TO_H] });
+      }
+      if (!headerMatches(headerRow, 9, SYSTEM_HEADERS_J_TO_L)) {
+        data.push({ range: quotedRange(config.tabName, "J1:L1"), values: [SYSTEM_HEADERS_J_TO_L] });
+      }
     }
 
     let updatedCount = 0;
@@ -217,11 +240,13 @@ async function syncSchoolFinanceSheet(schoolId) {
         nextAppendRow += 1;
       }
 
-      // A:H only — column I (Full Payment) is never part of this range, for
-      // either an existing row or a newly appended one.
       data.push({
         range: quotedRange(config.tabName, `A${targetRow}:H${targetRow}`),
         values: [row.values]
+      });
+      data.push({
+        range: quotedRange(config.tabName, `J${targetRow}:L${targetRow}`),
+        values: [row.extraValues]
       });
     }
 
@@ -232,8 +257,8 @@ async function syncSchoolFinanceSheet(schoolId) {
           // RAW, not USER_ENTERED: Sheets must never re-parse what we send.
           // Egyptian phone numbers are strings starting with 0
           // ("01012345678"), which USER_ENTERED coerces into numbers and
-          // strips the leading zero. Values we send as numbers (ticket price,
-          // approved total) still land as numbers under RAW.
+          // strips the leading zero. Numbers (ticket price, count, total) still
+          // land as numbers under RAW. URLs stay the exact stored string.
           valueInputOption: "RAW",
           data
         }
@@ -255,5 +280,6 @@ async function syncSchoolFinanceSheet(schoolId) {
 }
 
 module.exports = {
-  syncSchoolFinanceSheet
+  syncSchoolFinanceSheet,
+  HEADER_ROW
 };
