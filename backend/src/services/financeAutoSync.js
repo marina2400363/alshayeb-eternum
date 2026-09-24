@@ -32,7 +32,14 @@ const LEASE_MS = 45 * 1000;
 const MAX_ROUNDS = 3;
 const DEFAULT_GAP_MS = 1500;
 
+// How long a sheet-edit read-back waits for the per-School lease (another sync
+// or a cron pass holding it): a few short tries, well inside a serverless call.
+const DEFAULT_LEASE_ATTEMPTS = 4;
+const DEFAULT_LEASE_WAIT_MS = 1500;
+
 let gapMs = DEFAULT_GAP_MS;
+let leaseAttempts = DEFAULT_LEASE_ATTEMPTS;
+let leaseWaitMs = DEFAULT_LEASE_WAIT_MS;
 let connectedCheck = () => mongoose.connection.readyState === 1;
 let keepAlive = (promise) => {
   try {
@@ -209,11 +216,70 @@ async function reconcileAllSchoolFinance({ timeBudgetMs = 15000 } = {}) {
   return results;
 }
 
+// The accountant just edited column I of a School's finance sheet (Google
+// Sheets installable on-edit trigger -> POST /api/sheets/full-payment-edit).
+// Reads the sheet back RIGHT NOW instead of waiting for a scheduled pass.
+//
+// This is the EXISTING read-back (syncFullPaymentFromSchoolSheet) and nothing
+// else — no DONE parsing, no FullPaymentStatus rules and no email logic live
+// here. Only the Sheet -> Mongo read runs (never the Mongo -> Sheet rewrite,
+// which would write into the sheet the accountant is typing in). It takes the
+// SAME per-School lease as the automatic sync and the scheduled reconciliation,
+// so a burst of edits, a cron pass and an edit can never run the read-back at
+// the same time (which is what keeps "send the Full Payment email once" true
+// under concurrency). Resolves { status }:
+//   "unknown-sheet" — no finance config points at this spreadsheet;
+//   "skipped"       — the School's sync is disabled;
+//   "ignored"       — an edit on another tab of the spreadsheet;
+//   "busy"          — the lease stayed held for the whole wait (caller retries);
+//   "done"          — ran; `result` is the read-back's own result.
+async function syncFullPaymentAfterSheetEdit({ spreadsheetId, sheetName }) {
+  const config = await SchoolFinanceConfig.findOne({ googleSheetId: spreadsheetId });
+
+  if (!config) return { status: "unknown-sheet" };
+  if (!config.enabled) return { status: "skipped", reason: "Finance sync is disabled for this school." };
+  if (String(sheetName).trim() !== String(config.tabName || "").trim()) return { status: "ignored" };
+
+  const schoolId = config.schoolId;
+
+  for (let attempt = 0; attempt < leaseAttempts; attempt += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const claimed = await claimLease(schoolId);
+
+    if (claimed) {
+      let result;
+      try {
+        result = await syncFullPaymentFromSchoolSheet(schoolId);
+      } finally {
+        await SchoolFinanceConfig.updateOne({ schoolId }, { $set: { "autoSync.lockedUntil": null } });
+      }
+
+      // A registration/approval that arrived while this held the lease only left
+      // the dirty flag: give it its Mongo -> Sheet pass now (fire-and-forget,
+      // exactly like every other trigger) instead of waiting for the reconciliation.
+      const leftover = await SchoolFinanceConfig.findOne({ schoolId, "autoSync.dirty": true }).select("_id");
+      if (leftover) requestSchoolFinanceSync(schoolId);
+
+      return { status: "done", result };
+    }
+
+    // eslint-disable-next-line no-await-in-loop
+    if (attempt < leaseAttempts - 1 && leaseWaitMs > 0) await sleep(leaseWaitMs);
+  }
+
+  return { status: "busy" };
+}
+
 module.exports = {
   requestSchoolFinanceSync,
   reconcileAllSchoolFinance,
+  syncFullPaymentAfterSheetEdit,
   __testing: {
     syncSchoolFinance,
+    setLeaseWait(attempts, waitMs) {
+      leaseAttempts = attempts;
+      leaseWaitMs = waitMs;
+    },
     setGap(ms) {
       gapMs = ms;
     },
@@ -225,6 +291,8 @@ module.exports = {
     },
     reset() {
       gapMs = DEFAULT_GAP_MS;
+      leaseAttempts = DEFAULT_LEASE_ATTEMPTS;
+      leaseWaitMs = DEFAULT_LEASE_WAIT_MS;
       connectedCheck = () => mongoose.connection.readyState === 1;
       keepAlive = (promise) => {
         try {
