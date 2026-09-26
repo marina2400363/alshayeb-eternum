@@ -48,6 +48,10 @@
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x proximity;
+  /* Snap to the track's own inset (its 8vw padding), not the rail edge —
+     otherwise landing snaps the first card flush left. Tablet/mobile
+     override this with their own track padding below. */
+  scroll-padding-inline: 8vw;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -98,6 +102,28 @@
 
 .s2-rail-track > * {
   scroll-snap-align: start;
+}
+
+/* Cards beyond the scattered preview (see experienceContent.js,
+   PREVIEW_CARD_COUNT). They hold their rail slots from first paint — so the
+   rail never re-lays-out — but are invisible (and out of the a11y tree)
+   until the rail lands, then fade in briefly. Pure CSS from the first
+   render: nothing can flash before JS runs. */
+.s2-exp-card--extra {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.s2-rail--landed .s2-exp-card--extra {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.45s var(--s2-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-rail--landed .s2-exp-card--extra {
+    transition: none;
+  }
 }
 
 /* ---------------------------------------------------------------------

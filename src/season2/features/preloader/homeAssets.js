@@ -1,4 +1,4 @@
-import EXPERIENCE_CARDS, { HOME_HERO_SRC } from "../experiencesJourney/experienceContent";
+import EXPERIENCE_CARDS, { HOME_HERO_SRC, PREVIEW_CARD_COUNT } from "../experiencesJourney/experienceContent";
 
 // ---------------------------------------------------------------------------
 // What the homepage needs before it may be revealed, and how loading it is
@@ -18,8 +18,15 @@ export function cssUrl(value) {
   return match ? match[2] : null;
 }
 
-// Hero first (it is the first thing the visitor sees), then cards 01-04.
-export const CRITICAL_IMAGES = [HOME_HERO_SRC, ...EXPERIENCE_CARDS.map((card) => cssUrl(card.gradient)).filter(Boolean)];
+// Hero first (it is the first thing the visitor sees), then the preview
+// cards — the only ones in the scattered composition. Cards beyond the
+// preview load when the glide starts (ExperiencesJourney.js), not here.
+export const CRITICAL_IMAGES = [
+  HOME_HERO_SRC,
+  ...EXPERIENCE_CARDS.slice(0, PREVIEW_CARD_COUNT)
+    .map((card) => cssUrl(card.gradient))
+    .filter(Boolean)
+];
 
 // Byte weights for tasks that can't report bytes, and a placeholder size
 // for an image until its Content-Length arrives (usually within one RTT).

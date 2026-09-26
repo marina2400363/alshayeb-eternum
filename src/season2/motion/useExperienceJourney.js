@@ -1,4 +1,4 @@
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { MEDIA_DESKTOP, MEDIA_TABLET, MEDIA_MOBILE, MEDIA_REDUCED_MOTION } from "../styles/breakpoints";
 
@@ -52,13 +52,13 @@ const TABLET_LANDSCAPE_ANCHORS = [
 ];
 
 const TIMING = {
-  glide: 0.85, // per card
-  stagger: 0.09, // between cards -> total 0.85 + 3 * 0.09 = 1.12s
+  glide: 1.2, // per card
+  stagger: 0.11, // between cards -> total 1.05 + 3 * 0.11 = 1.38s
   ease: "power3.out"
 };
 
 // Share of the section that must be visible to play the sequence.
-const TRIGGER_RATIO = 0.22;
+const TRIGGER_RATIO = 0.79;
 
 const MEDIA_TABLET_PORTRAIT = `${MEDIA_TABLET} and (orientation: portrait)`;
 const MEDIA_TABLET_LANDSCAPE = `${MEDIA_TABLET} and (orientation: landscape)`;
@@ -75,8 +75,17 @@ const REST = { x: 0, y: 0, rotate: 0, scale: 1 };
  * Every pose is a transform relative to the card's resting slot in the rail,
  * computed from layout offsets (which transforms never affect), so the DOM
  * never changes shape and nothing re-lays-out mid-animation.
+ *
+ * Only the first `previewCount` cards (capped at the number of scatter
+ * presets) are scattered and glide in; GSAP never touches the rest. Those
+ * stay hidden by CSS until the rail gets .s2-rail--landed (see
+ * ExperiencesJourney.css). `onReveal` fires once, when the glide starts (or
+ * the rail is shown directly), so the page can start loading their media.
  */
-export default function useExperienceJourney({ journeyRef, headingRef, railRef, cardRefs }) {
+export default function useExperienceJourney({ journeyRef, headingRef, railRef, cardRefs, previewCount = DESKTOP_ENTRY.length, onReveal }) {
+  const onRevealRef = useRef(onReveal);
+  onRevealRef.current = onReveal;
+
   useLayoutEffect(() => {
     const journey = journeyRef.current;
     const rail = railRef.current;
@@ -86,11 +95,22 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
     let played = false;
 
     const ctx = gsap.context(() => {
-      const cards = cardRefs.current.filter(Boolean);
+      // Preview cards only. Never more than there are scatter presets, so no
+      // card can ever reuse another card's pose.
+      const count = Math.min(previewCount, DESKTOP_ENTRY.length, MOBILE_ANCHORS.length);
+      const cards = cardRefs.current.filter(Boolean).slice(0, count);
       if (!cards.length) return;
       const heading = headingRef.current;
 
+      let revealed = false;
+      const reveal = () => {
+        if (revealed) return;
+        revealed = true;
+        if (onRevealRef.current) onRevealRef.current();
+      };
+
       const settle = () => {
+        reveal();
         gsap.set(cards, { ...REST, autoAlpha: 1 });
         gsap.set(heading, { autoAlpha: 1, y: 0 });
         rail.classList.add("s2-rail--landed");
@@ -103,10 +123,10 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
         return;
       }
 
-      const desktopScatter = (card, i) => DESKTOP_ENTRY[i % DESKTOP_ENTRY.length];
+      const desktopScatter = (card, i) => DESKTOP_ENTRY[i];
 
       const anchoredScatter = (anchors) => (card, i) => {
-        const a = anchors[i % anchors.length];
+        const a = anchors[i];
         const angle = (a.rotate * Math.PI) / 180;
         const cos = Math.abs(Math.cos(angle));
         const sin = Math.abs(Math.sin(angle));
@@ -135,6 +155,7 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
           if (played) return;
           played = true;
           observer.disconnect();
+          reveal();
 
           tl = gsap.timeline({ onComplete: settle });
           tl.to(heading, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, 0);

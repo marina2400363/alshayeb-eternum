@@ -16,13 +16,13 @@ function streamingResponse(chunks, { contentLength, status = 200 } = {}) {
 }
 
 describe("critical asset list", () => {
-  test("is the hero followed by the four experience card photographs", () => {
+  test("is the hero followed by the four preview card photographs only", () => {
     expect(CRITICAL_IMAGES).toEqual([
       "/season2/media/home/hero-main.png",
-      "/season2/media/home/experience-card-01.jpeg",
-      "/season2/media/home/experience-card-02.jpeg",
-      "/season2/media/home/experience-card-03.jpeg",
-      "/season2/media/home/experience-card-04.jpeg"
+      "/season2/media/home/card1.PNG",
+      "/season2/media/home/card2.JPEG",
+      "/season2/media/home/card3.JPEG",
+      "/season2/media/home/card4.JPEG"
     ]);
   });
 

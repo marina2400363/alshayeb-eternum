@@ -6,13 +6,20 @@ import "./ExperienceCard.css";
 // useExperienceJourney animates from its scattered hero position into the
 // rail — it is never unmounted/remounted between states.
 //
-// Title/tagline overlay is intentionally not rendered for this pass (real
-// card copy/links land separately) — ExperiencesJourney.js still passes
-// title/tagline through, so re-enabling the two spans here is a one-line
-// change later. mediaTreatment="color" keeps the real photos in full color
-// (see Card.js) instead of the shared grayscale grading.
-const ExperienceCard = forwardRef(function ExperienceCard({ gradient }, ref) {
-  return <Card ref={ref} media={gradient} mediaTreatment="color" className="s2-exp-card" interactive />;
+// No title/tagline overlay: the cards are photographs only.
+// mediaTreatment="color" keeps the real photos in full color (see Card.js)
+// instead of the shared grayscale grading. `className` adds modifiers such
+// as s2-exp-card--extra (cards outside the scattered preview).
+const ExperienceCard = forwardRef(function ExperienceCard({ gradient, className = "" }, ref) {
+  return (
+    <Card
+      ref={ref}
+      media={gradient}
+      mediaTreatment="color"
+      className={`s2-exp-card${className ? ` ${className}` : ""}`}
+      interactive
+    />
+  );
 });
 
 export default ExperienceCard;

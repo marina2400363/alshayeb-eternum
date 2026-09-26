@@ -1,18 +1,34 @@
-// Card copy (title/tagline/id) is still placeholder — swapped for real
-// Season 2 content separately. `gradient` now holds the real homepage media
-// (public/season2/media/home/experience-card-0N.jpeg) as a CSS
-// background-image value; Card.js applies it via `style={{ backgroundImage:
-// media }}`, so a plain url() drops in with zero component changes. Order
-// matches the real asset filenames 01-04.
-const EXPERIENCE_CARDS = [
-  { id: "eternity", title: "ETERNITY", tagline: "No beginning. No end.", gradient: "url(/season2/media/home/experience-card-01.jpeg)" },
-  { id: "arrival", title: "ARRIVAL", tagline: "The night begins here.", gradient: "url(/season2/media/home/experience-card-02.jpeg)" },
-  { id: "prom", title: "PROM", tagline: "One season. One night.", gradient: "url(/season2/media/home/experience-card-03.jpeg)" },
-  { id: "season02", title: "SEASON 02", tagline: "The next chapter.", gradient: "url(/season2/media/home/experience-card-04.jpeg)" }
+// Homepage Experiences gallery. To change a card's photograph, replace the
+// matching file in public/season2/media/home/ (same name) — nothing else.
+// Filenames are case-sensitive in production (Vercel): keep the extension
+// exactly as the file has it.
+const MEDIA_DIR = "/season2/media/home/";
+
+// One entry per card, in gallery order.
+export const EXPERIENCE_CARD_FILES = [
+  "card1.PNG",
+  "card2.JPEG",
+  "card3.JPEG",
+  "card4.JPEG",
+  "card5.jpeg",
+  "card6.jpeg",
+  "card7.JPEG"
+  // "card8.<ext>" — add once public/season2/media/home/card8.* exists.
 ];
 
+// Only the first N cards take part in the scattered preview and glide into
+// the rail; the rest are revealed in the same rail once it lands.
+export const PREVIEW_CARD_COUNT = 4;
+
+const EXPERIENCE_CARDS = EXPERIENCE_CARD_FILES.map((file, index) => ({
+  id: `card${index + 1}`,
+  image: MEDIA_DIR + file,
+  // Card.js applies media as a CSS background-image value.
+  gradient: `url(${MEDIA_DIR}${file})`
+}));
+
 // The homepage hero photograph. Shared with the preloader, which counts it
-// (and every card image above) as critical before revealing the homepage.
+// (and the preview cards) as critical before revealing the homepage.
 export const HOME_HERO_SRC = "/season2/media/home/hero-main.png";
 
 export default EXPERIENCE_CARDS;
