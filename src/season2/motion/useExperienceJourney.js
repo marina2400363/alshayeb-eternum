@@ -1,22 +1,25 @@
 import { useLayoutEffect } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MEDIA_DESKTOP, MEDIA_TABLET, MEDIA_MOBILE, MEDIA_REDUCED_MOTION } from "../styles/breakpoints";
 
-gsap.registerPlugin(ScrollTrigger);
+// ---------------------------------------------------------------------------
+// SCATTERED EDITORIAL COLLAGE -> CLEAN GALLERY LINE-UP
+//
+// The cards start in the art-directed scatter. When ~35% of the Experiences
+// section is visible, one short time-based timeline plays ONCE per page
+// load: each card glides straight from its scattered pose into its resting
+// slot in the rail (x/y -> 0, rotate -> 0, scale -> 1), lightly staggered.
+// No intermediate states, no overshoot.
+//
+// No pin, no sticky, no scrub, no scroll-bound progress: vertical scrolling
+// stays 100% native and the section is exactly one screen tall. The only
+// scroll-related code is one IntersectionObserver, which disconnects after
+// it fires. Once the cards land, the rail gets .s2-rail--landed and becomes
+// a plain native horizontal scroller (mobile: the swipe rail).
+// ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// DESKTOP composition (>= 1200) — the approved one. Unchanged.
-//
-// Deliberately irregular, art-directed scatter — not a symmetric mirror
-// pattern. Cards mix above/below their resting position (not all "rising
-// from below"), with varied rotation and scale per card, so the starting
-// composition reads as scattered rather than merely offset.
-//
-// Fixed offsets from each card's resting rail position, not measured from
-// the DOM. That works on desktop because the whole rail is on screen, so a
-// small offset from "where the card will rest" IS a scattered composition.
-// ---------------------------------------------------------------------------
+// Scatter, DESKTOP (>= 1200) — the approved composition, unchanged: fixed
+// offsets from each card's resting rail position.
 const DESKTOP_ENTRY = [
   { x: -70, y: -130, rotate: -9, scale: 0.8 },
   { x: -88, y: 170, rotate: 5, scale: 0.74 },
@@ -24,79 +27,38 @@ const DESKTOP_ENTRY = [
   { x: 60, y: 200, rotate: 10, scale: 0.76 }
 ];
 
-// ---------------------------------------------------------------------------
-// TABLET + MOBILE compositions — designed for the screen, not derived from
-// the desktop numbers.
-//
-// Why desktop's approach cannot simply shrink: on a narrow screen the rail's
-// resting positions run off the right edge (a phone shows ~1 card at rest),
-// so "a small offset from the resting position" leaves most cards outside
-// the screen for the whole scatter. Here each card instead gets an ANCHOR —
-// where it should sit on the SCREEN at the start of the pin (fractions of the
-// pinned frame's width/height) — plus its own rotation and scale. The tween
-// is `fromTo` with function-based values that convert "anchor on screen" into
-// "offset from this card's resting position", measured from layout (which
-// transforms never affect) and re-measured on every refresh/resize.
-//
-// Anchors are then clamped so the card's ROTATED bounding box stays inside
-// the frame: nothing important can end up off-screen at any aspect ratio.
-// ---------------------------------------------------------------------------
+// Scatter, TABLET + MOBILE — unchanged anchors: where each card sits ON THE
+// SCREEN (fractions of the frame), converted to offsets from its resting
+// position and clamped so the rotated card stays inside the frame. (On a
+// narrow screen the rail's resting slots run off the right edge, so fixed
+// offsets from rest can't produce an on-screen collage.)
+const MOBILE_ANCHORS = [
+  { ax: 0.34, ay: 0.235, rotate: -7, scale: 0.8 },
+  { ax: 0.67, ay: 0.385, rotate: 6, scale: 0.72 },
+  { ax: 0.35, ay: 0.625, rotate: -5, scale: 0.76 },
+  { ax: 0.66, ay: 0.775, rotate: 8, scale: 0.72 }
+];
+const TABLET_PORTRAIT_ANCHORS = [
+  { ax: 0.3, ay: 0.24, rotate: -6, scale: 0.82 },
+  { ax: 0.7, ay: 0.36, rotate: 5, scale: 0.76 },
+  { ax: 0.3, ay: 0.66, rotate: -4, scale: 0.8 },
+  { ax: 0.7, ay: 0.76, rotate: 7, scale: 0.78 }
+];
+const TABLET_LANDSCAPE_ANCHORS = [
+  { ax: 0.19, ay: 0.36, rotate: -6, scale: 0.84 },
+  { ax: 0.4, ay: 0.66, rotate: 4, scale: 0.78 },
+  { ax: 0.62, ay: 0.34, rotate: -3, scale: 0.82 },
+  { ax: 0.83, ay: 0.64, rotate: 7, scale: 0.8 }
+];
 
-// Portrait phone: a diagonal, overlapping 2-column collage that fills the
-// whole tall canvas. Earlier cards stack ABOVE later ones so every card's
-// title (bottom-left) always stays readable.
-const MOBILE_COMPOSITION = {
-  anchors: [
-    { ax: 0.34, ay: 0.235, rotate: -7, scale: 0.8 },
-    { ax: 0.67, ay: 0.385, rotate: 6, scale: 0.72 },
-    { ax: 0.35, ay: 0.625, rotate: -5, scale: 0.76 },
-    { ax: 0.66, ay: 0.775, rotate: 8, scale: 0.72 }
-  ],
-  pin: 2.6, // travel, in viewport heights (invisible: the frame is held while it scrolls)
-  scrub: 0.2,
-  ease: "power2.inOut",
-  start: 0.04,
-  stagger: 0.09,
-  duration: 0.85,
-  headingAt: 0.55
+const TIMING = {
+  glide: 0.55, // per card
+  stagger: 0.05, // between cards -> total 0.55 + 3 * 0.05 = 0.70s
+  ease: "power3.out"
 };
 
-// Portrait tablet: same idea as the phone, spread wider (bigger canvas, so
-// the collage can breathe instead of overlapping as tightly).
-const TABLET_PORTRAIT_COMPOSITION = {
-  anchors: [
-    { ax: 0.3, ay: 0.24, rotate: -6, scale: 0.82 },
-    { ax: 0.7, ay: 0.36, rotate: 5, scale: 0.76 },
-    { ax: 0.3, ay: 0.66, rotate: -4, scale: 0.8 },
-    { ax: 0.7, ay: 0.76, rotate: 7, scale: 0.78 }
-  ],
-  pin: 2.2,
-  scrub: 0.2,
-  ease: "power2.inOut",
-  start: 0.05,
-  stagger: 0.09,
-  duration: 0.85,
-  headingAt: 0.55
-};
-
-// Landscape tablet (and landscape phones wider than 767px): a wide, arcing
-// scatter across the width — this canvas is landscape, so the composition is
-// too.
-const TABLET_LANDSCAPE_COMPOSITION = {
-  anchors: [
-    { ax: 0.19, ay: 0.36, rotate: -6, scale: 0.84 },
-    { ax: 0.4, ay: 0.66, rotate: 4, scale: 0.78 },
-    { ax: 0.62, ay: 0.34, rotate: -3, scale: 0.82 },
-    { ax: 0.83, ay: 0.64, rotate: 7, scale: 0.8 }
-  ],
-  pin: 1.8,
-  scrub: 0.2,
-  ease: "power3.out",
-  start: 0.1,
-  stagger: 0.08,
-  duration: 0.75,
-  headingAt: 0.1
-};
+// Share of the section that must be visible to play the sequence.
+const TRIGGER_RATIO = 0.35;
 
 const MEDIA_TABLET_PORTRAIT = `${MEDIA_TABLET} and (orientation: portrait)`;
 const MEDIA_TABLET_LANDSCAPE = `${MEDIA_TABLET} and (orientation: landscape)`;
@@ -104,204 +66,139 @@ const MEDIA_TABLET_LANDSCAPE = `${MEDIA_TABLET} and (orientation: landscape)`;
 // Breathing room kept between a scattered card's rotated edge and the frame.
 const EDGE_MARGIN = 6;
 
+const REST = { x: 0, y: 0, rotate: 0, scale: 1 };
+
 /**
- * Owns the GSAP / ScrollTrigger instance for the homepage card-entry
- * transition only. No component outside src/season2/motion imports gsap
- * directly — presentation components only pass refs in.
+ * Owns the GSAP timeline for the homepage Experiences cards. Presentation
+ * components only pass refs in.
  *
- * .s2-rail stays overflow:visible (see ExperiencesJourney.css) while the
- * cards are scattered, so nothing clips the composition before it lands —
- * that clipping was why the scatter read as "barely there" before. Only
- * once the pin fully releases (ScrollTrigger's onLeave) does the rail get
- * the .s2-rail--landed class that turns on native horizontal overflow;
- * scrolling back up (onEnterBack) removes it again so the reverse
- * choreography plays against the same unclipped composition.
- *
- * Hand-off is identical at every size: GSAP owns the cards only until the
- * pin releases; after that the rail is a plain native overflow-x scroller
- * (no wheel hijacking, no drag logic) and vertical scrolling continues
- * normally.
+ * Every pose is a transform relative to the card's resting slot in the rail,
+ * computed from layout offsets (which transforms never affect), so the DOM
+ * never changes shape and nothing re-lays-out mid-animation.
  */
-export default function useExperienceJourney({ trackRef, journeyRef, headingRef, railRef, cardRefs }) {
+export default function useExperienceJourney({ journeyRef, headingRef, railRef, cardRefs }) {
   useLayoutEffect(() => {
-    const track = trackRef.current;
     const journey = journeyRef.current;
     const rail = railRef.current;
-    if (!track || !journey || !rail) return undefined;
+    if (!journey || !rail) return undefined;
+
+    // Once per page load: survives breakpoint changes (matchMedia rebuilds).
+    let played = false;
 
     const ctx = gsap.context(() => {
       const cards = cardRefs.current.filter(Boolean);
-      const reducedMotion = window.matchMedia(MEDIA_REDUCED_MOTION).matches;
+      if (!cards.length) return;
+      const heading = headingRef.current;
 
-      if (reducedMotion) {
-        // Fully accessible static state — no pin, no scrub. The rail goes
-        // straight to native horizontal scrolling.
-        gsap.set(headingRef.current, { autoAlpha: 1, y: 0 });
-        gsap.set(cards, { x: 0, y: 0, rotate: 0, scale: 1, autoAlpha: 1 });
+      const settle = () => {
+        gsap.set(cards, { ...REST, autoAlpha: 1 });
+        gsap.set(heading, { autoAlpha: 1, y: 0 });
         rail.classList.add("s2-rail--landed");
+      };
+
+      if (window.matchMedia(MEDIA_REDUCED_MOTION).matches || typeof IntersectionObserver === "undefined") {
+        // Static and accessible: the rail, no motion.
+        played = true;
+        settle();
         return;
       }
 
-      const mm = gsap.matchMedia();
-      mm.add(MEDIA_DESKTOP, () => buildEntry(cards, 1.3, DESKTOP_ENTRY));
-      mm.add(MEDIA_TABLET_LANDSCAPE, () => buildComposedEntry(cards, TABLET_LANDSCAPE_COMPOSITION));
-      mm.add(MEDIA_TABLET_PORTRAIT, () => buildComposedEntry(cards, TABLET_PORTRAIT_COMPOSITION));
-      mm.add(MEDIA_MOBILE, () => buildComposedEntry(cards, MOBILE_COMPOSITION));
-    }, journey);
+      const desktopScatter = (card, i) => DESKTOP_ENTRY[i % DESKTOP_ENTRY.length];
 
-    // Desktop: fixed offsets from each card's resting position (approved).
-    function buildEntry(cards, pinMultiplier, entry) {
-      if (!cards.length) return undefined;
-
-      rail.classList.remove("s2-rail--landed");
-
-      // Cards are fully visible in their scattered pose from the very start
-      // of the pin — the scatter is a composition to be seen, not something
-      // that fades in piece by piece. Only their position/rotation/scale
-      // animates; opacity never touches the cards.
-      cards.forEach((card, i) => {
-        const preset = entry[i % entry.length];
-        gsap.set(card, { ...preset, autoAlpha: 1 });
-      });
-      gsap.set(headingRef.current, { autoAlpha: 0, y: 10 });
-
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: journey,
-          start: "top top",
-          end: () => "+=" + window.innerHeight * pinMultiplier,
-          pin: true,
-          scrub: 1.25,
-          invalidateOnRefresh: true,
-          onLeave: () => rail.classList.add("s2-rail--landed"),
-          onEnterBack: () => rail.classList.remove("s2-rail--landed")
-        }
-      });
-
-      tl.to(headingRef.current, { autoAlpha: 1, y: 0, duration: 0.3 }, 0.05);
-
-      cards.forEach((card, i) => {
-        tl.to(
-          card,
-          { x: 0, y: 0, rotate: 0, scale: 1, duration: 0.75, ease: "power3.out" },
-          0.15 + i * 0.08
-        );
-      });
-
-      return () => {
-        if (tl.scrollTrigger) tl.scrollTrigger.kill();
-        tl.kill();
-      };
-    }
-
-    // Tablet + mobile: each card starts at an anchor ON THE SCREEN.
-    function buildComposedEntry(cards, composition) {
-      if (!cards.length) return undefined;
-
-      rail.classList.remove("s2-rail--landed");
-
-      const { anchors, pin, scrub, ease, start, stagger, duration, headingAt } = composition;
-
-      // The held frame IS the visible screen when the hold starts. All
-      // measurements are layout offsets (unaffected by GSAP's transforms).
-      const frameWidth = () => journey.clientWidth;
-      const frameHeight = () => journey.clientHeight;
-
-      // Touch tiers: NO JS pin. The frame is held by native CSS sticky inside
-      // `track`, whose height is the frame plus `pin` extra viewport heights
-      // of invisible travel (svh: stable while the Safari toolbar moves, so
-      // nothing here ever needs re-measuring mid-gesture). ScrollTrigger is
-      // used for progress only.
-      track.style.setProperty("--s2-track-vh", String(Math.round((1 + pin) * 1000) / 10));
-      track.classList.add("s2-journey-track--sticky");
-      document.documentElement.classList.add("s2-sticky-scroll");
-
-      // Where a card's centre rests, in frame coordinates, before any scroll.
-      const restCentre = (card) => ({
-        x: rail.offsetLeft + card.offsetLeft + card.offsetWidth / 2 - rail.scrollLeft,
-        y: rail.offsetTop + card.offsetTop + card.offsetHeight / 2
-      });
-
-      // Anchor → offset from resting position, with the card's rotated,
-      // scaled bounding box kept fully inside the frame.
-      const offsetFor = (card, anchor, axis) => {
-        const angle = (anchor.rotate * Math.PI) / 180;
+      const anchoredScatter = (anchors) => (card, i) => {
+        const a = anchors[i % anchors.length];
+        const angle = (a.rotate * Math.PI) / 180;
         const cos = Math.abs(Math.cos(angle));
         const sin = Math.abs(Math.sin(angle));
-        const w = card.offsetWidth * anchor.scale;
-        const h = card.offsetHeight * anchor.scale;
-        const halfW = (w * cos + h * sin) / 2 + EDGE_MARGIN;
-        const halfH = (h * cos + w * sin) / 2 + EDGE_MARGIN;
-        const rest = restCentre(card);
-
-        if (axis === "x") {
-          const target = gsap.utils.clamp(halfW, Math.max(halfW, frameWidth() - halfW), anchor.ax * frameWidth());
-          return target - rest.x;
-        }
-        const target = gsap.utils.clamp(halfH, Math.max(halfH, frameHeight() - halfH), anchor.ay * frameHeight());
-        return target - rest.y;
+        const w = card.offsetWidth * a.scale;
+        const h = card.offsetHeight * a.scale;
+        const hx = (w * cos + h * sin) / 2 + EDGE_MARGIN;
+        const hy = (h * cos + w * sin) / 2 + EDGE_MARGIN;
+        const W = journey.clientWidth;
+        const H = journey.clientHeight;
+        const cx = gsap.utils.clamp(hx, Math.max(hx, W - hx), a.ax * W);
+        const cy = gsap.utils.clamp(hy, Math.max(hy, H - hy), a.ay * H);
+        // Resting centre, frame-relative. The rail is not scrollable (and so
+        // at scrollLeft 0) until the cards have landed.
+        const restX = rail.offsetLeft + card.offsetLeft + card.offsetWidth / 2;
+        const restY = rail.offsetTop + card.offsetTop + card.offsetHeight / 2;
+        return { x: cx - restX, y: cy - restY, rotate: a.rotate, scale: a.scale };
       };
 
-      // Previously: earlier cards were forced above later ones (z-index)
-      // while scattered, so no card's bottom-left TITLE was ever covered by
-      // the next card. Titles are no longer rendered on these cards (see
-      // ExperienceCard.js), so that priority order has no job left to do —
-      // and it was actively causing a visible defect: whichever card sits
-      // earlier in the anchor list can still cross paths with a later card
-      // as both converge toward the rail, and forcing the earlier one on
-      // top made it visibly bite into the later card's photo mid-transition
-      // (looked like a torn/duplicated edge). No explicit z-index at all —
-      // natural DOM order stacking — matches what desktop's buildEntry
-      // already does (it never set z-index either) and keeps a card's own
-      // photo intact through the whole transition.
+      function build(scatter) {
+        let tl = null;
+        let observer = null;
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: track,
-          start: "top top",
-          // The moment sticky lets go: the track's bottom reaches the bottom
-          // of the (svh-tall) frame. Uses the frame's own height, not
-          // window.innerHeight, which changes with the Safari toolbar.
-          end: () => "bottom top+=" + frameHeight(),
-          scrub,
-          invalidateOnRefresh: true,
-          onLeave: () => rail.classList.add("s2-rail--landed"),
-          onEnterBack: () => rail.classList.remove("s2-rail--landed")
+        const applyScatter = () => cards.forEach((card, i) => gsap.set(card, scatter(card, i)));
+
+        const play = () => {
+          if (played) return;
+          played = true;
+          observer.disconnect();
+
+          tl = gsap.timeline({ onComplete: settle });
+          tl.to(heading, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, 0);
+          tl.to(cards, { ...REST, duration: TIMING.glide, ease: TIMING.ease, stagger: TIMING.stagger }, 0);
+        };
+
+        if (played) {
+          // Breakpoint change after the sequence ran: stay in the rail.
+          settle();
+          return undefined;
         }
-      });
 
-      // The heading arrives once the cards are mostly in flight.
-      tl.fromTo(
-        headingRef.current,
-        { autoAlpha: 0, y: 14 },
-        { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" },
-        headingAt
-      );
+        rail.classList.remove("s2-rail--landed");
+        applyScatter();
+        gsap.set(cards, { autoAlpha: 1 });
+        gsap.set(heading, { autoAlpha: 0, y: 10 });
 
-      cards.forEach((card, i) => {
-        const anchor = anchors[i % anchors.length];
-        tl.fromTo(
-          card,
-          {
-            x: () => offsetFor(card, anchor, "x"),
-            y: () => offsetFor(card, anchor, "y"),
-            rotate: anchor.rotate,
-            scale: anchor.scale,
-            autoAlpha: 1
+        observer = new IntersectionObserver(
+          (entries) => {
+            const entry = entries[entries.length - 1];
+            // Also play when a fast flick stops PAST the section's top with
+            // only its lower slice on screen (ratio never reached 0.35).
+            if (entry.intersectionRatio >= TRIGGER_RATIO || (entry.isIntersecting && entry.boundingClientRect.top < 0)) {
+              play();
+            } else if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+              // Already scrolled past (e.g. restored scroll position on
+              // reload): don't animate off-screen, just show the result.
+              played = true;
+              observer.disconnect();
+              settle();
+            }
           },
-          { x: 0, y: 0, rotate: 0, scale: 1, duration, ease },
-          start + i * stagger
+          { threshold: [0, TRIGGER_RATIO] }
         );
-      });
+        observer.observe(journey);
 
-      return () => {
-        if (tl.scrollTrigger) tl.scrollTrigger.kill();
-        tl.kill();
-        track.classList.remove("s2-journey-track--sticky");
-        track.style.removeProperty("--s2-track-vh");
-        document.documentElement.classList.remove("s2-sticky-scroll");
-      };
-    }
+        // Scatter offsets depend on the frame size; keep them right on
+        // resize / rotation until the sequence has played. The final state
+        // is the rail itself, so it never needs re-measuring.
+        let resizeRaf = 0;
+        const onResize = () => {
+          cancelAnimationFrame(resizeRaf);
+          resizeRaf = requestAnimationFrame(() => {
+            if (!played) applyScatter();
+          });
+        };
+        window.addEventListener("resize", onResize);
+
+        return () => {
+          window.removeEventListener("resize", onResize);
+          cancelAnimationFrame(resizeRaf);
+          observer.disconnect();
+          // Interrupted mid-glide by a breakpoint change: the next build sees
+          // `played` and lands the cards in the rail.
+          if (tl) tl.kill();
+        };
+      }
+
+      const mm = gsap.matchMedia();
+      mm.add(MEDIA_DESKTOP, () => build(desktopScatter));
+      mm.add(MEDIA_TABLET_LANDSCAPE, () => build(anchoredScatter(TABLET_LANDSCAPE_ANCHORS)));
+      mm.add(MEDIA_TABLET_PORTRAIT, () => build(anchoredScatter(TABLET_PORTRAIT_ANCHORS)));
+      mm.add(MEDIA_MOBILE, () => build(anchoredScatter(MOBILE_ANCHORS)));
+    }, journey);
 
     return () => ctx.revert();
     // eslint-disable-next-line react-hooks/exhaustive-deps
