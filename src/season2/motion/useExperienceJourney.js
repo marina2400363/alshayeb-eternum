@@ -5,7 +5,7 @@ import { MEDIA_DESKTOP, MEDIA_TABLET, MEDIA_MOBILE, MEDIA_REDUCED_MOTION } from 
 // ---------------------------------------------------------------------------
 // SCATTERED EDITORIAL COLLAGE -> CLEAN GALLERY LINE-UP
 //
-// The cards start in the art-directed scatter. When ~35% of the Experiences
+// The cards start in the art-directed scatter. When ~22% of the Experiences
 // section is visible, one short time-based timeline plays ONCE per page
 // load: each card glides straight from its scattered pose into its resting
 // slot in the rail (x/y -> 0, rotate -> 0, scale -> 1), lightly staggered.
@@ -52,13 +52,13 @@ const TABLET_LANDSCAPE_ANCHORS = [
 ];
 
 const TIMING = {
-  glide: 0.55, // per card
-  stagger: 0.05, // between cards -> total 0.55 + 3 * 0.05 = 0.70s
+  glide: 0.85, // per card
+  stagger: 0.09, // between cards -> total 0.85 + 3 * 0.09 = 1.12s
   ease: "power3.out"
 };
 
 // Share of the section that must be visible to play the sequence.
-const TRIGGER_RATIO = 0.35;
+const TRIGGER_RATIO = 0.22;
 
 const MEDIA_TABLET_PORTRAIT = `${MEDIA_TABLET} and (orientation: portrait)`;
 const MEDIA_TABLET_LANDSCAPE = `${MEDIA_TABLET} and (orientation: landscape)`;
@@ -156,7 +156,7 @@ export default function useExperienceJourney({ journeyRef, headingRef, railRef, 
           (entries) => {
             const entry = entries[entries.length - 1];
             // Also play when a fast flick stops PAST the section's top with
-            // only its lower slice on screen (ratio never reached 0.35).
+            // only its lower slice on screen (ratio never reached the threshold).
             if (entry.intersectionRatio >= TRIGGER_RATIO || (entry.isIntersecting && entry.boundingClientRect.top < 0)) {
               play();
             } else if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
