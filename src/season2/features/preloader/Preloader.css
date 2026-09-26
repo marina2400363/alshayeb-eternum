@@ -1,0 +1,204 @@
+/* Homepage preloader. Geometry of the black field and the hairline track must
+   stay identical to the static #s2-boot shell in public/index.html, which
+   paints before the JS bundle arrives and is swapped for this on mount.
+
+   While html.s2-preloading is set (index.html also defines the scroll lock
+   for it, so it applies before this file loads), the homepage underneath is
+   held: no scrolling, and the hero title's entrance waits so it plays as the
+   curtain lifts instead of unseen. */
+
+html.s2-preloading .s2-hero-content {
+  animation-play-state: paused;
+}
+
+.s2-pre {
+  --p: 0;
+  --pre-gutter: clamp(20px, 5vw, 56px);
+  --pre-line-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  --pre-curtain: cubic-bezier(0.76, 0, 0.24, 1);
+
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: 0 var(--pre-gutter) calc(var(--pre-line-bottom) + 22px);
+  background: var(--s2-bg-0);
+  color: var(--s2-text-primary);
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: contain;
+  will-change: transform;
+}
+
+/* ---- Centre: the deck + wordmark ---------------------------------------- */
+
+.s2-pre-stage {
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(26px, 4svh, 40px);
+}
+
+.s2-pre-deck {
+  position: relative;
+  width: 140px;
+  height: 52px;
+}
+
+.s2-pre-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 30px;
+  margin: -15px 0 0 -11px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 2px;
+  background-color: transparent;
+  /* Scatter (p = 0) -> one clean row (p = 1), driven by real progress. */
+  transform: translate3d(
+      calc(var(--sx) * (1 - var(--p)) + var(--fx) * var(--p)),
+      calc(var(--sy) * (1 - var(--p))),
+      0
+    )
+    rotate(calc(var(--r) * (1 - var(--p))));
+  transition: background-color 0.6s var(--s2-ease-standard), border-color 0.6s var(--s2-ease-standard);
+}
+
+/* Its card photograph has loaded. */
+.s2-pre-card.is-loaded {
+  border-color: rgba(255, 255, 255, 0.72);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Type appears once Archivo is ready — never a fallback-font flash. */
+.s2-pre-mark,
+.s2-pre-foot {
+  opacity: 0;
+  transition: opacity 0.6s var(--s2-ease-standard), transform 0.45s var(--s2-ease-standard);
+}
+
+.s2-pre.is-type .s2-pre-mark,
+.s2-pre.is-type .s2-pre-foot {
+  opacity: 1;
+}
+
+.s2-pre-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.s2-pre-word {
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-brand);
+  font-weight: 800;
+  font-size: clamp(30px, 8.2vw, 62px);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+
+.s2-pre-sub {
+  margin-top: 12px;
+  /* Tracking adds trailing space after the last letter; pad the start to
+     keep the word optically centred under the wordmark. */
+  padding-left: 0.42em;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  color: var(--s2-text-secondary);
+}
+
+/* ---- Bottom: label, counter, hairline ----------------------------------- */
+
+.s2-pre-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.s2-pre-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--s2-text-secondary);
+}
+
+.s2-pre-count {
+  display: flex;
+  align-items: flex-start;
+  font-family: var(--s2-font-display);
+  font-weight: 400;
+  font-size: clamp(44px, 9vw, 88px);
+  line-height: 0.78;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.s2-pre-pct {
+  margin-left: 0.12em;
+  font-size: 0.26em;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--s2-text-secondary);
+}
+
+.s2-pre-line {
+  position: absolute;
+  left: var(--pre-gutter);
+  right: var(--pre-gutter);
+  bottom: var(--pre-line-bottom);
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.s2-pre-line i {
+  display: block;
+  height: 100%;
+  background: var(--s2-text-primary);
+  transform: scaleX(var(--p));
+  transform-origin: left center;
+}
+
+/* ---- Exit: content settles away, then the curtain lifts ----------------- */
+
+.s2-pre.is-leaving {
+  transform: translate3d(0, -100%, 0);
+  transition: transform 0.85s var(--pre-curtain) 0.26s;
+  pointer-events: none;
+}
+
+.s2-pre.is-leaving .s2-pre-mark,
+.s2-pre.is-leaving .s2-pre-foot,
+.s2-pre.is-leaving .s2-pre-deck,
+.s2-pre.is-leaving .s2-pre-line {
+  opacity: 0;
+  transform: translate3d(0, -10px, 0);
+  transition: opacity 0.35s var(--s2-ease-standard), transform 0.45s var(--s2-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-pre-card {
+    transform: translate3d(var(--fx), 0, 0);
+  }
+
+  .s2-pre.is-leaving {
+    transform: none;
+    opacity: 0;
+    transition: opacity 0.4s linear 0.1s;
+  }
+
+  .s2-pre.is-leaving .s2-pre-mark,
+  .s2-pre.is-leaving .s2-pre-foot,
+  .s2-pre.is-leaving .s2-pre-deck,
+  .s2-pre.is-leaving .s2-pre-line {
+    transform: none;
+  }
+}

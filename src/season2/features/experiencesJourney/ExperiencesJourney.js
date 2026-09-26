@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import Hero from "./Hero";
 import ExperienceCard from "./ExperienceCard";
-import EXPERIENCE_CARDS from "./experienceContent";
+import EXPERIENCE_CARDS, { HOME_HERO_SRC } from "./experienceContent";
 import useExperienceJourney from "../../motion/useExperienceJourney";
 import useRailParallax from "../../motion/useRailParallax";
 import "./ExperiencesJourney.css";
@@ -27,7 +27,7 @@ export default function ExperiencesJourney() {
 
   return (
     <div className="s2-journey">
-      <Hero posterSrc="/season2/media/home/hero-main.png" />
+      <Hero posterSrc={HOME_HERO_SRC} />
       <div className="s2-transition" ref={journeyRef}>
         <h2 className="s2-experiences-heading" ref={headingRef}>
           Alshayeb Experiences

@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import ExperiencesJourney from "../../features/experiencesJourney/ExperiencesJourney";
 import SiteFooter from "../../features/siteFooter/SiteFooter";
+import Preloader from "../../features/preloader/Preloader";
 import { PATHS } from "../../features/onboarding/paths";
 import useReveal from "../../motion/useReveal";
 import "./Home.css";
@@ -13,6 +14,8 @@ export default function HomePage() {
 
   return (
     <div className="s2-home">
+      {/* Covers the page until its critical media is loaded (first load only). */}
+      <Preloader />
       <ExperiencesJourney />
       <section
         className={`s2-enter${revealed ? " is-in" : ""}`}

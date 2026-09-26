@@ -39,10 +39,37 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>ALSHAYEB EXPERIENCE</title>
+    <!-- Season 2 homepage preloader: static first paint + page hold. Must match
+         src/season2/features/preloader/Preloader.css (black field, hairline track). -->
+    <style>
+      #s2-boot { position: fixed; inset: 0; z-index: 9999; background: #000; }
+      #s2-boot i { position: absolute; left: clamp(20px, 5vw, 56px); right: clamp(20px, 5vw, 56px); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); height: 1px; background: rgba(255, 255, 255, 0.14); }
+      html.s2-preloading { overflow: hidden; scrollbar-gutter: stable; background: #000; }
+    </style>
     <link href="https://fonts.cdnfonts.com/css/aquire" rel="stylesheet">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+    <!-- Homepage only: paints the preloader's black field before the app
+         bundle has loaded. The React preloader replaces it on mount. -->
+    <div id="s2-boot" aria-hidden="true" style="display: none"><i></i></div>
+    <script>
+      (function () {
+        var path = location.pathname.replace(/\/+$/, "");
+        if (path !== "" && path !== "/season2") return;
+        var boot = document.getElementById("s2-boot");
+        var html = document.documentElement;
+        boot.style.display = "block";
+        html.classList.add("s2-preloading");
+        // Safety: if the app never takes over (e.g. the bundle fails), never
+        // leave the visitor on a black screen.
+        setTimeout(function () {
+          if (!boot.parentNode) return;
+          boot.parentNode.removeChild(boot);
+          html.classList.remove("s2-preloading");
+        }, 20000);
+      })();
+    </script>
     <div id="root"></div>
     <!--
       This HTML file is a template.

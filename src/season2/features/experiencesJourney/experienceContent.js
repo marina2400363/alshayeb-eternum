@@ -11,4 +11,8 @@ const EXPERIENCE_CARDS = [
   { id: "season02", title: "SEASON 02", tagline: "The next chapter.", gradient: "url(/season2/media/home/experience-card-04.jpeg)" }
 ];
 
+// The homepage hero photograph. Shared with the preloader, which counts it
+// (and every card image above) as critical before revealing the homepage.
+export const HOME_HERO_SRC = "/season2/media/home/hero-main.png";
+
 export default EXPERIENCE_CARDS;
