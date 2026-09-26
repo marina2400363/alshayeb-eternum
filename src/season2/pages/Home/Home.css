@@ -1,0 +1,178 @@
+.s2-home {
+  background: var(--s2-bg-0);
+}
+
+/* ---------------------------------------------------------------------
+   The close: one headline, one line of type, one rule. Left-aligned to the
+   page gutter (the same edge as onboarding and the footer), anchored low so
+   the black above it is deliberate negative space.
+   --------------------------------------------------------------------- */
+.s2-enter {
+  /* the size container the title fits to (cqw = content width, gutter out) */
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(72px, 13svh, 136px) var(--s2-gutter) clamp(64px, 11svh, 112px);
+  background: var(--s2-bg-0);
+}
+
+.s2-enter-eyebrow {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-enter-title {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
+  word-spacing: 0.08em;
+  /* Same fit as every page title, so the close and the Enter screen it leads
+     to set the headline at the same size. */
+  font-size: min(calc(100cqw / var(--s2-fit-title)), 64px);
+}
+
+.s2-enter-title span {
+  display: block;
+  white-space: nowrap;
+}
+
+.s2-enter-sub {
+  margin: 18px 0 0;
+  max-width: 30ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--s2-text-secondary);
+}
+
+/* ---------- Begin ---------- */
+
+.s2-root .s2-begin {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  align-self: stretch;
+  min-height: 64px;
+  margin-top: clamp(40px, 8svh, 72px);
+  text-decoration: none;
+  color: var(--s2-text-primary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.s2-root .s2-begin:focus-visible {
+  outline-offset: 8px;
+}
+
+.s2-begin-label {
+  flex: none;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  transition: opacity var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+/* The track is always there, faint; the white line draws over it once, when
+   the section scrolls into view. The arrowhead lands after the line does. */
+.s2-begin-rule {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.s2-begin-rule i {
+  position: absolute;
+  inset: 0;
+  background: var(--s2-text-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.4s var(--s2-ease-out) 0.2s;
+}
+
+.s2-begin-rule svg {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  opacity: 0;
+  transform: translate(-10px, -50%);
+  transition: opacity 0.6s var(--s2-ease-standard) 1s, transform 0.9s var(--s2-ease-out) 1s;
+}
+
+.s2-enter.is-in .s2-begin-rule i {
+  transform: scaleX(1);
+}
+
+.s2-enter.is-in .s2-begin-rule svg {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.s2-root .s2-begin:active .s2-begin-label {
+  opacity: 0.6;
+}
+
+@media (hover: hover) {
+  /* Once revealed, the head leans forward a touch on hover. */
+  .s2-enter.is-in .s2-begin:hover .s2-begin-rule svg {
+    transform: translate(5px, -50%);
+    transition: transform 0.5s var(--s2-ease-out);
+  }
+}
+
+@media (min-width: 900px) {
+  .s2-enter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    column-gap: 48px;
+    padding-top: clamp(96px, 16svh, 180px);
+  }
+
+  .s2-enter-eyebrow {
+    grid-column: 1 / -1;
+  }
+
+  .s2-enter-title {
+    grid-column: 1;
+    /* title column = content width minus the sub column + gap (~260px) */
+    font-size: min(calc((100cqw - 260px) / var(--s2-fit-title)), 112px);
+  }
+
+  .s2-enter-sub {
+    grid-column: 2;
+    margin: 0;
+    padding-bottom: 8px;
+    font-size: 15px;
+  }
+
+  .s2-root .s2-begin {
+    grid-column: 1 / -1;
+    margin-top: clamp(56px, 10svh, 96px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-begin-label,
+  .s2-begin-rule i,
+  .s2-begin-rule svg {
+    transition: none;
+  }
+
+  .s2-enter.is-in .s2-begin:hover .s2-begin-rule svg {
+    transform: translate(0, -50%);
+  }
+}

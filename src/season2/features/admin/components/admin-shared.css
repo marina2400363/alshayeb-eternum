@@ -1,0 +1,293 @@
+/* Shared operational primitives for the Admin Portal — imported by every
+   admin page so tables/panels/fields/actions read as one system rather than
+   being redrawn per page. Functionality > decoration: thin rules, compact
+   rows, no rounded dashboard cards, restrained status color. */
+
+.s2-admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-6);
+}
+
+.s2-admin-page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2-space-4);
+  flex-wrap: wrap;
+}
+
+.s2-admin-page-title {
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: var(--s2-tracking-tight);
+}
+
+.s2-admin-page-subtitle {
+  margin: var(--s2-space-1) 0 0;
+  font-size: 13px;
+  color: var(--s2-text-secondary);
+  max-width: 60ch;
+}
+
+/* Two-pane layout: a list/rail on the left, a detail panel on the right.
+   Used by Schools (school list + selected school) and Finance (school list
+   + selected config). Stacks on tablet/mobile. */
+.s2-admin-split {
+  display: grid;
+  /* minmax(0, ...) everywhere: a bare `1fr`/`280px` track's default
+     min-width is auto (its content's min-content size), so long
+     uppercase-tracked rail text would otherwise force the track — and the
+     whole page — wider than the viewport instead of wrapping/truncating. */
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  gap: var(--s2-space-6);
+  align-items: start;
+}
+
+@media (max-width: 1023px) {
+  .s2-admin-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.s2-admin-rail {
+  border: 1px solid var(--s2-border);
+  background: var(--s2-surface);
+}
+
+.s2-admin-rail-item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  padding: var(--s2-space-3) var(--s2-space-4);
+  border-bottom: 1px solid var(--s2-border);
+  cursor: pointer;
+  color: var(--s2-text-secondary);
+}
+
+.s2-admin-rail-item:last-child {
+  border-bottom: 0;
+}
+
+.s2-admin-rail-item.is-selected {
+  color: var(--s2-text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 3px 0 0 var(--s2-accent);
+}
+
+.s2-admin-rail-item-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.s2-admin-rail-item-meta {
+  font-size: 11px;
+  color: var(--s2-text-muted);
+  margin-top: 2px;
+}
+
+.s2-admin-panel {
+  border: 1px solid var(--s2-border);
+  background: var(--s2-surface);
+  padding: var(--s2-space-5) var(--s2-space-6);
+}
+
+.s2-admin-panel + .s2-admin-panel {
+  margin-top: var(--s2-space-5);
+}
+
+.s2-admin-eyebrow {
+  display: block;
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-wider);
+  font-size: 11px;
+  color: var(--s2-text-muted);
+  margin-bottom: var(--s2-space-3);
+}
+
+/* Compact operational table. Rows, not rounded cards. */
+.s2-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.s2-admin-table th {
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+  padding: var(--s2-space-2) var(--s2-space-3);
+  border-bottom: 1px solid var(--s2-border);
+  white-space: nowrap;
+}
+
+.s2-admin-table td {
+  padding: var(--s2-space-3);
+  border-bottom: 1px solid var(--s2-border);
+  vertical-align: middle;
+}
+
+.s2-admin-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.s2-admin-table-overflow {
+  overflow-x: auto;
+}
+
+/* Below this width, admin tables degrade to stacked rows rather than
+   horizontal scroll for genuinely dense tables (Deposits). */
+@media (max-width: 767px) {
+  .s2-admin-table--stacks thead {
+    display: none;
+  }
+
+  .s2-admin-table--stacks,
+  .s2-admin-table--stacks tbody,
+  .s2-admin-table--stacks tr,
+  .s2-admin-table--stacks td {
+    display: block;
+    width: 100%;
+  }
+
+  .s2-admin-table--stacks tr {
+    border-bottom: 1px solid var(--s2-border);
+    padding: var(--s2-space-3) 0;
+  }
+
+  .s2-admin-table--stacks td {
+    border-bottom: 0;
+    padding: 2px 0;
+  }
+
+  .s2-admin-table--stacks td[data-label]::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 96px;
+    font-size: 10.5px;
+    letter-spacing: var(--s2-tracking-wide);
+    text-transform: uppercase;
+    color: var(--s2-text-muted);
+  }
+}
+
+.s2-admin-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-2);
+  margin-bottom: var(--s2-space-4);
+}
+
+.s2-admin-field-row:last-child {
+  margin-bottom: 0;
+}
+
+.s2-admin-field-label {
+  font-size: 10.5px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-root .s2-admin-input {
+  font-family: var(--s2-font-body);
+  font-size: 14px;
+  color: var(--s2-text-primary);
+  background: var(--s2-bg-1);
+  border: 1px solid var(--s2-border);
+  border-radius: var(--s2-radius-sm);
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.s2-root .s2-admin-input:focus-visible {
+  border-color: var(--s2-border-strong);
+}
+
+.s2-admin-inline-form {
+  display: flex;
+  gap: var(--s2-space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.s2-admin-inline-form .s2-admin-field-row {
+  margin-bottom: 0;
+  min-width: 140px;
+  flex: 1;
+}
+
+.s2-admin-error-text {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--s2-status-declined);
+}
+
+.s2-admin-success-text {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--s2-status-success);
+}
+
+.s2-admin-warn-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--s2-status-pending);
+}
+
+.s2-admin-muted-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--s2-text-muted);
+}
+
+.s2-admin-action-row {
+  display: flex;
+  gap: var(--s2-space-3);
+  flex-wrap: wrap;
+}
+
+.s2-root .s2-admin-icon-btn {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-secondary);
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--s2-border);
+  border-radius: var(--s2-radius-sm);
+  padding: 6px 10px;
+  /* Season 1's global button { width: 100% } would otherwise stretch every
+     small admin action across its container. */
+  width: auto;
+}
+
+.s2-root .s2-admin-icon-btn:hover {
+  border-color: var(--s2-border-strong);
+  color: var(--s2-text-primary);
+}
+
+.s2-root .s2-admin-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.s2-root .s2-admin-icon-btn--danger {
+  color: var(--s2-status-declined);
+}
+
+/* Season 1's global input { width: 100% } would stretch checkboxes across
+   their row; admin checkboxes keep their natural size. */
+.s2-root .s2-admin-page input[type="checkbox"] {
+  width: auto;
+  flex: none;
+}

@@ -1,0 +1,114 @@
+.s2-admin {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.s2-admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-6);
+  row-gap: var(--s2-space-2);
+  padding: var(--s2-space-4) var(--s2-gutter) var(--s2-space-2);
+  border-bottom: 1px solid var(--s2-border);
+  background: var(--s2-bg-0);
+  flex-wrap: wrap;
+}
+
+.s2-admin-wordmark {
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The six section labels (~1,275px of uppercase text) cannot share a row with
+   the wordmark and account block, so the nav takes its own full-width row
+   under them (order 3) and wraps only if the screen is narrower than that. */
+.s2-admin-nav {
+  display: flex;
+  gap: 0 var(--s2-space-5);
+  flex: 1 1 100%;
+  order: 3;
+  flex-wrap: wrap;
+}
+
+.s2-admin-nav-link {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+  padding: var(--s2-space-2) 0;
+  border-bottom: 2px solid transparent;
+}
+
+.s2-admin-nav-link.is-active {
+  color: var(--s2-text-primary);
+  border-bottom-color: var(--s2-accent);
+}
+
+.s2-admin-account {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-4);
+  margin-left: auto;
+}
+
+.s2-admin-account-email {
+  font-size: 12px;
+  color: var(--s2-text-muted);
+}
+
+.s2-admin-signout {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.s2-admin-main {
+  flex: 1;
+  padding: var(--s2-space-6) var(--s2-gutter) var(--s2-space-9);
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+  .s2-admin-header {
+    gap: var(--s2-space-3);
+  }
+
+  /* Phones: one compact swipeable row instead of a tall wrapped block. */
+  .s2-admin-nav {
+    order: 3;
+    width: 100%;
+    gap: var(--s2-space-4);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .s2-admin-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .s2-admin-nav-link {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .s2-admin-account-email {
+    display: none;
+  }
+}

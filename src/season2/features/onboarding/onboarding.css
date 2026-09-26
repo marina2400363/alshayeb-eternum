@@ -1,0 +1,1525 @@
+/*
+  Season 2 onboarding — the same world, one step deeper.
+
+  Source of truth: the approved /season2 homepage and the funnel mockup
+  (alshayeb-funnel-v3). Its VISUAL LANGUAGE — not its narrow layout:
+  pure black, the Hero's graded atmosphere, grain, oversized stretched
+  uppercase type, hairlines instead of boxes, photo-graded panels — composed
+  across the whole screen.
+
+  No cards inside cards and no UI-kit widgets. Blue lives only in the photo
+  tint (.s2-tint). The primary CTA is the shared Button, identical to the
+  homepage "Enter"; every other control is high-contrast type.
+
+  Desktop and mobile are composed separately (mobile first, then >= 900px).
+  Tokens only; no new colours. Prefix: s2-ob-
+*/
+
+/* ==================================================================
+   Stage
+   ================================================================== */
+
+/* Season 1's global CSS sets `body { overflow-x: hidden; overflow-y: scroll }`.
+   That makes <body> the nearest scroll container, so `position: sticky` never
+   binds to the viewport: the top bar scrolled away and the phone CTA could
+   not hold at the thumb. Restore normal viewport scrolling — only on pages
+   that contain the onboarding stage / Customer Area wrapper. Horizontal leaks
+   stay contained: <html> keeps overflow-x hidden, and the stage clips X. */
+body:has(.s2-ob-stage),
+body:has(.s2-ob-ca) {
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.s2-ob-stage,
+.s2-ob-ca {
+  /* One page margin everywhere, so the header, headings and content share
+     a single left edge. */
+  --pad: var(--s2-gutter);
+}
+
+.s2-ob-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: clip;
+  background: var(--s2-bg-0);
+}
+
+/* The Hero's own atmosphere: graded fallback gradient + blue lift. The
+   shared .s2-photo-treatment supplies grayscale / contrast / vignette. */
+.s2-ob-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--s2-bg-0);
+}
+
+.s2-ob-backdrop .s2-ob-backdrop-media {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(120% 100% at 50% 20%, #142238 0%, #05070c 55%, #000 100%);
+}
+
+/* The spine: one hairline down the left margin, half a gutter from the edge —
+   how far along the journey (carried from the funnel mockup). It fills from
+   the top and grows from the previous screen's position to the next; a
+   single small node marks where you are. Deliberately no ticks or step
+   circles — a margin rule, not a stepper. */
+.s2-ob-spine {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--pad) / 2);
+  z-index: 60;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+
+.s2-ob-spine i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 0;
+  background: rgba(255, 255, 255, 0.6);
+  transition: height 1.2s var(--s2-ease-out);
+}
+
+.s2-ob-spine i::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--s2-text-primary);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, 50%);
+}
+
+/* ---------- bar ---------- */
+
+.s2-ob-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 68px;
+  padding: 6px var(--pad);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent);
+  backdrop-filter: blur(8px);
+}
+
+.s2-ob-header-side {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.s2-ob-header-side--end {
+  justify-content: flex-end;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-root .s2-ob-wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-brand);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+}
+
+/* Plain text + arrow — no circle. */
+.s2-root .s2-ob-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--s2-text-secondary);
+  transition: color var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+.s2-ob-back svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--s2-duration-base) var(--s2-ease-standard);
+}
+
+@media (hover: hover) {
+  .s2-root .s2-ob-back:hover {
+    color: var(--s2-text-primary);
+  }
+
+  .s2-ob-back:hover svg {
+    transform: translateX(-4px);
+  }
+}
+
+/* Visually hidden, still focusable / announced (radios, file input). */
+.s2-root .s2-ob-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- page frame ---------- */
+
+.s2-ob-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px var(--pad) calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.s2-ob-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+}
+
+/* On a phone the form owns the rest of the screen: fields under the title,
+   the action at the thumb. (Skipped when a notice follows the form, so the
+   notice is never pushed below the fold.) */
+.s2-ob-panel:not(:has(> .s2-ob-notice)) > .s2-ob-form {
+  flex: 1;
+}
+
+/* Soft reveal, top to bottom — opacity + a short rise. */
+@keyframes s2-ob-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes s2-ob-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.s2-ob-panel > * {
+  animation: s2-ob-rise 0.85s var(--s2-ease-out) both;
+}
+
+.s2-ob-panel > :nth-child(2) {
+  animation-delay: 0.09s;
+}
+
+.s2-ob-panel > :nth-child(3) {
+  animation-delay: 0.18s;
+}
+
+.s2-ob-panel > :nth-child(n + 4) {
+  animation-delay: 0.27s;
+}
+
+/* ==================================================================
+   Heading — step key, giant title, lede
+   ================================================================== */
+
+.s2-ob-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.s2-ob-eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+/* The title's box is its size container: the title is sized so its WIDEST
+   deliberate line just fits the column (see --s2-fit-title in tokens.css),
+   whatever the screen. Lines never wrap on their own. */
+.s2-ob-titlebox {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.s2-ob-title {
+  --title-max: 64px;
+
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
+  word-spacing: 0.08em;
+  font-size: min(calc(100cqw / var(--s2-fit-title)), var(--title-max));
+}
+
+.s2-ob-title-line {
+  display: block;
+  white-space: nowrap;
+}
+
+/* The title takes programmatic focus on arrival (screen-reader landing);
+   it is not a control, so the global white outline must not box it. */
+.s2-root .s2-ob-title:focus,
+.s2-root .s2-ob-title:focus-visible {
+  outline: none;
+}
+
+.s2-ob-lede {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--s2-text-secondary);
+}
+
+/* ==================================================================
+   Choices — Enter / Incomer. Full-bleed graded panels, not cards.
+   ================================================================== */
+
+/* These two screens bleed to the edges: the panel area owns the screen and
+   the heading sits above it. */
+.s2-ob-stage--split .s2-ob-main {
+  padding: 0;
+}
+
+.s2-ob-stage--split .s2-ob-panel {
+  gap: 0;
+}
+
+.s2-ob-stage--split .s2-ob-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 14px;
+  padding: 8px var(--pad) 28px;
+}
+
+.s2-ob-choices {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 1px;
+  min-height: 62svh;
+  border-top: 1px solid var(--s2-border);
+  /* the 1px gaps show this: the hairlines between the panels */
+  background: var(--s2-border);
+}
+
+.s2-root .s2-ob-choice {
+  position: relative;
+  display: block;
+  min-height: 0;
+  color: inherit;
+  text-decoration: none;
+  background: var(--s2-bg-0);
+}
+
+.s2-ob-choice .s2-card {
+  height: 100%;
+  min-height: 190px;
+  border: 0;
+  border-radius: 0;
+  background: var(--s2-bg-0);
+}
+
+/* Shared-CSS order clash (reported): tokens.css's .s2-photo-treatment
+   { position: relative } beats Card.css's .s2-card-media { position: absolute },
+   collapsing the graded layer. Re-assert it for these panels. */
+.s2-ob-choice .s2-card-media {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  filter: grayscale(1) contrast(1.15) brightness(0.8);
+  animation: s2-ob-drift 28s ease-in-out infinite alternate;
+  transition: opacity 0.7s var(--s2-ease-standard), filter 0.7s var(--s2-ease-standard);
+}
+
+/* The light in the panel drifts a few percent — barely there, but alive. */
+@keyframes s2-ob-drift {
+  from {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.08) translate3d(-1.5%, 1%, 0);
+  }
+}
+
+/* The panel's content sits on the page's own left edge (--pad), the same one
+   the header and heading use. It is also the size container the title is
+   fitted to (cqw = its content width, padding excluded). */
+.s2-ob-choice .s2-card-content {
+  container-type: inline-size;
+  padding: 20px var(--pad) 24px;
+}
+
+/* One grid for every panel — this is what keeps titles, indices, arrows and
+   descriptions on identical lines from panel to panel:
+
+     index ................ arrow     (own row, centred on each other)
+     (flexible space)
+     TITLE                             (one line, always)
+     description                                                       */
+.s2-ob-choice-body {
+  /* --fit: how many em wide the longest title in this group may run, with
+     ~4% margin. Measured in Archivo 800 @ 112% / -0.02em: OUTCOMER 6.74em,
+     ALREADY REGISTERED 13.07em. Font size = container width ÷ --fit, so the
+     longest title always just fits — no wrapping at any width, and both
+     titles in a group share one size. */
+  --fit: 13.6;
+  --title-max: 104px;
+
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "index mark"
+    ". ."
+    "title title"
+    "desc desc";
+  align-items: center;
+}
+
+.s2-ob-choices--columns .s2-ob-choice-body {
+  --fit: var(--s2-fit-title);
+  --title-max: 124px;
+}
+
+.s2-ob-choice-index {
+  grid-area: index;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.26em;
+  color: var(--s2-text-secondary);
+}
+
+/* A plain, hairline arrow — no ring. Same row as the index. */
+.s2-ob-choice-mark {
+  grid-area: mark;
+  display: flex;
+  color: var(--s2-text-primary);
+  transition: transform var(--s2-duration-base) var(--s2-ease-out);
+}
+
+.s2-ob-choice-mark svg {
+  width: clamp(22px, 2.4vw, 34px);
+  height: clamp(22px, 2.4vw, 34px);
+  stroke-width: 1.2;
+}
+
+.s2-ob-choice-title {
+  grid-area: title;
+  justify-self: start;
+  white-space: nowrap;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  word-spacing: 0.08em;
+  font-size: min(calc(100cqw / var(--fit)), var(--title-max));
+}
+
+.s2-ob-choice-desc {
+  grid-area: desc;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--s2-text-secondary);
+}
+
+@media (hover: hover) {
+  .s2-ob-choice:hover .s2-card-media {
+    opacity: 1;
+    filter: grayscale(1) contrast(1.2) brightness(1);
+  }
+
+  .s2-ob-choice:hover .s2-ob-choice-mark {
+    transform: translateX(6px);
+  }
+}
+
+.s2-ob-choice:focus-visible .s2-card-media {
+  opacity: 1;
+  filter: grayscale(1) contrast(1.2) brightness(1);
+}
+
+.s2-ob-choice:focus-visible {
+  outline: 2px solid var(--s2-text-primary);
+  outline-offset: -4px;
+}
+
+/* Coming-soon panel (Outcomer): the same panel and grid, but inert — no
+   pointer cursor, and none of the link hover/focus responses above. The
+   label takes the arrow's cell. */
+.s2-ob-choice--soon {
+  cursor: default;
+}
+
+.s2-ob-choice--soon:hover .s2-card-media {
+  opacity: 1;
+  filter: grayscale(1) contrast(1.15) brightness(0.8);
+}
+
+.s2-ob-choice--soon:hover .s2-ob-choice-mark {
+  transform: none;
+}
+
+.s2-ob-choice-mark--soon {
+  align-items: center;
+  align-self: center;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--s2-text-primary);
+}
+
+/* ==================================================================
+   Fields — large labels, line-based, nothing boxed
+   ================================================================== */
+
+.s2-ob-form {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.s2-ob-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.s2-ob-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-ob-control {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* The focus line draws itself across the field. */
+.s2-ob-control::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--s2-text-primary);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s var(--s2-ease-out);
+}
+
+.s2-ob-control:focus-within::after {
+  transform: scaleX(1);
+}
+
+.s2-root .s2-ob-input:focus-visible {
+  outline: none;
+}
+
+.s2-ob-field.is-error .s2-ob-control {
+  border-bottom-color: var(--s2-status-declined);
+}
+
+.s2-ob-field.is-error .s2-ob-control::after {
+  background: var(--s2-status-declined);
+  box-shadow: none;
+  transform: scaleX(1);
+}
+
+.s2-ob-prefix {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+  padding-right: 16px;
+  border-right: 1px solid var(--s2-border);
+  font-family: var(--s2-font-body);
+  font-stretch: 106%;
+  font-size: clamp(28px, 8.2vw, 44px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--s2-text-muted);
+}
+
+.s2-ob-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0 16px;
+  color: var(--s2-text-primary);
+  font-family: var(--s2-font-body);
+  font-stretch: 106%;
+  /* 16px+ prevents iOS Safari from zooming the page on focus. Names and
+     emails run long, so the text fields are set smaller than the phone
+     number's digits — and Name and Email share one size. A value longer than
+     the field scrolls natively (no wrapping, no overflow). */
+  font-size: clamp(22px, 6.2vw, 40px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  outline: none;
+}
+
+/* Season 1's global `input { width/padding/margin/text-align:center/box-shadow }`
+   and `input:focus { glow }` element rules (App.css / patch.css) also match
+   inside Season 2. Reset them explicitly, including the :focus variant. */
+.s2-root .s2-ob-input,
+.s2-root .s2-ob-input:focus {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.s2-ob-input[type="tel"] {
+  font-size: clamp(28px, 8.2vw, 44px);
+}
+
+.s2-ob-input::placeholder {
+  color: var(--s2-text-ghost);
+  font-weight: 500;
+}
+
+.s2-ob-input:-webkit-autofill {
+  -webkit-text-fill-color: var(--s2-text-primary);
+  caret-color: var(--s2-text-primary);
+  box-shadow: 0 0 0 1000px var(--s2-bg-0) inset;
+}
+
+.s2-ob-error,
+.s2-ob-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.s2-ob-error {
+  color: var(--s2-status-declined);
+}
+
+.s2-ob-hint {
+  color: var(--s2-text-muted);
+}
+
+/* ==================================================================
+   Buttons — the primary CTA is the shared Button (same as the homepage);
+   secondary actions are quiet high-contrast text links.
+   ================================================================== */
+
+/* Season 1's global `button { width: 100% }` (App.css) also matches inside
+   Season 2; buttons keep their natural width unless a rule opts in. */
+.s2-ob-stage .s2-btn {
+  width: auto;
+}
+
+/* The primary CTA is the shared Button, exactly as the homepage "Enter" uses
+   it: same pill shape, weight, tracking, padding, contrast and hover. Only
+   layout is set here (it fills the row on a phone; see the phone block). */
+.s2-ob-panel .s2-btn.s2-ob-cta {
+  align-self: stretch;
+}
+
+/* Sharp block, wide-set label — a pill reads as UI kit; this reads as the
+   same hairline world as the homepage's Begin rule. Scoped to onboarding so
+   the shared Button is unchanged everywhere else. */
+.s2-root .s2-ob-stage .s2-btn {
+  min-height: 56px;
+  border-radius: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  /* letter-spacing trails the last glyph; add it back on the left so the
+     label sits optically centred in the block */
+  padding-left: calc(28px + 0.26em);
+}
+
+.s2-ob-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+}
+
+.s2-root .s2-ob-linkbtn,
+.s2-root .s2-ob-textbtn,
+.s2-root .s2-ob-photo-btn,
+.s2-root .s2-ob-summary-edit {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--s2-font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--s2-text-primary);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-underline-offset: 7px;
+  transition: text-decoration-color var(--s2-duration-fast) var(--s2-ease-standard),
+    opacity var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+@media (hover: hover) {
+  .s2-root .s2-ob-linkbtn:hover,
+  .s2-root .s2-ob-textbtn:hover,
+  .s2-root .s2-ob-photo-btn:hover:not(:disabled),
+  .s2-root .s2-ob-summary-edit:hover {
+    text-decoration-color: var(--s2-text-primary);
+  }
+}
+
+.s2-root .s2-ob-photo-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* The lead action inside a notice ("Register now"): a text link with an arrow. */
+.s2-root .s2-ob-linkbtn--arrow::after {
+  content: "→";
+  display: inline-block;
+  margin-left: 10px;
+}
+
+/* ==================================================================
+   Notice — a ruled block of type
+   ================================================================== */
+
+.s2-ob-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 22px;
+  border-top: 1px solid var(--s2-border-strong);
+}
+
+.s2-ob-notice-title {
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.s2-ob-notice-text {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--s2-text-secondary);
+}
+
+.s2-ob-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+  margin-top: 8px;
+}
+
+/* Shared loading / error states, aligned to the editorial left edge. */
+.s2-ob-panel .s2-state {
+  align-items: flex-start;
+  padding: 0;
+  text-align: left;
+}
+
+.s2-ob-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* ==================================================================
+   School — a curated index of large names
+   ================================================================== */
+
+.s2-ob-schoolpicker {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.s2-ob-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.s2-ob-fieldset > .s2-ob-label {
+  float: left;
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 0;
+}
+
+.s2-ob-schools {
+  clear: both;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--s2-border);
+  counter-reset: school;
+}
+
+.s2-ob-school {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  counter-increment: school;
+}
+
+.s2-ob-school-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--s2-border);
+  transition: border-color var(--s2-duration-base) var(--s2-ease-standard);
+}
+
+/* The selected row's rule lights up, drawn left to right. */
+.s2-ob-school-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--s2-text-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s var(--s2-ease-out);
+}
+
+.s2-ob-school-card::before {
+  content: counter(school, decimal-leading-zero);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--s2-text-ghost);
+  transition: color var(--s2-duration-base) var(--s2-ease-standard);
+}
+
+.s2-ob-school-name {
+  font-family: var(--s2-font-display);
+  font-weight: 700;
+  font-size: clamp(18px, 5vw, 26px);
+  line-height: 1.12;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color var(--s2-duration-base) var(--s2-ease-standard),
+    transform var(--s2-duration-base) var(--s2-ease-out);
+}
+
+/* No ring — a quiet "Selected" tag appears on the chosen row. */
+.s2-ob-school-check {
+  /* out of the grid flow: a hidden tag must not steal width from the name */
+  position: absolute;
+  top: 10px;
+  right: 0;
+  display: flex;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--s2-text-primary);
+  opacity: 0;
+  transition: opacity var(--s2-duration-base) var(--s2-ease-standard);
+}
+
+.s2-ob-school-check::before {
+  content: "Selected";
+}
+
+.s2-ob-school-check svg {
+  display: none;
+}
+
+@media (hover: hover) {
+  .s2-ob-school:hover .s2-ob-school-card {
+    border-bottom-color: var(--s2-border-strong);
+  }
+
+  .s2-ob-school:hover .s2-ob-school-name {
+    color: var(--s2-text-primary);
+    transform: translateX(8px);
+  }
+}
+
+.s2-ob-school-input:checked + .s2-ob-school-card .s2-ob-school-name {
+  color: var(--s2-text-primary);
+}
+
+.s2-ob-school-input:checked + .s2-ob-school-card::before {
+  color: var(--s2-text-primary);
+}
+
+.s2-ob-school-input:checked + .s2-ob-school-card::after {
+  transform: scaleX(1);
+}
+
+.s2-ob-school-input:checked + .s2-ob-school-card .s2-ob-school-check {
+  opacity: 1;
+}
+
+/* Once a school is chosen the rest recede. */
+.s2-ob-schools.has-selection .s2-ob-school-input:not(:checked) + .s2-ob-school-card .s2-ob-school-name {
+  color: rgba(255, 255, 255, 0.36);
+}
+
+.s2-ob-school-input:focus-visible + .s2-ob-school-card {
+  outline: 2px solid var(--s2-text-primary);
+  outline-offset: -2px;
+}
+
+/* ==================================================================
+   Photo — the portrait is the composition
+   ================================================================== */
+
+.s2-ob-photo {
+  position: relative;
+  /* phone: the portrait runs edge to edge */
+  margin: 0 calc(var(--pad) * -1);
+}
+
+.s2-ob-photo-frame {
+  /* the frame is the size container the caption / poster word fit to */
+  container-type: inline-size;
+  --cap-inset: calc(var(--pad) * 2);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 72svh;
+  overflow: hidden;
+  background:
+    radial-gradient(85% 60% at 72% 0%, rgba(255, 255, 255, 0.16), transparent 70%),
+    #050506;
+}
+
+.s2-ob-photo-frame.is-error {
+  box-shadow: inset 0 0 0 1px var(--s2-status-declined);
+}
+
+.s2-ob-photo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  animation: s2-ob-develop 1.3s var(--s2-ease-out) both;
+}
+
+@keyframes s2-ob-develop {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A dark foot for the name, and a dark head for the control. */
+.s2-ob-photo-frame.has-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 26%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.92), transparent 46%);
+}
+
+/* The name, set large over the photograph. */
+.s2-ob-photo-caption {
+  position: absolute;
+  right: var(--pad);
+  bottom: 24px;
+  left: var(--pad);
+  z-index: 2;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  font-size: min(calc((100cqw - var(--cap-inset)) / var(--s2-fit-name)), 56px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.s2-ob-photo-empty-line {
+  display: block;
+  white-space: nowrap;
+}
+
+/* No dashed upload box: a ghosted poster word. */
+.s2-ob-photo-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0 var(--pad) 24px;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  /* "NO PHOTO" is the widest line, about 5.9em */
+  font-size: min(calc((100cqw - var(--cap-inset)) / 6.3), 96px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  /* A ghost fill, not an outline: -webkit-text-stroke would expose the
+     variable font's overlapping contours (double lines inside P, H, O). */
+  color: rgba(255, 255, 255, 0.08);
+}
+
+.s2-ob-photo-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.74);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--s2-text-secondary);
+}
+
+/* Replace stays quiet: a small underlined word at the top corner. */
+.s2-root .s2-ob-photo-btn {
+  position: absolute;
+  top: 12px;
+  right: var(--pad);
+  z-index: 3;
+}
+
+/* Until a photo exists, choosing one is THE action here: a sharp outlined
+   block (still no dashed dropzone), not a small text link. */
+.s2-root .s2-ob-photo-frame:not(.has-photo) ~ .s2-ob-photo-btn {
+  padding: 0 24px;
+  border: 1px solid var(--s2-text-primary);
+  text-decoration: none;
+  min-height: 52px;
+}
+
+@media (hover: hover) {
+  .s2-root .s2-ob-photo-frame:not(.has-photo) ~ .s2-ob-photo-btn:hover:not(:disabled) {
+    background: var(--s2-text-primary);
+    color: var(--s2-bg-0);
+  }
+}
+
+.s2-ob-photo .s2-ob-error {
+  position: absolute;
+  right: var(--pad);
+  bottom: 96px;
+  left: var(--pad);
+  z-index: 3;
+  text-shadow: 0 0 14px #000;
+}
+
+/* ---------- confirmation: minimal, secondary ---------- */
+
+.s2-ob-summary {
+  margin: 0;
+  border-top: 1px solid var(--s2-border);
+}
+
+.s2-ob-summary-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 12px 0 0;
+  border-bottom: 1px solid var(--s2-border);
+}
+
+.s2-ob-summary dt {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-ob-summary dd {
+  margin: 0;
+  padding: 4px 0 12px;
+  font-family: var(--s2-font-display);
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+  color: var(--s2-text-secondary);
+}
+
+.s2-root .s2-ob-summary-edit {
+  min-height: 44px;
+  margin-top: -20px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--s2-text-muted);
+}
+
+.s2-ob-fineprint {
+  margin-top: -16px;
+}
+
+/* ==================================================================
+   Phone: the action lives at the thumb
+   ================================================================== */
+
+@media (max-width: 899px) {
+  .s2-ob-panel .s2-btn.s2-ob-cta {
+    position: sticky;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
+    margin-top: auto;
+  }
+
+  /* Black-on-black feather so long lists slide under the action instead of
+     colliding with it. box-shadow paints outside the button, so its own
+     white block and label are untouched. */
+  .s2-ob-panel .s2-btn.s2-ob-cta {
+    box-shadow: 0 -22px 22px 10px var(--s2-bg-0), 0 24px 0 0 var(--s2-bg-0);
+  }
+
+  /* Phone rhythm: larger, more generous fields so the form fills the screen. */
+  .s2-ob-form {
+    gap: 52px;
+  }
+}
+
+/* Short phones (iPhone SE class): three fields and the thumb action have to
+   share the screen, so the field rhythm tightens a little. */
+@media (max-width: 899px) and (max-height: 720px) {
+  .s2-ob-form {
+    gap: 34px;
+  }
+
+  .s2-ob-panel {
+    gap: 24px;
+  }
+}
+
+/* ==================================================================
+   Customer Area handoff (Marina's slice) — the same black world
+   ================================================================== */
+
+.s2-ob-sessionbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 48px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--s2-border);
+}
+
+.s2-ob-sessionbar-who {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.s2-ob-sessionbar-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-ob-sessionbar-name {
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  /* A user-supplied name: it wraps between words, so it is sized for the
+     widest common single word rather than the whole string. */
+  font-size: min(calc((100vw - var(--pad) * 2) / var(--s2-fit-name)), 64px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.s2-ob-sessionbar-phone {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--s2-text-secondary);
+}
+
+.s2-root .s2-ob-textbtn {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--s2-text-secondary);
+}
+
+/* The shared shell, restyled from the outside (its own file is untouched):
+   pure black, a wide frame, the bar as a hairline, placeholder left-aligned. */
+.s2-ob-ca .s2-ca-shell {
+  background: var(--s2-bg-0);
+}
+
+.s2-ob-ca .s2-ca-header {
+  padding: 14px var(--pad);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent);
+}
+
+.s2-ob-ca .s2-ca-wordmark {
+  font-stretch: var(--s2-stretch-brand);
+  font-size: 15px;
+  letter-spacing: 0.05em;
+}
+
+.s2-ob-ca .s2-ca-header-label {
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+
+.s2-ob-ca .s2-ca-body {
+  width: 100%;
+  padding: 0 var(--pad);
+}
+
+.s2-ob-ca .s2-ca-content {
+  padding: 48px 0 72px;
+}
+
+.s2-ob-ca .s2-state {
+  align-items: flex-start;
+  padding: 0;
+  text-align: left;
+}
+
+/* ==================================================================
+   Desktop: use the width. Heading on the left, the interaction in large
+   type on the right — not a narrow centred column.
+   ================================================================== */
+
+@media (min-width: 900px) {
+  .s2-ob-main {
+    padding: 24px var(--pad) 72px;
+  }
+
+  .s2-ob-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-content: center;
+    align-items: start;
+    gap: 0 clamp(48px, 7vw, 140px);
+  }
+
+  .s2-ob-panel > .s2-ob-heading {
+    grid-column: 1;
+    grid-row: 1 / span 5;
+    position: sticky;
+    top: 88px;
+  }
+
+  .s2-ob-panel > .s2-ob-heading ~ * {
+    grid-column: 2;
+  }
+
+  .s2-ob-panel > .s2-ob-heading ~ * ~ * {
+    margin-top: 40px;
+  }
+
+  /* The title fits its own column (cqw), so only the ceiling is set here. */
+  .s2-ob-title {
+    --title-max: 72px;
+  }
+
+  .s2-ob-lede {
+    font-size: 15px;
+  }
+
+  .s2-ob-eyebrow {
+    font-size: 11.5px;
+  }
+
+  .s2-ob-form {
+    gap: 56px;
+  }
+
+  /* phone digits match their +20 prefix; names run longer, so the text field
+     is set smaller so a typical full name shows without scrolling */
+  .s2-ob-prefix,
+  .s2-ob-input[type="tel"] {
+    font-size: clamp(36px, 4vw, 64px);
+  }
+
+  .s2-ob-input:not([type="tel"]) {
+    font-size: clamp(28px, 2.8vw, 44px);
+  }
+
+  .s2-ob-prefix {
+    margin-right: 24px;
+    padding-right: 24px;
+  }
+
+  .s2-ob-input {
+    padding: 12px 0 20px;
+  }
+
+  .s2-ob-school-name {
+    font-size: clamp(20px, 2.2vw, 34px);
+  }
+
+  .s2-ob-school-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+    padding: 30px 0;
+  }
+
+  .s2-ob-panel .s2-btn.s2-ob-cta {
+    align-self: flex-start;
+  }
+
+  /* ---- Enter / Incomer: heading + lede share a row above the panels ---- */
+  .s2-ob-stage--split .s2-ob-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .s2-ob-stage--split .s2-ob-heading {
+    position: static;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 28ch);
+    column-gap: 48px;
+    align-items: end;
+    padding: 12px var(--pad) 36px;
+  }
+
+  .s2-ob-stage--split .s2-ob-eyebrow {
+    grid-column: 1 / -1;
+  }
+
+  .s2-ob-stage--split .s2-ob-titlebox {
+    grid-column: 1;
+  }
+
+  .s2-ob-stage--split .s2-ob-title {
+    --title-max: 92px;
+  }
+
+  .s2-ob-stage--split .s2-ob-lede {
+    grid-column: 2;
+    padding-bottom: 8px;
+  }
+
+  .s2-ob-choices--columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-rows: auto;
+  }
+
+  .s2-ob-choice .s2-card-content {
+    padding: clamp(24px, 2.6vw, 40px) var(--pad) clamp(28px, 3vw, 48px);
+  }
+
+  /* Enter: tall side-by-side panels. Incomer: two wide rows, tall enough
+     for the index row + a one-line title + description without crowding. */
+  .s2-ob-choices--columns .s2-ob-choice .s2-card {
+    min-height: clamp(280px, 46svh, 520px);
+  }
+
+  .s2-ob-choices--rows .s2-ob-choice .s2-card {
+    min-height: clamp(230px, 30svh, 340px);
+  }
+
+  .s2-ob-choice-desc {
+    font-size: 14px;
+  }
+
+  /* ---- Photo: a full-height portrait pane beside the confirmation ---- */
+  .s2-ob-stage--photo .s2-ob-main {
+    padding-right: 0;
+  }
+
+  .s2-ob-stage--photo .s2-ob-panel {
+    display: block;
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: calc(54vw - var(--pad));
+    margin: auto 0;
+  }
+
+  .s2-ob-stage--photo .s2-ob-panel > .s2-ob-heading {
+    position: static;
+  }
+
+  .s2-ob-stage--photo .s2-ob-panel > * + * {
+    margin-top: 44px;
+  }
+
+  /* The form fades in without a transform, so the fixed portrait pane inside
+     it keeps the viewport as its containing block (a transformed ancestor
+     would re-anchor it to the form). */
+  .s2-ob-stage--photo .s2-ob-photoform {
+    animation: s2-ob-fade 0.9s var(--s2-ease-out) both;
+    gap: 36px;
+  }
+
+  .s2-ob-stage--photo .s2-ob-photo {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 46vw;
+    margin: 0;
+  }
+
+  .s2-ob-stage--photo .s2-ob-photo-frame {
+    position: absolute;
+    inset: 0;
+    aspect-ratio: auto;
+    max-height: none;
+    /* the portrait dissolves into the page on its left edge */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 26%);
+  }
+
+  /* the photo pane is 46vw wide; the name starts 12vw in and ends at --pad */
+  .s2-ob-stage--photo .s2-ob-photo-frame {
+    --cap-inset: calc(12vw + var(--pad));
+  }
+
+  .s2-ob-stage--photo .s2-ob-photo-caption {
+    left: 12vw;
+    bottom: 48px;
+  }
+
+  .s2-ob-stage--photo .s2-ob-photo-empty {
+    padding: 0 var(--pad) 48px 12vw;
+  }
+
+  .s2-ob-stage--photo .s2-ob-photo-btn {
+    top: 96px;
+  }
+
+  .s2-ob-stage--photo .s2-ob-photo .s2-ob-error {
+    left: 12vw;
+    bottom: 132px;
+  }
+
+  .s2-ob-stage--photo .s2-ob-photoform .s2-ob-fineprint {
+    margin-top: 0;
+  }
+
+  /* ---- Customer Area ---- */
+  .s2-ob-ca .s2-ca-content {
+    padding: 72px 0 96px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-ob-panel > *,
+  .s2-ob-photo-img,
+  .s2-ob-stage--photo .s2-ob-photoform {
+    animation: none;
+  }
+
+  .s2-ob-choice .s2-card-media {
+    animation: none;
+    transition: none;
+  }
+
+  .s2-ob-spine i,
+  .s2-ob-control::after,
+  .s2-ob-school-card,
+  .s2-ob-school-card::after,
+  .s2-ob-school-name,
+  .s2-ob-choice-mark,
+  .s2-ob-back svg {
+    transition: none;
+  }
+
+  .s2-ob-school:hover .s2-ob-school-name,
+  .s2-ob-choice:hover .s2-ob-choice-mark,
+  .s2-ob-back:hover svg {
+    transform: none;
+  }
+}

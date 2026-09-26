@@ -1,0 +1,203 @@
+.s2-dash-refresh {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-3);
+}
+
+/* KPI strip: five across on desktop (two tidy rows for ten numbers), three on
+   tablet, two on phones. Thin rules and flat surfaces like the rest of the
+   admin — no rounded dashboard cards. */
+.s2-dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid var(--s2-border);
+  background: var(--s2-surface);
+}
+
+.s2-dash-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-2);
+  padding: var(--s2-space-4) var(--s2-space-5);
+  border-right: 1px solid var(--s2-border);
+  border-bottom: 1px solid var(--s2-border);
+  min-width: 0;
+}
+
+.s2-dash-kpi:nth-child(5n) {
+  border-right: 0;
+}
+
+.s2-dash-kpi:nth-last-child(-n + 5) {
+  border-bottom: 0;
+}
+
+.s2-dash-kpi-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-dash-kpi-value {
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: var(--s2-tracking-tight);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1199px) {
+  .s2-dash-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .s2-dash-kpi:nth-child(5n) {
+    border-right: 1px solid var(--s2-border);
+  }
+
+  .s2-dash-kpi:nth-child(3n) {
+    border-right: 0;
+  }
+
+  .s2-dash-kpi:nth-last-child(-n + 5) {
+    border-bottom: 1px solid var(--s2-border);
+  }
+
+  .s2-dash-kpi:nth-last-child(-n + 1) {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 599px) {
+  .s2-dash-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .s2-dash-kpi {
+    padding: var(--s2-space-3) var(--s2-space-4);
+  }
+
+  .s2-dash-kpi-value {
+    font-size: 22px;
+  }
+
+  .s2-dash-kpi:nth-child(3n) {
+    border-right: 1px solid var(--s2-border);
+  }
+
+  .s2-dash-kpi:nth-child(2n) {
+    border-right: 0;
+  }
+}
+
+/* School breakdown: numeric columns right-aligned, School name prominent. */
+.s2-dash-schools .s2-dash-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.s2-dash-school-name {
+  font-weight: 700;
+}
+
+/* Phones: the shared stacked-row layout assumes short labels; these are longer
+   ("With approved payment"), so each row is label-left / value-right, and the
+   School name is a heading for its block instead of a labelled row. */
+@media (max-width: 767px) {
+  .s2-admin-table.s2-dash-schools td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--s2-space-4);
+    text-align: right;
+  }
+
+  .s2-admin-table.s2-dash-schools td[data-label]::before {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .s2-admin-table.s2-dash-schools td.s2-dash-school-name {
+    display: block;
+    text-align: left;
+    font-size: 15px;
+    padding-bottom: var(--s2-space-2);
+  }
+
+  .s2-admin-table.s2-dash-schools td.s2-dash-school-name::before {
+    display: none;
+  }
+}
+
+/* Recent activity: three compact lists side by side. */
+.s2-dash-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2-space-5);
+}
+
+@media (max-width: 1023px) {
+  .s2-dash-recent-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.s2-admin-panel.s2-dash-recent + .s2-admin-panel.s2-dash-recent {
+  margin-top: 0;
+}
+
+.s2-dash-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.s2-dash-recent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s2-space-3);
+  padding: var(--s2-space-3) 0;
+  border-bottom: 1px solid var(--s2-border);
+}
+
+.s2-dash-recent-item:last-child {
+  border-bottom: 0;
+}
+
+.s2-dash-recent-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.s2-dash-recent-name {
+  font-weight: 700;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.s2-dash-recent-meta {
+  font-size: 12px;
+  color: var(--s2-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-2);
+  flex-wrap: wrap;
+}
+
+.s2-dash-recent-meta .s2-status {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+.s2-dash-recent-time {
+  font-size: 11px;
+  color: var(--s2-text-muted);
+  white-space: nowrap;
+}

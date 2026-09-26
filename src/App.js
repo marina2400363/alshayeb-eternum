@@ -15,6 +15,7 @@ import "./App.css";
 import "./RoomsApp.css";
 import RoomsApp from "./RoomsApp";
 import AnimatedBackground from "./AnimatedBackground";
+import Season2App from "./season2";
 
 const LOCAL_API_URL = `http://${["127", "0", "0", "1"].join(".")}:5000`;
 const CONFIGURED_API_URL = String(process.env.REACT_APP_API_URL || "").trim().replace(/\/$/, "");
@@ -529,6 +530,9 @@ function EternumLoadingScreen({ visible }) {
   );
 }
 
+// RETIRED Eternum public site — no longer mounted (see the "/" route in App()).
+// Kept in the codebase to avoid a large risky deletion; unreachable by design.
+// eslint-disable-next-line no-unused-vars
 function PublicWebsite() {
   const [phone, setPhone] = useState("");
   const [foundClient, setFoundClient] = useState(null);
@@ -4637,6 +4641,8 @@ function SettingsPage() {
   );
 }
 
+// RETIRED with the Eternum public site above (its only mount point).
+// eslint-disable-next-line no-unused-vars
 const PublicHamburgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -4722,7 +4728,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<div className="eternum-global-bg"><PublicWebsite /><PublicHamburgerMenu /></div>} />
+        {/* The public root IS the Season 2 homepage (URL stays "/"). /season2/*
+            below keeps working unchanged. The old Eternum site (PublicWebsite)
+            is retired and intentionally no longer mounted anywhere. */}
+        <Route path="/" element={<Season2App />} />
         <Route path="/rooms" element={<div className="eternum-global-bg"><RoomsApp /></div>} />
         <Route path="/control" element={<AdminLogin />} />
         <Route
@@ -4799,6 +4808,7 @@ function App() {
             </ProtectedRoomsAdminRoute>
           }
         />
+        <Route path="/season2/*" element={<Season2App />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -1,0 +1,190 @@
+.s2-journey {
+  background: var(--s2-bg-0);
+}
+
+/* One-screen section. Never pinned or sticky: the card sequence is time-based
+   and plays once when the section comes into view (motion/useExperienceJourney). */
+.s2-transition {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2-space-6);
+  background: var(--s2-bg-0);
+  padding: var(--s2-space-8) 0;
+}
+
+.s2-experiences-heading {
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-tight);
+  font-size: clamp(26px, 4.6vw, 44px);
+  text-align: center;
+}
+
+/* While cards are scattered, the rail must show the full vertical spread
+   (overflow-y: visible) without ever leaking horizontal page overflow — a
+   rotated card's painted bounding box can extend past its layout box, which
+   showed up as real document-level horizontal scroll when this was plain
+   "visible" on both axes. `clip` (unlike `hidden`/`auto`) isn't paired with
+   its sibling axis by the CSS visible/auto coupling rule, so this contains
+   X without forcing Y closed. Native horizontal scrolling only turns on via
+   .s2-rail--landed, added by motion/useExperienceJourney once the entry
+   transition fully releases. */
+.s2-rail {
+  position: relative;
+  width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.s2-rail--landed {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.s2-rail--landed::-webkit-scrollbar {
+  display: none;
+}
+
+/* Subtle edge hint instead of a visible scrollbar — signals "more content"
+   without looking like a browser overflow accident. Only relevant once the
+   rail is actually a scroller.
+
+   Applied as a mask on the scroller itself, NOT as ::before/::after overlays:
+   absolutely-positioned pseudo-elements inside a scroll container live in
+   scrolled CONTENT coordinates, so they scroll away with the cards instead of
+   staying at the viewport edges. On mobile the right-edge one (content
+   x = railWidth-32..railWidth) always lands inside Card 2, painting a hard-
+   edged dark vertical band over its photo as soon as the rail is scrolled.
+   A mask is fixed to the element's box, so the fade always sits at the real
+   left/right edges. */
+.s2-rail--landed {
+  --s2-rail-fade: 56px;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--s2-rail-fade),
+    #000 calc(100% - var(--s2-rail-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--s2-rail-fade),
+    #000 calc(100% - var(--s2-rail-fade)),
+    transparent 100%
+  );
+}
+
+.s2-rail-track {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-5);
+  padding: 0 8vw;
+  width: max-content;
+  /* Centres the desktop rail when it fits; resolves to 0 when it overflows. */
+  margin-inline: auto;
+}
+
+.s2-rail-track > * {
+  scroll-snap-align: start;
+}
+
+/* ---------------------------------------------------------------------
+   Tablet + mobile: their own compositions (desktop above is untouched).
+
+   The section is the WHOLE screen. It uses svh (the small viewport height)
+   on purpose, not dvh: dvh changes as the browser toolbar collapses while
+   scrolling, which would resize the scene (and re-lay-out the cards) mid-gesture.
+   svh is stable; the page is black, so the few extra pixels revealed when
+   the toolbar hides are invisible.
+
+   Card size comes from two custom properties per tier so the card can be
+   large relative to the screen without ever exceeding it: height from the
+   viewport height, width capped by both viewport width and the card's
+   portrait ratio (this is what keeps landscape phones sane).
+   --------------------------------------------------------------------- */
+
+/* Tablet, both orientations */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .s2-transition {
+    padding: var(--s2-space-6) 0;
+  }
+
+  .s2-rail-track {
+    gap: var(--s2-space-4);
+    padding: 0 6vw;
+  }
+
+  .s2-rail--landed {
+    scroll-padding-inline: 6vw;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: portrait) {
+  .s2-transition {
+    --s2-card-h: clamp(300px, 50svh, 560px);
+    --s2-card-w: min(50vw, calc(var(--s2-card-h) * 0.74));
+  }
+
+  .s2-experiences-heading {
+    font-size: clamp(32px, 5.4vw, 48px);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+  .s2-transition {
+    --s2-card-h: clamp(210px, 54svh, 420px);
+    --s2-card-w: min(30vw, calc(var(--s2-card-h) * 0.78));
+  }
+}
+
+/* Mobile: a full-screen, portrait-first scene. */
+@media (max-width: 767px) {
+  .s2-transition {
+    --s2-card-h: clamp(220px, 58svh, 560px);
+    --s2-card-w: min(72vw, calc(var(--s2-card-h) * 0.7));
+
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: var(--s2-space-6) 0;
+    gap: var(--s2-space-5);
+  }
+
+  /* Left-aligned to the first card's edge, set large. Above the cards, so a
+     card passing behind it in flight never half-hides it. */
+  .s2-experiences-heading {
+    position: relative;
+    z-index: 10;
+    align-self: stretch;
+    padding: 0 8vw;
+    text-align: left;
+    font-size: clamp(28px, 8.6vw, 40px);
+    line-height: 0.92;
+  }
+
+  /* Same rail — never a vertical stack — with an intentional start (8vw
+     in) and the next card always peeking in from the right: the swipe cue. */
+  .s2-rail-track {
+    gap: var(--s2-space-3);
+    padding: 0 8vw;
+  }
+
+  .s2-rail--landed {
+    scroll-padding-inline: 8vw;
+  }
+
+  .s2-rail--landed {
+    --s2-rail-fade: 32px;
+  }
+}

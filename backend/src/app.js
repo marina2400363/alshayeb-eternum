@@ -80,10 +80,28 @@ app.use("/api/scanner", requireAdmin, scannerRoutes);
 
 const roomRoutes = require("./routes/roomRoutes");
 const roomAdminRoutes = require("./routes/roomAdminRoutes");
+const schoolRoutes = require("./routes/schoolRoutes");
+const schoolAdminRoutes = require("./routes/schoolAdminRoutes");
+const paymentOptionAdminRoutes = require("./routes/paymentOptionAdminRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const depositRoutes = require("./routes/depositRoutes");
+const depositAdminRoutes = require("./routes/depositAdminRoutes");
+const schoolFinanceConfigAdminRoutes = require("./routes/schoolFinanceConfigAdminRoutes");
+const season2AdminRoutes = require("./routes/season2AdminRoutes");
+const sheetEditRoutes = require("./routes/sheetEditRoutes");
 
 app.use("/api/settings", settingsRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/admin/rooms", requireAdmin, roomAdminRoutes);
+app.use("/api/schools", schoolRoutes);
+app.use("/api/admin/schools", requireAdmin, schoolAdminRoutes);
+app.use("/api/admin/payment-options", requireAdmin, paymentOptionAdminRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/deposits", depositRoutes);
+app.use("/api/admin/deposits", requireAdmin, depositAdminRoutes);
+app.use("/api/admin/school-finance-config", requireAdmin, schoolFinanceConfigAdminRoutes);
+app.use("/api/admin/season2", requireAdmin, season2AdminRoutes);
+app.use("/api/sheets", sheetEditRoutes);
 app.use("/api", syncRoutes);
 
 app.use(notFound);

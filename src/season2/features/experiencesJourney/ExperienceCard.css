@@ -1,0 +1,108 @@
+.s2-exp-card {
+  flex: 0 0 auto;
+  width: 280px;
+  height: 360px;
+}
+
+.s2-exp-card-title {
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-tight);
+  font-size: 22px;
+}
+
+.s2-exp-card-tagline {
+  margin-top: var(--s2-space-2);
+  font-size: 12.5px;
+  color: var(--s2-text-secondary);
+}
+
+/* Tablet + mobile: large, immersive cards sized by the section's
+   --s2-card-w / --s2-card-h (see ExperiencesJourney.css). Desktop above is
+   untouched. */
+@media (max-width: 1199px) {
+  .s2-exp-card {
+    width: var(--s2-card-w);
+    height: var(--s2-card-h);
+  }
+
+  /* Shared-CSS order clash (also noted on the onboarding panels):
+     tokens.css's .s2-photo-treatment { position: relative } beats Card.css's
+     .s2-card-media { position: absolute }, collapsing the graded layer and
+     leaving flat black cards. Re-assert it here so tablet/mobile cards
+     carry their graded image + blue lift. */
+  .s2-exp-card .s2-card-media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .s2-exp-card .s2-card-content {
+    padding: 20px;
+  }
+
+  /* A soft light cone behind the type, so a big card is never a flat
+     black slab. Sits above the graded media, below the text. */
+  .s2-exp-card .s2-card-content::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(90% 55% at var(--s2-cone-x, 80%) 0%, rgba(255, 255, 255, 0.26), transparent 74%),
+      linear-gradient(200deg, rgba(120, 150, 255, 0.1), transparent 55%);
+  }
+
+  .s2-rail-track > :nth-child(1) {
+    --s2-cone-x: 78%;
+  }
+
+  .s2-rail-track > :nth-child(2) {
+    --s2-cone-x: 22%;
+  }
+
+  .s2-rail-track > :nth-child(3) {
+    --s2-cone-x: 72%;
+  }
+
+  .s2-rail-track > :nth-child(4) {
+    --s2-cone-x: 30%;
+  }
+
+  .s2-exp-card-title {
+    font-size: 30px;
+    line-height: 0.95;
+  }
+
+  .s2-exp-card-tagline {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .s2-exp-card-title {
+    font-size: 34px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+  .s2-exp-card-title {
+    font-size: 24px;
+  }
+}
+
+/* Parallax overscan (tablet + desktop). motion/useRailParallax shifts each
+   card's media layer horizontally by up to PARALLAX_CLAMP (18px). With the
+   layer exactly the card's size, that shift uncovered an empty vertical strip
+   of the card surface on one edge (and, since real photos landed, it reads as
+   a misaligned strip inside the card). Extending the layer by the same 18px
+   on both sides means the card's overflow:hidden always crops photo, never
+   empty surface. Keep in sync with PARALLAX_CLAMP. Mobile has no parallax, so
+   its framing is left exactly as-is. */
+@media (min-width: 768px) {
+  .s2-exp-card .s2-card-media {
+    inset: 0 -18px;
+  }
+}

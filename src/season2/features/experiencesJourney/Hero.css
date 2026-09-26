@@ -1,0 +1,196 @@
+.s2-hero {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--s2-bg-0);
+}
+
+/* Bottom fade: the photo dissolves into the page background (--s2-bg-0, the
+   same black as the section below) instead of ending in a hard edge. Sits above
+   the photo and its tint (z-index 1) but below the copy (z-index 2), so the
+   title and scroll cue are never dimmed. Many eased stops rather than a plain
+   two-stop gradient, so there is no visible band or "shelf" where the fade
+   starts; it ends on exactly --s2-bg-0 so the seam with the next section is
+   invisible. */
+.s2-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  height: clamp(160px, 40%, 440px);
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.03) 10%,
+    rgba(0, 0, 0, 0.1) 22%,
+    rgba(0, 0, 0, 0.22) 34%,
+    rgba(0, 0, 0, 0.4) 46%,
+    rgba(0, 0, 0, 0.6) 58%,
+    rgba(0, 0, 0, 0.78) 70%,
+    rgba(0, 0, 0, 0.91) 82%,
+    rgba(0, 0, 0, 0.98) 92%,
+    var(--s2-bg-0) 100%
+  );
+}
+
+/* Media layer — structured so a real local video is a one-line swap later:
+   pass videoSrc/posterSrc to <Hero>. Nothing here changes shape when that
+   happens, only .s2-hero-media-fallback gets replaced by <video>. */
+.s2-hero-media {
+  position: absolute;
+  inset: 0;
+}
+
+.s2-hero-media-fallback {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 100% at 50% 20%, #142238 0%, #05070c 55%, #000 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+.s2-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.s2-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s2-space-5);
+  max-width: 720px;
+  padding: 0 var(--s2-space-5);
+  animation: s2-hero-rise 1s var(--s2-ease-out) both;
+  animation-delay: 0.15s;
+}
+
+/* Local readability backdrop for the hero copy only — the hero image itself
+   stays untouched and visually dominant everywhere outside this small
+   radial area. Sized/positioned to the content box (with a little breathing
+   room via inset) rather than the whole .s2-hero, so it never reads as a
+   darkened hero or a visible box: strongest (~30% black) at the exact
+   center of the text, smoothly gone well before the gradient's own edges.
+   z-index -1 keeps it behind the text but still above .s2-hero-media/.s2-tint
+   (same technique as .s2-card-content::before in ExperienceCard.css). */
+.s2-hero-content::before {
+  content: "";
+  position: absolute;
+  inset: -12% -18%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 62% 58% at 50% 42%,
+    rgba(0, 0, 0, 0.32) 0%,
+    rgba(0, 0, 0, 0.18) 40%,
+    rgba(0, 0, 0, 0.06) 65%,
+    transparent 82%
+  );
+}
+
+.s2-hero-title {
+  margin: 0;
+  font-family: var(--s2-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.88;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+.s2-hero-title-line {
+  display: block;
+  font-stretch: var(--s2-stretch-brand);
+  /* Unchanged from the approved sizing (46px floor, 9vw, 96px ceiling) —
+     plus a width cap: "ALSHAYEB" is 6.8em wide in Archivo @125%, so on
+     phones narrower than ~360px the 46px floor would overflow. At 390 and
+     wider the cap never bites. */
+  font-size: min(max(46px, 9vw), calc((100vw - 48px) / 7.1), 96px);
+  letter-spacing: var(--s2-tracking-tight);
+}
+
+.s2-hero-title-line--sub {
+  font-weight: 400;
+  font-size: clamp(14px, 2.4vw, 20px);
+  letter-spacing: var(--s2-tracking-wider);
+  color: var(--s2-text-primary);
+  margin-top: var(--s2-space-3);
+}
+
+.s2-scroll-cue {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-3);
+  font-size: 11px;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.s2-scroll-cue i {
+  display: block;
+  width: 1px;
+  height: 30px;
+  background: linear-gradient(var(--s2-text-primary), transparent);
+  animation: s2-cue 2.2s ease-in-out infinite;
+}
+
+@keyframes s2-hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes s2-cue {
+  0% {
+    transform: scaleY(0.2);
+    transform-origin: top;
+  }
+  50% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  51% {
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+@media (max-width: 767px) {
+  .s2-hero {
+    height: 92svh;
+    min-height: 480px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-hero-content {
+    animation: none;
+  }
+
+  .s2-scroll-cue i {
+    animation: none;
+  }
+}
