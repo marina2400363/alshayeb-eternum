@@ -8,9 +8,10 @@ import { PATHS } from "../paths";
 // for the homepage cards. Swap for graded photographs later.
 const INCOMER_MEDIA = "radial-gradient(85% 125% at 82% 0%, #b3c0dc 0%, #3d4966 32%, #0b0e17 68%, #04060b 100%)";
 const OUTCOMER_MEDIA = "radial-gradient(85% 125% at 14% 4%, #bcc0cc 0%, #454955 32%, #0d0e12 68%, #050608 100%)";
+const GUEST_LIST_MEDIA = "radial-gradient(85% 125% at 50% 0%, #b8bfd2 0%, #41475a 32%, #0c0d14 68%, #050609 100%)";
 
 // "Enter Your Experience" — the first functional screen after the homepage
-// journey. Deliberately two big choices and nothing else.
+// journey. Deliberately big choices and nothing else.
 export default function EnterExperience() {
   return (
     <OnboardingStage backTo={PATHS.home} backLabel="Home" progress={0.18} variant="split">
@@ -22,6 +23,9 @@ export default function EnterExperience() {
         {/* Outcomer is not open yet: same panel, inert, labelled COMING SOON —
             no link, so nothing can enter (or reach the retired Season 1) flow. */}
         <ChoiceCard index="02" title="Outcomer" media={OUTCOMER_MEDIA} comingSoon />
+        {/* Guest List is not open yet either: same inert COMING SOON panel.
+            No route, no link, no API — there is no Guest List flow. */}
+        <ChoiceCard index="03" title="Guest List" media={GUEST_LIST_MEDIA} comingSoon />
       </div>
     </OnboardingStage>
   );

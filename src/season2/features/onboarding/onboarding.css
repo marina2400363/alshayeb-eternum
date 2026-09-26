@@ -491,7 +491,7 @@ body:has(.s2-ob-ca) {
   outline-offset: -4px;
 }
 
-/* Coming-soon panel (Outcomer): the same panel and grid, but inert — no
+/* Coming-soon panels (Outcomer, Guest List): the same panel and grid, but inert — no
    pointer cursor, and none of the link hover/focus responses above. The
    label takes the arrow's cell. */
 .s2-ob-choice--soon {
@@ -1390,8 +1390,11 @@ body:has(.s2-ob-ca) {
     padding-bottom: 8px;
   }
 
+  /* One equal column per panel (Incomer / Outcomer / Guest List). */
   .s2-ob-choices--columns {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     grid-auto-rows: auto;
   }
 
