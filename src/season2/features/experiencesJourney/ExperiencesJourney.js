@@ -45,7 +45,7 @@ export default function ExperiencesJourney() {
       <Hero posterSrc={HOME_HERO_SRC} />
       <div className="s2-transition" ref={journeyRef}>
         <h2 className="s2-experiences-heading" ref={headingRef}>
-          Alshayeb Experiences
+          Moments by Alshayeb
         </h2>
         <div className="s2-rail" ref={railRef}>
           <div className="s2-rail-track">
