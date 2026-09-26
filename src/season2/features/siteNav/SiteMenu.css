@@ -1,0 +1,220 @@
+/* Customer-facing Season 2 menu (see SiteMenu.js). Same world as the
+   headers it sits in: black, Archivo, hairlines, tracked small caps. */
+
+/* ---- Toggle: two hairlines, crossing into an X when it closes ---------- */
+
+.s2-root .s2-menu-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -11px; /* optical: lines sit on the page edge, target stays 44px */
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--s2-text-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.s2-menu-lines {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 8px;
+}
+
+.s2-menu-lines i {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transition: transform 0.3s var(--s2-ease-out), top 0.3s var(--s2-ease-out);
+}
+
+.s2-menu-lines i:first-child {
+  top: 0;
+}
+
+.s2-menu-lines i:last-child {
+  top: 7px;
+}
+
+@media (hover: hover) {
+  .s2-root .s2-menu-toggle:not(.is-close):hover .s2-menu-lines i:last-child {
+    transform: scaleX(0.6);
+    transform-origin: right center;
+  }
+}
+
+.s2-menu-toggle.is-close .s2-menu-lines i {
+  top: 3.5px;
+}
+
+.s2-menu-toggle.is-close .s2-menu-lines i:first-child {
+  transform: rotate(45deg);
+}
+
+.s2-menu-toggle.is-close .s2-menu-lines i:last-child {
+  transform: rotate(-45deg);
+}
+
+/* While open, the page underneath stays put (gutter kept: no width jump). */
+html.s2-menu-open {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  background: #000; /* the reserved gutter shows the root background */
+}
+
+/* ---- Overlay ------------------------------------------------------------ */
+
+.s2-menu {
+  --pad: var(--s2-gutter);
+
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: rgba(0, 0, 0, 0.96);
+  opacity: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transition: opacity 0.24s var(--s2-ease-standard);
+}
+
+.s2-menu.is-open {
+  opacity: 1;
+}
+
+/* Mirrors the header: label | wordmark | close, on the page margin. */
+.s2-menu-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 68px;
+  padding: 6px var(--pad);
+}
+
+.s2-menu-bar-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}
+
+.s2-root .s2-menu-wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-brand);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+}
+
+.s2-menu-bar-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.s2-menu-nav {
+  align-self: center;
+  padding: 24px var(--pad) calc(48px + env(safe-area-inset-bottom, 0px));
+}
+
+.s2-menu-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--s2-border);
+}
+
+.s2-menu-item {
+  border-top: 1px solid var(--s2-border);
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition: opacity 0.3s var(--s2-ease-standard), transform 0.3s var(--s2-ease-standard);
+}
+
+.s2-menu.is-open .s2-menu-item {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s var(--s2-ease-out), transform 0.6s var(--s2-ease-out);
+  transition-delay: calc(60ms + var(--i) * 55ms);
+}
+
+.s2-root .s2-menu-link {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(16px, 3vw, 40px);
+  padding: clamp(18px, 3.4svh, 30px) 0;
+  text-decoration: none;
+  color: var(--s2-text-primary);
+  transition: color var(--s2-duration-fast) var(--s2-ease-standard);
+}
+
+.s2-menu-index {
+  flex: none;
+  min-width: 2.4em;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  color: var(--s2-text-secondary);
+}
+
+.s2-menu-label {
+  font-family: var(--s2-font-display);
+  font-stretch: var(--s2-stretch-display);
+  font-weight: 800;
+  font-size: clamp(38px, 10vw, 104px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  transition: transform var(--s2-duration-base) var(--s2-ease-out);
+}
+
+/* Hovering one item quietly recedes the others. */
+@media (hover: hover) {
+  .s2-root .s2-menu-list:hover .s2-menu-link:not(:hover) {
+    color: var(--s2-text-muted);
+  }
+
+  .s2-menu-link:hover .s2-menu-label {
+    transform: translate3d(8px, 0, 0);
+  }
+}
+
+.s2-root .s2-menu-link:focus-visible {
+  outline-offset: -2px;
+}
+
+.s2-menu-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s2-menu,
+  .s2-menu-item,
+  .s2-menu.is-open .s2-menu-item,
+  .s2-menu-label {
+    transition: none;
+    transform: none;
+  }
+
+  .s2-menu-lines i {
+    transition: none;
+  }
+}

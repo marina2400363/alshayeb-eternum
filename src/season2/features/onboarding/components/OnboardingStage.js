@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeftIcon } from "./icons";
 import { PATHS } from "../paths";
+import SiteMenu from "../../siteNav/SiteMenu";
 import "../onboarding.css";
 
 // Where the progress line stopped on the previous screen. Each screen is its
@@ -60,16 +61,32 @@ export default function OnboardingStage({ children, backTo, backLabel = "Back", 
             </Link>
           )}
         </div>
-        <Link className="s2-ob-wordmark" to={PATHS.home}>
+        <Link className="s2-ob-wordmark" to={PATHS.home} aria-label="Go to homepage">
           ALSHAYEB
         </Link>
-        <div className="s2-ob-header-side s2-ob-header-side--end">{sideLabel}</div>
+        <div className="s2-ob-header-side s2-ob-header-side--end">
+          {sideLabel && <HeaderLabel text={sideLabel} />}
+          <SiteMenu />
+        </div>
       </header>
 
       <main className="s2-ob-main">
         <div className="s2-ob-panel">{children}</div>
       </main>
     </div>
+  );
+}
+
+// "Step 1 / 3" — the word "Step" is dropped on narrow screens (CSS) so the
+// count still fits beside the wordmark and the menu toggle.
+function HeaderLabel({ text }) {
+  const match = /^(Step\s+)(.+)$/i.exec(text);
+  if (!match) return <span className="s2-ob-header-label">{text}</span>;
+  return (
+    <span className="s2-ob-header-label" aria-label={text}>
+      <span className="s2-ob-header-label-word">{match[1]}</span>
+      {match[2]}
+    </span>
   );
 }
 

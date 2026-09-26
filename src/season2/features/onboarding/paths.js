@@ -1,7 +1,8 @@
 // Absolute Season 2 onboarding paths. App.js mounts Season 2 at /season2/*,
 // so navigation code uses these constants instead of scattering strings.
 export const PATHS = {
-  home: "/season2",
+  // The public root IS the Season 2 homepage (App.js mounts it at "/").
+  home: "/",
   enter: "/season2/enter",
   incomer: "/season2/enter/incomer",
   incomerReturning: "/season2/enter/incomer/returning",

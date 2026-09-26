@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import SiteMenu, { HOME_PATH } from "../siteNav/SiteMenu";
 import "./CustomerAreaShell.css";
 
 // Structural shell only. Shared between Marina's onboarding-adjacent screens
@@ -8,8 +10,13 @@ export default function CustomerAreaShell({ nav, children }) {
   return (
     <div className="s2-ca-shell">
       <header className="s2-ca-header">
-        <span className="s2-ca-wordmark">ALSHAYEB</span>
-        <span className="s2-ca-header-label">Customer Area</span>
+        <Link className="s2-ca-wordmark" to={HOME_PATH} aria-label="Go to homepage">
+          ALSHAYEB
+        </Link>
+        <div className="s2-ca-header-end">
+          <span className="s2-ca-header-label">Customer Area</span>
+          <SiteMenu />
+        </div>
       </header>
       <div className="s2-ca-body">
         {nav && <nav className="s2-ca-nav">{nav}</nav>}

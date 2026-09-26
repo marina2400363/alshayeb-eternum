@@ -20,10 +20,18 @@
 }
 
 .s2-ca-wordmark {
+  text-decoration: none;
+  cursor: pointer;
   font-family: var(--s2-font-display);
   font-weight: 800;
   letter-spacing: var(--s2-tracking-wide);
   font-size: 14px;
+}
+
+.s2-ca-header-end {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-4);
 }
 
 .s2-ca-header-label {
