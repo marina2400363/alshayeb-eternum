@@ -61,7 +61,7 @@
 .s2-hero-media-fallback {
   position: absolute;
   inset: 0;
-  background: radial-gradient(120% 100% at 50% 20%, #142238 0%, #05070c 55%, #000 100%);
+  background: radial-gradient(120% 100% at 50% 20%, var(--s2-bg-2) 0%, var(--s2-bg-1) 55%, var(--s2-bg-0) 100%);
   background-size: cover;
   background-position: center;
 }
