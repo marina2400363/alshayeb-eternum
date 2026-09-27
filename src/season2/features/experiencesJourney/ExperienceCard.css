@@ -32,7 +32,7 @@
      tokens.css's .s2-photo-treatment { position: relative } beats Card.css's
      .s2-card-media { position: absolute }, collapsing the graded layer and
      leaving flat black cards. Re-assert it here so tablet/mobile cards
-     carry their graded image + blue lift. */
+     carry their graded image + neutral lift. */
   .s2-exp-card .s2-card-media {
     position: absolute;
     inset: 0;
@@ -52,7 +52,7 @@
     pointer-events: none;
     background:
       radial-gradient(90% 55% at var(--s2-cone-x, 80%) 0%, rgba(255, 255, 255, 0.26), transparent 74%),
-      linear-gradient(200deg, rgba(120, 150, 255, 0.1), transparent 55%);
+      linear-gradient(200deg, var(--s2-lift), transparent 55%);
   }
 
   .s2-rail-track > :nth-child(1) {

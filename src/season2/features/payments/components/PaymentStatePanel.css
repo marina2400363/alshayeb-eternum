@@ -18,7 +18,7 @@
 }
 
 .s2-pay-state--success {
-  --s2-pay-state-tone: var(--s2-accent);
+  --s2-pay-state-tone: var(--s2-status-success);
 }
 
 .s2-pay-state-status {

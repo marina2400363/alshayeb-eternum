@@ -42,7 +42,7 @@
 }
 
 .s2-root .s2-btn--secondary {
-  background: rgba(18, 18, 20, 0.88);
+  background: rgba(13, 13, 13, 0.88);
   border-color: var(--s2-border);
   color: var(--s2-text-primary);
 }
