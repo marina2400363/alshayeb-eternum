@@ -28,12 +28,18 @@ const FullPaymentStatus = require("../src/models/FullPaymentStatus");
 const Event = require("../src/models/Event");
 const autoSync = require("../src/services/financeAutoSync");
 const { HEADER_ROW: HEADER } = require("../src/services/googleSheetsSchoolFinanceSync");
+const { SCHOOL_ACCESS_TOKEN_PURPOSE } = require("../src/utils/schoolAccessCode");
 const { createMemoryDb, queryResult } = require("./support/memoryDb");
 
 const SHEET_ID = "1AbCdEf123456789_ABCDEFGHIJKLMNOPQRSTUVWX";
 const adminHeaders = () => ({
   Authorization: `Bearer ${jwt.sign({ email: "admin@example.com", role: "admin" }, process.env.JWT_SECRET, { expiresIn: "1h" })}`
 });
+function schoolAccessTokenFor(school) {
+  return jwt.sign({ schoolId: String(school._id), purpose: SCHOOL_ACCESS_TOKEN_PURPOSE }, process.env.JWT_SECRET, {
+    expiresIn: "2h"
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Harness
@@ -232,7 +238,13 @@ function addConfig(school, overrides = {}) {
 
 function register(base, school, overrides = {}) {
   const form = new FormData();
-  const fields = { fullName: "Marina Adel", phone: "01012345678", email: "marina@example.com", schoolId: String(school._id), ...overrides };
+  const fields = {
+    fullName: "Marina Adel",
+    phone: "01012345678",
+    email: "marina@example.com",
+    schoolAccessToken: schoolAccessTokenFor(school),
+    ...overrides
+  };
   for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
   form.append("incomerPhoto", new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }), "photo.png");
   return fetch(`${base}/api/attendees/register`, { method: "POST", body: form }).then(parse);

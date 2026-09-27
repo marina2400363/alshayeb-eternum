@@ -1,13 +1,14 @@
 import { EMPTY_DRAFT } from "./registrationDraftStorage";
 import { normalizePhone } from "../utils/phone";
 
-// Pure state for the New Incomer registration flow. Side effects (fetching,
-// compressing, object URLs, storage, submitting) live in RegistrationProvider.
+// Pure state for the New Incomer registration flow. Side effects (verifying
+// the School Access Code, compressing, object URLs, storage, submitting)
+// live in RegistrationProvider.
 //
 //   draft       — the text the customer entered (persisted to sessionStorage)
 //   restored    — the draft was recovered from storage after a reload
 //   precheckedPhone — last phone the Details pre-check found NOT registered
-//   schools     — Admin-managed school list, cached for the whole flow
+//   schoolAccess — in-flight status of verifying a School Access Code
 //   photo       — in-memory only: the optimized File + its preview URL
 //   submit      — final POST status and the last placed error
 
@@ -21,7 +22,7 @@ export function createInitialState({ draft = null, restored = false, prefillPhon
     draft: base,
     restored,
     precheckedPhone: "",
-    schools: { status: "idle", items: [], error: "" },
+    schoolAccess: { status: "idle", error: "" },
     photo: { file: null, previewUrl: "", processing: false, error: "" },
     submit: { status: "idle", error: null }
   };
@@ -38,21 +39,19 @@ function clearedSubmitError(submit, fields) {
 
 export function registrationReducer(state, action) {
   switch (action.type) {
-    case "SCHOOLS_LOADING":
-      return { ...state, schools: { ...state.schools, status: "loading", error: "" } };
+    case "SCHOOL_ACCESS_VERIFYING":
+      return { ...state, schoolAccess: { status: "verifying", error: "" } };
 
-    case "SCHOOLS_LOADED":
-      return { ...state, schools: { status: "ready", items: action.items, error: "" } };
-
-    case "SCHOOLS_FAILED":
-      return { ...state, schools: { ...state.schools, status: "error", error: action.message } };
-
-    case "SET_SCHOOL":
+    case "SCHOOL_ACCESS_GRANTED":
       return {
         ...state,
-        draft: { ...state.draft, schoolId: action.id, schoolName: action.name },
+        schoolAccess: { status: "idle", error: "" },
+        draft: { ...state.draft, schoolAccessToken: action.token, schoolName: action.schoolName },
         submit: clearedSubmitError(state.submit, ["school"])
       };
+
+    case "SCHOOL_ACCESS_FAILED":
+      return { ...state, schoolAccess: { status: "error", error: action.message } };
 
     case "SET_DETAILS": {
       // email is optional in the action so callers that only touch name/phone

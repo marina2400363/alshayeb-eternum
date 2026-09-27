@@ -13,6 +13,8 @@
 //   GET  /api/admin/schools                                     → { success, schools:[School] }
 //   POST /api/admin/schools                                     → 201 { success, school }
 //   PUT  /api/admin/schools/:id                                 → { success, school }
+//   POST /api/admin/schools/:id/access-code                     → { success, school } (body: { code? } — omitted/blank generates one)
+//                                                                | 409 { success:false, message } (custom code already used by another School)
 //   GET  /api/admin/payment-options?schoolId=                   → { success, paymentOptions:[PaymentOption] }
 //   POST /api/admin/payment-options                             → 201 { success, paymentOption }
 //   PUT  /api/admin/payment-options/:id                         → { success, paymentOption }
@@ -162,6 +164,16 @@ export async function updateSchool(id, updates) {
   const body = await request(`/api/admin/schools/${id}`, {
     method: "PUT",
     body: JSON.stringify(updates)
+  });
+  return body.school;
+}
+
+// code omitted/blank -> the backend generates a fresh random one.
+export async function setSchoolAccessCode(id, code) {
+  const trimmed = String(code || "").trim();
+  const body = await request(`/api/admin/schools/${id}/access-code`, {
+    method: "POST",
+    body: JSON.stringify(trimmed ? { code: trimmed } : {})
   });
   return body.school;
 }

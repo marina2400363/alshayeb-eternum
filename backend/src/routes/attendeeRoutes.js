@@ -1,4 +1,5 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const multer = require("multer");
 
@@ -9,7 +10,8 @@ const apiError = require("../utils/apiError");
 const { cleanPhone, isEgyptianPhone } = require("../utils/phone");
 const { cleanEmail, isValidEmail } = require("../utils/emailAddress");
 const { serializeAttendee } = require("../utils/serializers");
-const { requireAdmin } = require("../middleware/requireAdmin");
+const { requireAdmin, getJwtSecret } = require("../middleware/requireAdmin");
+const { SCHOOL_ACCESS_TOKEN_PURPOSE } = require("../utils/schoolAccessCode");
 const { uploadIncomerPhoto, deleteIncomerPhoto } = require("../utils/cloudinaryUpload");
 const { sendSeason2RegistrationReceivedEmail } = require("../utils/season2Email");
 const { requestSchoolFinanceSync } = require("../services/financeAutoSync");
@@ -221,6 +223,33 @@ router.get(
   })
 );
 
+// The School is NEVER taken from a customer-provided schoolId — only from a
+// schoolAccessToken previously issued by POST /api/school-access/verify after
+// a correct Access Code. This is the sole path by which a registration can
+// ever be associated with a School: an attacker submitting an arbitrary
+// schoolId directly gets no token to forge (JWT_SECRET), so gains nothing.
+const SCHOOL_ACCESS_EXPIRED_MESSAGE = "Your school access has expired. Please enter your school access code again.";
+
+function resolveSchoolIdFromAccessToken(rawToken) {
+  const token = String(rawToken || "").trim();
+  if (!token) {
+    throw apiError(SCHOOL_ACCESS_EXPIRED_MESSAGE, 422);
+  }
+
+  let payload;
+  try {
+    payload = jwt.verify(token, getJwtSecret());
+  } catch {
+    throw apiError(SCHOOL_ACCESS_EXPIRED_MESSAGE, 422);
+  }
+
+  if (payload.purpose !== SCHOOL_ACCESS_TOKEN_PURPOSE || !mongoose.Types.ObjectId.isValid(payload.schoolId)) {
+    throw apiError(SCHOOL_ACCESS_EXPIRED_MESSAGE, 422);
+  }
+
+  return payload.schoolId;
+}
+
 // Season 2: Incomer registration with Admin-managed School association.
 // The ticket price is NEVER trusted from the request body — it is always
 // snapshotted server-side from the School's current price at registration time.
@@ -233,7 +262,6 @@ async function registerIncomer(req, res) {
   const fullName = String(req.body.fullName || req.body.name || "").trim();
   const phone = cleanPhone(req.body.phoneNumber || req.body.phone);
   const email = cleanEmail(req.body.email);
-  const schoolId = String(req.body.schoolId || "").trim();
 
   if (!fullName) {
     throw apiError("Full name is required.", 422);
@@ -259,9 +287,7 @@ async function registerIncomer(req, res) {
     throw apiError("Enter a valid email address.", 422);
   }
 
-  if (!schoolId || !mongoose.Types.ObjectId.isValid(schoolId)) {
-    throw apiError("A valid schoolId is required.", 422);
-  }
+  const schoolId = resolveSchoolIdFromAccessToken(req.body.schoolAccessToken);
 
   // Rate limit per phone (attempts that passed validation), before any
   // database read, upload or email.
@@ -269,7 +295,7 @@ async function registerIncomer(req, res) {
 
   const school = await School.findById(schoolId);
   if (!school) {
-    throw apiError("Selected school was not found.", 422);
+    throw apiError(SCHOOL_ACCESS_EXPIRED_MESSAGE, 422);
   }
 
   // Phase 1: an Incomer is a customer profile, not an event registration.

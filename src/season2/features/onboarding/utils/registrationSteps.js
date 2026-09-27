@@ -11,11 +11,15 @@ export function detailsIncomplete(draft) {
 // Which registration step must be completed first, given the draft. Used by
 // the step routes so a refresh, a pasted URL or a stale tab can never land on
 // a step whose prerequisites are missing:
-//   • School needs valid Details
-//   • Photo needs valid Details AND a chosen School
+//   • School Access needs valid Details
+//   • Photo needs valid Details AND a verified School Access Code
 // Returns null when the draft is ready for the Photo + Confirm step.
+//
+// A missing schoolAccessToken (never verified, or the token later rejected by
+// the backend as expired) always sends the customer back to School Access —
+// there is no public School list to fall back to.
 export function firstIncompleteStep(draft) {
   if (detailsIncomplete(draft)) return PATHS.incomerNewDetails;
-  if (!draft.schoolId) return PATHS.incomerNewSchool;
+  if (!draft.schoolAccessToken) return PATHS.incomerNewSchool;
   return null;
 }

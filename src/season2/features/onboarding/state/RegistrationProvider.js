@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { fetchSchools, registerIncomer } from "../../../services/onboarding.api";
+import { verifySchoolAccessCode, registerIncomer } from "../../../services/onboarding.api";
 import { createInitialState, registrationReducer } from "./registrationReducer";
 import { clearDraft, hasDraftContent, readDraft, writeDraft } from "./registrationDraftStorage";
 import { processPhoto } from "../utils/photo";
@@ -19,7 +19,8 @@ export function useRegistration() {
 
 // Owns everything with side effects for the New Incomer flow, so the three
 // step screens stay thin and browser Back/refresh behave predictably:
-//   • the schools list (fetched once, cached for the whole flow)
+//   • the School Access Code verification (resolves a schoolAccessToken —
+//     there is no School list to fetch or cache)
 //   • the photo pipeline (validate → compress → preview URL, with cleanup)
 //   • the final submit (single-flight, keeps draft + photo on failure)
 //   • the text draft (mirrored to sessionStorage; never the File)
@@ -44,25 +45,31 @@ export default function RegistrationProvider({ children }) {
     writeDraft(state.draft);
   }, [state.draft]);
 
-  // ---- schools ----
-  const schoolsInFlight = useRef(false);
-  const schoolsAbort = useRef(null);
+  // ---- school access code ----
+  const schoolAccessInFlight = useRef(false);
+  const schoolAccessAbort = useRef(null);
 
-  const loadSchools = useCallback(async ({ force = false } = {}) => {
-    if (schoolsInFlight.current) return;
-    if (stateRef.current.schools.status === "ready" && !force) return;
+  // Resolves { ok:true } | { ok:false, aborted? }. Never throws. On success
+  // the schoolAccessToken + schoolName land in the draft (SCHOOL_ACCESS_GRANTED).
+  const verifySchoolAccess = useCallback(async (code) => {
+    if (schoolAccessInFlight.current) return { ok: false };
 
-    schoolsInFlight.current = true;
-    schoolsAbort.current = new AbortController();
-    dispatch({ type: "SCHOOLS_LOADING" });
+    schoolAccessInFlight.current = true;
+    schoolAccessAbort.current = new AbortController();
+    dispatch({ type: "SCHOOL_ACCESS_VERIFYING" });
 
     try {
-      const items = await fetchSchools({ signal: schoolsAbort.current.signal });
-      dispatch({ type: "SCHOOLS_LOADED", items });
+      const { schoolAccessToken, schoolName } = await verifySchoolAccessCode(code, {
+        signal: schoolAccessAbort.current.signal
+      });
+      dispatch({ type: "SCHOOL_ACCESS_GRANTED", token: schoolAccessToken, schoolName });
+      return { ok: true };
     } catch (error) {
-      if (error.kind !== "aborted") dispatch({ type: "SCHOOLS_FAILED", message: error.message });
+      if (error.kind === "aborted") return { ok: false, aborted: true };
+      dispatch({ type: "SCHOOL_ACCESS_FAILED", message: error.message });
+      return { ok: false };
     } finally {
-      schoolsInFlight.current = false;
+      schoolAccessInFlight.current = false;
     }
   }, []);
 
@@ -121,7 +128,7 @@ export default function RegistrationProvider({ children }) {
           fullName: cleanFullName(draft.fullName),
           phone: draft.phone,
           email: normalizeEmail(draft.email),
-          schoolId: draft.schoolId,
+          schoolAccessToken: draft.schoolAccessToken,
           photo: photo.file
         },
         { signal: submitAbort.current.signal }
@@ -152,7 +159,7 @@ export default function RegistrationProvider({ children }) {
   // ---- leaving the flow: cancel requests, invalidate photo work, free the URL ----
   useEffect(
     () => () => {
-      schoolsAbort.current?.abort();
+      schoolAccessAbort.current?.abort();
       submitAbort.current?.abort();
       photoToken.current += 1;
       releasePreviewUrl();
@@ -162,16 +169,15 @@ export default function RegistrationProvider({ children }) {
 
   const actions = useMemo(
     () => ({
-      loadSchools,
+      verifySchoolAccess,
       selectPhoto,
       submit,
-      chooseSchool: (school) => dispatch({ type: "SET_SCHOOL", id: school.id, name: school.name }),
       setDetails: (fullName, phone, email) => dispatch({ type: "SET_DETAILS", fullName, phone, email }),
       markPrechecked: (phone) => dispatch({ type: "PRECHECK_PASSED", phone }),
       dismissSubmitError: () => dispatch({ type: "SUBMIT_ERROR_DISMISSED" }),
       discardDraft: clearDraft
     }),
-    [loadSchools, selectPhoto, submit]
+    [verifySchoolAccess, selectPhoto, submit]
   );
 
   const value = useMemo(() => ({ state, ...actions }), [state, actions]);

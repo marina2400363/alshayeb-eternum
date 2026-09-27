@@ -13,13 +13,21 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
+const jwt = require("jsonwebtoken");
 const resendPkg = require("resend");
 
 const app = require("../src/app");
 const rl = require("../src/middleware/rateLimit");
 const { MAX_CUSTOMER_UPLOAD_BYTES, MAX_CUSTOMER_UPLOAD_LABEL, MULTER_FILE_SIZE_LIMIT } = require("../src/utils/uploadLimits");
+const { SCHOOL_ACCESS_TOKEN_PURPOSE } = require("../src/utils/schoolAccessCode");
 const { createMemoryDb } = require("./support/memoryDb");
 const { MemoryRateLimitStore } = require("./support/rateLimitMemoryStore");
+
+function schoolAccessTokenFor(school) {
+  return jwt.sign({ schoolId: String(school._id), purpose: SCHOOL_ACCESS_TOKEN_PURPOSE }, process.env.JWT_SECRET, {
+    expiresIn: "2h"
+  });
+}
 
 const MB = 1024 * 1024;
 let db;
@@ -73,7 +81,13 @@ const parse = async (res) => ({ status: res.status, body: await res.json() });
 
 function register(base, school, bytes, overrides = {}) {
   const form = new FormData();
-  const fields = { fullName: "Marina Adel", phone: "01012345678", email: "marina@example.com", schoolId: String(school._id), ...overrides };
+  const fields = {
+    fullName: "Marina Adel",
+    phone: "01012345678",
+    email: "marina@example.com",
+    schoolAccessToken: schoolAccessTokenFor(school),
+    ...overrides
+  };
   for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
   form.append("incomerPhoto", file(bytes), "photo.png");
   return fetch(`${base}/api/attendees/register`, { method: "POST", body: form }).then(parse);

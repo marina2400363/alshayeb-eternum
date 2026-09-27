@@ -5,7 +5,13 @@
 // simply asked for again after a refresh.
 const STORAGE_KEY = "alshayebS2RegistrationDraft";
 
-export const EMPTY_DRAFT = { schoolId: "", schoolName: "", fullName: "", phone: "", email: "" };
+// schoolAccessToken is the short-lived, signed token issued by
+// POST /api/school-access/verify after a correct School Access Code — never a
+// schoolId. It is the only thing that ties this draft to a School; there is
+// no public School list to re-derive one from, so if it goes missing (or the
+// backend later rejects it as expired) the customer must enter their code
+// again — never a fallback School picker.
+export const EMPTY_DRAFT = { schoolAccessToken: "", schoolName: "", fullName: "", phone: "", email: "" };
 
 const asString = (value) => (typeof value === "string" ? value : "");
 
@@ -15,7 +21,7 @@ export function readDraft() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
-      schoolId: asString(parsed?.schoolId),
+      schoolAccessToken: asString(parsed?.schoolAccessToken),
       schoolName: asString(parsed?.schoolName),
       fullName: asString(parsed?.fullName),
       phone: asString(parsed?.phone),
@@ -28,7 +34,7 @@ export function readDraft() {
 }
 
 export function hasDraftContent(draft) {
-  return Boolean(draft && (draft.schoolId || draft.fullName || draft.phone || draft.email));
+  return Boolean(draft && (draft.schoolAccessToken || draft.fullName || draft.phone || draft.email));
 }
 
 export function writeDraft(draft) {
@@ -36,7 +42,7 @@ export function writeDraft(draft) {
     if (hasDraftContent(draft)) {
       // Whitelist: only these five text fields can ever reach storage.
       const text = {
-        schoolId: asString(draft.schoolId),
+        schoolAccessToken: asString(draft.schoolAccessToken),
         schoolName: asString(draft.schoolName),
         fullName: asString(draft.fullName),
         phone: asString(draft.phone),

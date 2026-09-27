@@ -155,11 +155,29 @@ function createMemoryDb() {
   });
 
   // --- School -------------------------------------------------------------
+  function assertSchoolAccessCodeUnique(candidate) {
+    if (!candidate.accessCode) return;
+    const clash = db.schools.some((doc) => doc !== candidate && doc.accessCode === candidate.accessCode);
+    if (clash) throw duplicateKeyError("accessCode_1");
+  }
   stub(School, "findById", (id) => queryResult(db.schools.find((doc) => String(doc._id) === String(id)) || null));
+  stub(School, "findOne", (filter = {}) => queryResult(db.schools.find((doc) => matches(doc, filter)) || null));
   stub(School, "find", (filter = {}) => queryResult(db.schools.filter((doc) => matches(doc, filter))));
   stub(School, "findByIdAndUpdate", (id, update) => {
     const doc = db.schools.find((candidate) => String(candidate._id) === String(id));
-    return queryResult(doc ? applyUpdate(doc, update) : null);
+    if (!doc) return queryResult(null);
+    const next = { ...doc };
+    applyUpdate(next, update);
+    assertSchoolAccessCodeUnique(next);
+    applyUpdate(doc, update);
+    return queryResult(doc);
+  });
+  stub(School, "create", async (data) => {
+    const doc = { _id: new mongoose.Types.ObjectId(), createdAt: tick(), ...data };
+    if (doc.accessCode) doc.accessCode = String(doc.accessCode).trim().toUpperCase();
+    assertSchoolAccessCodeUnique(doc);
+    db.schools.push(doc);
+    return doc;
   });
 
   // --- Deposit ------------------------------------------------------------
@@ -245,8 +263,9 @@ function createMemoryDb() {
 
   // --- Fixtures -----------------------------------------------------------
   // options: amounts (numbers) or { amount, label, enabled } objects.
-  db.addSchool = ({ name = "School", ticketPrice, options = [], showTicketPriceToCustomer = true } = {}) => {
+  db.addSchool = ({ name = "School", ticketPrice, options = [], showTicketPriceToCustomer = true, accessCode } = {}) => {
     const school = { _id: new mongoose.Types.ObjectId(), name, ticketPrice, showTicketPriceToCustomer };
+    if (accessCode !== undefined) school.accessCode = accessCode;
     db.schools.push(school);
     options.forEach((option, index) => db.addOption(school, option, index + 1));
     return school;

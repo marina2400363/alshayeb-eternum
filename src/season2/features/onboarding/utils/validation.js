@@ -41,8 +41,9 @@ export function cleanFullName(value) {
   return String(value ?? "").trim().replace(/\s+/g, " ");
 }
 
-export function validateSchool(schoolId, schools) {
-  if (!schoolId) return "Choose your school.";
-  if (!schools.some((school) => school.id === schoolId)) return "Choose your school from the list.";
+export const ACCESS_CODE_REQUIRED = "Enter your school access code.";
+
+export function validateAccessCode(value) {
+  if (!String(value ?? "").trim()) return ACCESS_CODE_REQUIRED;
   return "";
 }

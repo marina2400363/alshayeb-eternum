@@ -1,6 +1,7 @@
 // Pre-launch hardening regressions, through the REAL Express app on the
 // in-memory database (test/support/memoryDb.js):
-//   1. GET /api/schools never exposes a hidden ticket price or admin fields;
+//   1. the public School list is retired entirely (no School Access Code
+//      flow feature);
 //   2. the legacy Season 1 public write paths are retired (410) without
 //      breaking Season 2 Incomer registration;
 //   3. the sync triggers require CRON_SECRET (Authorization: Bearer only).
@@ -22,6 +23,7 @@ const app = require("../src/app");
 const Attendee = require("../src/models/Attendee");
 const Event = require("../src/models/Event");
 const rl = require("../src/middleware/rateLimit");
+const { SCHOOL_ACCESS_TOKEN_PURPOSE } = require("../src/utils/schoolAccessCode");
 const { createMemoryDb, queryResult } = require("./support/memoryDb");
 const { MemoryRateLimitStore } = require("./support/rateLimitMemoryStore");
 
@@ -100,61 +102,20 @@ function stub(obj, method, impl) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Public School list: price hidden when the School hides it
+// 1. The public School list is retired: no route ever returns/fetches it
 // ---------------------------------------------------------------------------
 
-test("GET /api/schools: public shape, ticket price only when the School shows it", async (t) => {
-  const seed = () => {
-    const visible = db.addSchool({ name: "Visible School", ticketPrice: 6000, showTicketPriceToCustomer: true });
-    const hidden = db.addSchool({ name: "Hidden School", ticketPrice: 7777, showTicketPriceToCustomer: false });
-    const unset = db.addSchool({ name: "Unset School", ticketPrice: 5555 });
-    delete unset.showTicketPriceToCustomer; // legacy document: field physically missing => visible
-    for (const school of [visible, hidden, unset]) {
-      Object.assign(school, { internalNotes: "admin-only", createdAt: new Date(), updatedAt: new Date(), __v: 0 });
-    }
-    return { visible, hidden, unset };
-  };
+test("GET /api/schools no longer exists: the School list is never publicly exposed", async (t) => {
+  await t.test("the route is gone (404), even with Schools in the database", async () => {
+    db.addSchool({ name: "Visible School", ticketPrice: 6000, accessCode: "AAAA1111" });
+    db.addSchool({ name: "Hidden School", ticketPrice: 7777, showTicketPriceToCustomer: false, accessCode: "BBBB2222" });
 
-  await t.test("hidden price is ABSENT from the response (not just null, not just hidden in the UI)", async () => {
-    const { hidden } = seed();
     await withServer(async (base) => {
       const res = await fetch(`${base}/api/schools`).then(parse);
-      assert.equal(res.status, 200);
-
-      const entry = res.body.schools.find((school) => school._id === String(hidden._id));
-      assert.deepEqual(Object.keys(entry).sort(), ["_id", "name"]);
-      assert.equal(res.text.includes("7777"), false, "the hidden amount must not appear anywhere in the response");
-    });
-  });
-
-  await t.test("visible price is included; a MISSING flag means visible", async () => {
-    const { visible, unset } = seed();
-    await withServer(async (base) => {
-      const res = await fetch(`${base}/api/schools`).then(parse);
-      const byId = Object.fromEntries(res.body.schools.map((school) => [school._id, school]));
-
-      assert.deepEqual(byId[String(visible._id)], { _id: String(visible._id), name: "Visible School", ticketPrice: 6000 });
-      assert.deepEqual(byId[String(unset._id)], { _id: String(unset._id), name: "Unset School", ticketPrice: 5555 });
-    });
-  });
-
-  await t.test("no internal/admin fields are ever exposed (allowlist, not denylist)", async () => {
-    seed();
-    await withServer(async (base) => {
-      const res = await fetch(`${base}/api/schools`).then(parse);
-      for (const forbidden of ["internalNotes", "showTicketPriceToCustomer", "createdAt", "updatedAt", "__v"]) {
-        assert.equal(res.text.includes(forbidden), false, `leaked field: ${forbidden}`);
-      }
-    });
-  });
-
-  await t.test("the Season 2 registration dropdown contract (_id + name) is unchanged", async () => {
-    const { visible } = seed();
-    await withServer(async (base) => {
-      const res = await fetch(`${base}/api/schools`).then(parse);
-      assert.equal(res.body.success, true);
-      assert.ok(res.body.schools.every((school) => school._id && school.name));
-      assert.ok(res.body.schools.some((school) => school._id === String(visible._id)));
+      assert.equal(res.status, 404);
+      assert.equal(res.text.includes("Hidden School"), false);
+      assert.equal(res.text.includes("Visible School"), false);
+      assert.equal(res.text.includes("7777"), false);
     });
   });
 });
@@ -168,6 +129,14 @@ function multipart(fields, fileField) {
   for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
   if (fileField) form.append(fileField, new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }), "file.png");
   return form;
+}
+
+// The only legitimate way a registration is ever associated with a School:
+// a token as if issued by POST /api/school-access/verify for that School.
+function schoolAccessTokenFor(school) {
+  return jwt.sign({ schoolId: String(school._id), purpose: SCHOOL_ACCESS_TOKEN_PURPOSE }, process.env.JWT_SECRET, {
+    expiresIn: "2h"
+  });
 }
 
 test("legacy Season 1 public writes are retired (410 Gone), Season 2 registration untouched", async (t) => {
@@ -206,11 +175,12 @@ test("legacy Season 1 public writes are retired (410 Gone), Season 2 registratio
   await t.test("Season 2 Incomer registration still works: default type and explicit incomer", async () => {
     installFakeResend();
     const school = db.addSchool({ name: "Heliopolis", ticketPrice: 6000 });
+    const schoolAccessToken = schoolAccessTokenFor(school);
 
     await withServer(async (base) => {
       const implicit = await fetch(`${base}/api/attendees/register`, {
         method: "POST",
-        body: multipart({ fullName: "Marina Adel", phone: "01012345678", email: "marina@example.com", schoolId: String(school._id) }, "incomerPhoto")
+        body: multipart({ fullName: "Marina Adel", phone: "01012345678", email: "marina@example.com", schoolAccessToken }, "incomerPhoto")
       }).then(parse);
       assert.equal(implicit.status, 201);
       assert.equal(implicit.body.attendee.attendeeType, "incomer");
@@ -218,7 +188,7 @@ test("legacy Season 1 public writes are retired (410 Gone), Season 2 registratio
       const explicit = await fetch(`${base}/api/attendees/register`, {
         method: "POST",
         body: multipart(
-          { attendeeType: "incomer", fullName: "Second Person", phone: "01023456789", email: "second@example.com", schoolId: String(school._id) },
+          { attendeeType: "incomer", fullName: "Second Person", phone: "01023456789", email: "second@example.com", schoolAccessToken },
           "incomerPhoto"
         )
       }).then(parse);

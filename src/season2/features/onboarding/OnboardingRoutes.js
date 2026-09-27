@@ -5,7 +5,7 @@ import IncomerEntry from "./screens/IncomerEntry";
 import OutcomerHold from "./screens/OutcomerHold";
 import ReturningLookup from "./screens/ReturningLookup";
 import RegistrationLayout from "./screens/register/RegistrationLayout";
-import SchoolStep from "./screens/register/SchoolStep";
+import SchoolAccessStep from "./screens/register/SchoolAccessStep";
 import DetailsStep from "./screens/register/DetailsStep";
 import PhotoConfirmStep from "./screens/register/PhotoConfirmStep";
 import { PATHS } from "./paths";
@@ -21,7 +21,7 @@ export default function OnboardingRoutes() {
       <Route path="incomer/new" element={<RegistrationLayout />}>
         <Route index element={<Navigate to={PATHS.incomerNewDetails} replace />} />
         <Route path="details" element={<DetailsStep />} />
-        <Route path="school" element={<SchoolStep />} />
+        <Route path="school" element={<SchoolAccessStep />} />
         <Route path="photo" element={<PhotoConfirmStep />} />
         <Route path="*" element={<Navigate to={PATHS.incomerNewDetails} replace />} />
       </Route>
