@@ -19,6 +19,21 @@ const schoolSchema = new mongoose.Schema(
     showTicketPriceToCustomer: {
       type: Boolean,
       default: true
+    },
+    // Private School Access Code (Admin-managed): the only way a new customer
+    // resolves this School during registration — there is no public School
+    // list or search. Stored normalized (trim + uppercase, see
+    // utils/schoolAccessCode.js) so lookup is a straight equality match.
+    // `sparse` lets Schools exist without a code yet (pre-migration, or before
+    // an Admin has generated one) without colliding on a shared empty value.
+    // NEVER exposed by any public School endpoint — only the authenticated
+    // Admin School API reads or writes it.
+    accessCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      unique: true,
+      sparse: true
     }
   },
   { timestamps: true }

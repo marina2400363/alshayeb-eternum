@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchSchools, createSchool, updateSchool } from "../../services/admin.api";
+import { fetchSchools, createSchool, updateSchool, setSchoolAccessCode } from "../../services/admin.api";
 
 // Loads all Schools and exposes create/update actions that keep local state
 // in sync with the server's response (never optimistic — the backend is
@@ -53,5 +53,12 @@ export default function useAdminSchools() {
     return school;
   }, []);
 
-  return { status, schools, error, retry, addSchool, editSchool };
+  // code omitted -> the backend generates a fresh random one.
+  const setAccessCode = useCallback(async (id, code) => {
+    const school = await setSchoolAccessCode(id, code);
+    setSchools((prev) => prev.map((item) => (item._id === id ? school : item)));
+    return school;
+  }, []);
+
+  return { status, schools, error, retry, addSchool, editSchool, setAccessCode };
 }

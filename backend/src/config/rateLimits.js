@@ -39,6 +39,9 @@ const LIMITS = {
   registerPerPhone: { limit: 6, windowSec: HOUR },
   registerPerEmail: { limit: 3, windowSec: 24 * HOUR },
 
+  schoolAccessIpCeiling: { limit: 30, windowSec: 10 * MINUTE },
+  schoolAccessPerCode: { limit: 8, windowSec: HOUR },
+
   summaryPerAttendee: { limit: 60, windowSec: 5 * MINUTE },
   summaryIpCeiling: { limit: 600, windowSec: 10 * MINUTE },
   optionsPerAttendee: { limit: 60, windowSec: 5 * MINUTE },
@@ -76,6 +79,14 @@ const registerPreParseRules = (req) => [make("register-ip", "registerIpCeiling",
 const registerPhoneRules = (phone) => [make("register-phone", "registerPerPhone", phone)];
 const registerEmailRules = (email) => [make("register-email", "registerPerEmail", email)];
 const REGISTER_MESSAGE = "Too many registration attempts. Please try again later.";
+
+// --- School access code verification ---------------------------------------
+// The IP ceiling is a broad flood guard; the per-code bucket slows brute
+// force against one specific code regardless of whether each attempt was
+// right or wrong (every attempt counts, not just failures).
+const schoolAccessIpRules = (req) => [make("school-access-ip", "schoolAccessIpCeiling", ipIdentity(req))];
+const schoolAccessCodeRules = (normalizedCode) => [make("school-access-code", "schoolAccessPerCode", normalizedCode)];
+const SCHOOL_ACCESS_MESSAGE = "Too many attempts. Please try again later.";
 
 // --- Customer payment endpoints -------------------------------------------
 const summaryRules = (req) => [
@@ -117,6 +128,9 @@ module.exports = {
   registerPhoneRules,
   registerEmailRules,
   REGISTER_MESSAGE,
+  schoolAccessIpRules,
+  schoolAccessCodeRules,
+  SCHOOL_ACCESS_MESSAGE,
   summaryRules,
   optionsRules,
   acknowledgeRules,

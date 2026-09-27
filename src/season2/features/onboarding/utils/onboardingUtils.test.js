@@ -2,13 +2,14 @@ import { normalizePhone, isEgyptianPhone, sanitizePhoneInput, maskPhone, formatP
 import {
   validatePhone,
   validateFullName,
-  validateSchool,
+  validateAccessCode,
   validateEmail,
   FULL_NAME_MAX,
   PHONE_REQUIRED,
   PHONE_INVALID,
   EMAIL_REQUIRED,
-  EMAIL_INVALID
+  EMAIL_INVALID,
+  ACCESS_CODE_REQUIRED
 } from "./validation";
 import { normalizeEmail, isValidEmail } from "./email";
 import {
@@ -98,11 +99,12 @@ describe("validation", () => {
     expect(validateEmail("x".repeat(250) + "@a.co")).toBe(EMAIL_INVALID); // > 254 chars
   });
 
-  test("validateSchool requires an id that exists in the fetched list", () => {
-    const schools = [{ id: "a", name: "A" }];
-    expect(validateSchool("", schools)).not.toBe("");
-    expect(validateSchool("zzz", schools)).not.toBe("");
-    expect(validateSchool("a", schools)).toBe("");
+  test("validateAccessCode requires a non-blank code", () => {
+    expect(validateAccessCode("")).toBe(ACCESS_CODE_REQUIRED);
+    expect(validateAccessCode("   ")).toBe(ACCESS_CODE_REQUIRED);
+    expect(validateAccessCode(undefined)).toBe(ACCESS_CODE_REQUIRED);
+    expect(validateAccessCode("ABC123")).toBe("");
+    expect(validateAccessCode("  abc123  ")).toBe("");
   });
 });
 

@@ -128,6 +128,88 @@ describe("ticket price visibility", () => {
   });
 });
 
+describe("school access code", () => {
+  test("a School with no code yet shows the empty placeholder and a disabled Copy button", async () => {
+    render(<SchoolsPage />);
+    await screen.findByText("Mega Heliopolis");
+
+    expect(await screen.findByPlaceholderText("No code set")).toHaveValue("");
+    expect(screen.getByRole("button", { name: /^copy$/i })).toBeDisabled();
+  });
+
+  test("an existing code is shown and can be copied", async () => {
+    adminApi.fetchSchools.mockResolvedValue([{ ...SCHOOL_A, accessCode: "ABCD1234" }, SCHOOL_B]);
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    render(<SchoolsPage />);
+    await screen.findByDisplayValue("ABCD1234");
+    const copyButton = screen.getByRole("button", { name: /^copy$/i });
+    expect(copyButton).not.toBeDisabled();
+
+    await userEvent.click(copyButton);
+    expect(writeText).toHaveBeenCalledWith("ABCD1234");
+    expect(await screen.findByRole("button", { name: /^copied!$/i })).toBeInTheDocument();
+  });
+
+  test("Generate new code calls setAccessCode with no code and shows the fresh one", async () => {
+    adminApi.fetchSchools.mockResolvedValue([{ ...SCHOOL_A, accessCode: "OLDCODE1" }, SCHOOL_B]);
+    adminApi.setSchoolAccessCode.mockResolvedValue({ ...SCHOOL_A, accessCode: "NEWCODE2" });
+
+    render(<SchoolsPage />);
+    await screen.findByLabelText(/school access code/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /generate new code/i }));
+
+    await waitFor(() => expect(adminApi.setSchoolAccessCode).toHaveBeenCalledWith("school-a", ""));
+    await waitFor(() => expect(screen.getByLabelText(/school access code/i)).toHaveValue("NEWCODE2"));
+  });
+
+  test("Save sets a custom code and normalizes what is shown", async () => {
+    adminApi.setSchoolAccessCode.mockResolvedValue({ ...SCHOOL_A, accessCode: "MYCUSTOM" });
+    render(<SchoolsPage />);
+    const codeInput = await screen.findByLabelText(/school access code/i);
+
+    await userEvent.type(codeInput, "mycustom");
+    const saveButtons = screen.getAllByRole("button", { name: /^save$/i });
+    await userEvent.click(saveButtons[saveButtons.length - 1]); // name save, price save, then access-code save
+
+    await waitFor(() => expect(adminApi.setSchoolAccessCode).toHaveBeenCalledWith("school-a", "MYCUSTOM"));
+  });
+
+  test("saving a blank code shows a validation error and never calls the API", async () => {
+    render(<SchoolsPage />);
+    await screen.findByLabelText(/school access code/i);
+
+    const saveButtons = screen.getAllByRole("button", { name: /^save$/i });
+    await userEvent.click(saveButtons[saveButtons.length - 1]);
+
+    expect(await screen.findByText(/enter an access code, or use generate/i)).toBeInTheDocument();
+    expect(adminApi.setSchoolAccessCode).not.toHaveBeenCalled();
+  });
+
+  test("a rejected custom code (409, taken by another School) surfaces the backend's message", async () => {
+    adminApi.setSchoolAccessCode.mockRejectedValue({ message: "This access code is already used by another School." });
+    render(<SchoolsPage />);
+    const codeInput = await screen.findByLabelText(/school access code/i);
+
+    await userEvent.type(codeInput, "TAKEN001");
+    const saveButtons = screen.getAllByRole("button", { name: /^save$/i });
+    await userEvent.click(saveButtons[saveButtons.length - 1]);
+
+    expect(await screen.findByText(/already used by another school/i)).toBeInTheDocument();
+  });
+
+  test("each School has its own access code", async () => {
+    adminApi.fetchSchools.mockResolvedValue([{ ...SCHOOL_A, accessCode: "CODEAAAA" }, { ...SCHOOL_B, accessCode: "CODEBBBB" }]);
+    render(<SchoolsPage />);
+    await waitFor(() => expect(screen.getByLabelText(/school access code/i)).toHaveValue("CODEAAAA"));
+
+    await userEvent.click(screen.getByRole("option", { name: /downtown prep/i }));
+    await waitFor(() => expect(screen.getByLabelText(/school access code/i)).toHaveValue("CODEBBBB"));
+  });
+});
+
 describe("payment options editor (embedded)", () => {
   test("rejects a zero or negative amount", async () => {
     render(<SchoolsPage />);

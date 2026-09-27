@@ -1,4 +1,4 @@
-import { fetchSchools, lookupIncomer, registerIncomer, toCustomer, ApiError, NETWORK_ERROR_MESSAGE } from "./onboarding.api";
+import { verifySchoolAccessCode, lookupIncomer, registerIncomer, toCustomer, ApiError, NETWORK_ERROR_MESSAGE } from "./onboarding.api";
 
 function jsonResponse(status, body) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
@@ -48,19 +48,34 @@ describe("toCustomer", () => {
   });
 });
 
-describe("fetchSchools", () => {
-  test("maps _id → id and drops ticketPrice", async () => {
-    fetch.mockResolvedValue(
-      jsonResponse(200, { success: true, schools: [{ _id: "s1", name: "Alpha", ticketPrice: 900 }, { _id: "", name: "bad" }] })
-    );
-    const schools = await fetchSchools();
-    expect(schools).toEqual([{ id: "s1", name: "Alpha" }]);
-    expect(fetch.mock.calls[0][0]).toMatch(/\/api\/schools$/);
+describe("verifySchoolAccessCode", () => {
+  test("POSTs the trimmed code as JSON and resolves the token + School name", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, schoolAccessToken: "tok-abc", schoolName: "AlRaya Language School" }));
+    const result = await verifySchoolAccessCode("  abc123  ");
+
+    const [url, options] = fetch.mock.calls[0];
+    expect(url).toMatch(/\/api\/school-access\/verify$/);
+    expect(options.method).toBe("POST");
+    expect(options.headers).toEqual({ "Content-Type": "application/json" });
+    expect(JSON.parse(options.body)).toEqual({ code: "abc123" });
+    expect(result).toEqual({ schoolAccessToken: "tok-abc", schoolName: "AlRaya Language School" });
   });
 
-  test("returns [] when the list is empty", async () => {
-    fetch.mockResolvedValue(jsonResponse(200, { success: true, schools: [] }));
-    expect(await fetchSchools()).toEqual([]);
+  test("an invalid code surfaces the backend's generic message — no School data leaks through", async () => {
+    fetch.mockResolvedValue(jsonResponse(422, { success: false, message: "Invalid access code." }));
+    await expect(verifySchoolAccessCode("WRONG")).rejects.toMatchObject({
+      message: "Invalid access code.",
+      status: 422,
+      kind: "http"
+    });
+  });
+
+  test("hides raw 5xx messages and marks them retryable", async () => {
+    fetch.mockResolvedValue(jsonResponse(500, { success: false, message: "stack trace here" }));
+    const error = await verifySchoolAccessCode("ABC12345").catch((e) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.message).not.toMatch(/stack/);
+    expect(error.isRetryable).toBe(true);
   });
 });
 
@@ -139,7 +154,7 @@ describe("registerIncomer", () => {
       fullName: "Marina Adel",
       phone: "+201012345678",
       email: "  Marina.Adel@Example.COM ",
-      schoolId: "school1",
+      schoolAccessToken: "tok-school1",
       photo
     });
 
@@ -153,11 +168,19 @@ describe("registerIncomer", () => {
     expect(options.body.get("phoneNumber")).toBe("01012345678");
     // email is normalized (trim + lowercase) before it leaves the browser
     expect(options.body.get("email")).toBe("marina.adel@example.com");
-    expect(options.body.get("schoolId")).toBe("school1");
+    expect(options.body.get("schoolAccessToken")).toBe("tok-school1");
     expect(options.body.get("incomerPhoto")).toBeInstanceOf(File);
     expect(options.body.has("ticketPrice")).toBe(false);
+    expect(options.body.has("schoolId")).toBe(false);
     // exactly these six parts — nothing else is sent
-    expect(Array.from(options.body.keys())).toEqual(["attendeeType", "fullName", "phoneNumber", "email", "schoolId", "incomerPhoto"]);
+    expect(Array.from(options.body.keys())).toEqual([
+      "attendeeType",
+      "fullName",
+      "phoneNumber",
+      "email",
+      "schoolAccessToken",
+      "incomerPhoto"
+    ]);
     expect(result.duplicate).toBe(false);
     expect(result.customer.id).toBe("abc123");
   });
@@ -165,19 +188,29 @@ describe("registerIncomer", () => {
   test("accepts the minimal Season 2 shape for BOTH 201 and duplicate 200", async () => {
     const photo = new File(["x"], "me.jpg", { type: "image/jpeg" });
     fetch.mockResolvedValueOnce(jsonResponse(201, { success: true, message: "Incomer registered.", attendee: SEASON2_ATTENDEE }));
-    const created = await registerIncomer({ fullName: "Marina Adel", phone: "01012345678", email: "m@x.co", schoolId: "s1", photo });
+    const created = await registerIncomer({ fullName: "Marina Adel", phone: "01012345678", email: "m@x.co", schoolAccessToken: "tok-1", photo });
     expect(created).toEqual({ duplicate: false, customer: SEASON2_ATTENDEE });
 
     fetch.mockResolvedValueOnce(jsonResponse(200, { success: true, duplicate: true, message: "Existing registration found.", attendee: SEASON2_ATTENDEE }));
-    const duplicate = await registerIncomer({ fullName: "Marina Adel", phone: "01012345678", email: "m@x.co", schoolId: "s1", photo });
+    const duplicate = await registerIncomer({ fullName: "Marina Adel", phone: "01012345678", email: "m@x.co", schoolAccessToken: "tok-1", photo });
     expect(duplicate).toEqual({ duplicate: true, customer: SEASON2_ATTENDEE });
   });
 
   test("HTTP 200 with duplicate:true is reported as a duplicate", async () => {
     fetch.mockResolvedValue(jsonResponse(200, { success: true, duplicate: true, attendee: { ...ATTENDEE, incomerPhoto: undefined } }));
     const photo = new File(["x"], "me.jpg", { type: "image/jpeg" });
-    const result = await registerIncomer({ fullName: "x y", phone: "01012345678", email: "other@example.com", schoolId: "s", photo });
+    const result = await registerIncomer({ fullName: "x y", phone: "01012345678", email: "other@example.com", schoolAccessToken: "tok-x", photo });
     expect(result.duplicate).toBe(true);
     expect(result.customer).not.toHaveProperty("photoUrl");
+  });
+
+  test("a rejected (expired/invalid) school access token surfaces the backend's message", async () => {
+    fetch.mockResolvedValue(
+      jsonResponse(422, { success: false, message: "Your school access has expired. Please enter your school access code again." })
+    );
+    const photo = new File(["x"], "me.jpg", { type: "image/jpeg" });
+    await expect(
+      registerIncomer({ fullName: "x y", phone: "01012345678", email: "other@example.com", schoolAccessToken: "stale", photo })
+    ).rejects.toMatchObject({ status: 422, message: "Your school access has expired. Please enter your school access code again." });
   });
 });

@@ -12,7 +12,7 @@ import { firstIncompleteStep } from "../../utils/registrationSteps";
 import { PATHS } from "../../paths";
 
 const FIELD_FIX = {
-  school: { to: PATHS.incomerNewSchool, label: "Change school" },
+  school: { to: PATHS.incomerNewSchool, label: "Enter access code" },
   fullName: { to: PATHS.incomerNewDetails, label: "Edit details" },
   phone: { to: PATHS.incomerNewDetails, label: "Edit details" },
   email: { to: PATHS.incomerNewDetails, label: "Edit details" }

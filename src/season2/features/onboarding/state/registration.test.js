@@ -11,8 +11,7 @@ describe("mapRegistrationError", () => {
     ["Personal photo is required.", "photo"],
     ["Only PNG, JPG, or JPEG photos are allowed.", "photo"],
     ["Personal photo must be 4MB or smaller.", "photo"],
-    ["A valid schoolId is required.", "school"],
-    ["Selected school was not found.", "school"],
+    ["Your school access has expired. Please enter your school access code again.", "school"],
     ["Enter an Egyptian phone number starting with 01 and 11 digits long.", "phone"],
     ["Phone number is required.", "phone"],
     ["Full name is required.", "fullName"],
@@ -46,9 +45,20 @@ describe("mapRegistrationError", () => {
 describe("registrationReducer", () => {
   const start = () => createInitialState();
 
-  test("choosing a school stores id + name", () => {
-    const next = registrationReducer(start(), { type: "SET_SCHOOL", id: "s1", name: "Alpha" });
-    expect(next.draft).toMatchObject({ schoolId: "s1", schoolName: "Alpha" });
+  test("a granted school access code stores the token + school name", () => {
+    const next = registrationReducer(start(), { type: "SCHOOL_ACCESS_GRANTED", token: "tok-1", schoolName: "Alpha" });
+    expect(next.draft).toMatchObject({ schoolAccessToken: "tok-1", schoolName: "Alpha" });
+    expect(next.schoolAccess).toEqual({ status: "idle", error: "" });
+  });
+
+  test("school access verification lifecycle", () => {
+    let state = registrationReducer(start(), { type: "SCHOOL_ACCESS_VERIFYING" });
+    expect(state.schoolAccess.status).toBe("verifying");
+    state = registrationReducer(state, { type: "SCHOOL_ACCESS_FAILED", message: "Invalid access code." });
+    expect(state.schoolAccess).toEqual({ status: "error", error: "Invalid access code." });
+    state = registrationReducer(state, { type: "SCHOOL_ACCESS_GRANTED", token: "tok-2", schoolName: "Beta" });
+    expect(state.schoolAccess).toEqual({ status: "idle", error: "" });
+    expect(state.draft.schoolAccessToken).toBe("tok-2");
   });
 
   test("prefill from the lookup overrides a stale draft phone", () => {
@@ -67,7 +77,7 @@ describe("registrationReducer", () => {
   test("a server email error clears only when the email is edited", () => {
     let state = registrationReducer(start(), { type: "SET_DETAILS", fullName: "A B", phone: "0101", email: "bad" });
     state = registrationReducer(state, { type: "SUBMIT_FAILED", error: { field: "email", message: "Enter a valid email address." } });
-    state = registrationReducer(state, { type: "SET_SCHOOL", id: "s1", name: "A" });
+    state = registrationReducer(state, { type: "SCHOOL_ACCESS_GRANTED", token: "s1", schoolName: "A" });
     expect(state.submit.error).not.toBeNull();
     state = registrationReducer(state, { type: "SET_DETAILS", fullName: "A B", phone: "0101", email: "bad" });
     expect(state.submit.error).not.toBeNull(); // nothing changed
@@ -78,9 +88,18 @@ describe("registrationReducer", () => {
   test("a server error for a field clears only when that field is edited", () => {
     let state = start();
     state = registrationReducer(state, { type: "SUBMIT_FAILED", error: { field: "phone", message: "bad" } });
-    state = registrationReducer(state, { type: "SET_SCHOOL", id: "s1", name: "A" });
+    state = registrationReducer(state, { type: "SCHOOL_ACCESS_GRANTED", token: "s1", schoolName: "A" });
     expect(state.submit.error).not.toBeNull();
     state = registrationReducer(state, { type: "SET_DETAILS", fullName: "A B", phone: "0101" });
+    expect(state.submit.error).toBeNull();
+  });
+
+  test("a server school-access error clears only when a new code is granted", () => {
+    let state = start();
+    state = registrationReducer(state, { type: "SUBMIT_FAILED", error: { field: "school", message: "expired" } });
+    state = registrationReducer(state, { type: "SET_DETAILS", fullName: "A B", phone: "0101" });
+    expect(state.submit.error).not.toBeNull(); // unrelated field: unaffected
+    state = registrationReducer(state, { type: "SCHOOL_ACCESS_GRANTED", token: "s1", schoolName: "A" });
     expect(state.submit.error).toBeNull();
   });
 
@@ -95,13 +114,13 @@ describe("registrationReducer", () => {
   });
 
   test("a failed submit keeps the draft and the photo (retry is possible)", () => {
-    let state = registrationReducer(start(), { type: "SET_SCHOOL", id: "s1", name: "A" });
+    let state = registrationReducer(start(), { type: "SCHOOL_ACCESS_GRANTED", token: "s1", schoolName: "A" });
     state = registrationReducer(state, { type: "PHOTO_READY", file, previewUrl: "blob:1" });
     state = registrationReducer(state, { type: "SUBMIT_STARTED" });
     expect(state.submit.status).toBe("submitting");
     state = registrationReducer(state, { type: "SUBMIT_FAILED", error: { field: "form", retryable: true, message: "x" } });
     expect(state.submit.status).toBe("error");
-    expect(state.draft.schoolId).toBe("s1");
+    expect(state.draft.schoolAccessToken).toBe("s1");
     expect(state.photo.file).toBe(file);
   });
 
@@ -111,16 +130,6 @@ describe("registrationReducer", () => {
     state = registrationReducer(state, { type: "SUBMIT_STARTED" });
     expect(state.photo.error).toBe("");
     expect(state.photo.file).toBe(file);
-  });
-
-  test("schools lifecycle", () => {
-    let state = registrationReducer(start(), { type: "SCHOOLS_LOADING" });
-    expect(state.schools.status).toBe("loading");
-    state = registrationReducer(state, { type: "SCHOOLS_LOADED", items: [{ id: "a", name: "A" }] });
-    expect(state.schools).toEqual({ status: "ready", items: [{ id: "a", name: "A" }], error: "" });
-    state = registrationReducer(state, { type: "SCHOOLS_FAILED", message: "down" });
-    expect(state.schools.status).toBe("error");
-    expect(state.schools.items).toHaveLength(1);
   });
 
   test("the state never contains qr / photo-metadata fields", () => {
@@ -133,30 +142,30 @@ describe("draft storage", () => {
   beforeEach(() => window.sessionStorage.clear());
 
   test("persists text only and round-trips", () => {
-    writeDraft({ schoolId: "s1", schoolName: "Alpha", fullName: "Marina Adel", phone: "01012345678", email: "m@x.com", file: "IGNORED" });
+    writeDraft({ schoolAccessToken: "s1", schoolName: "Alpha", fullName: "Marina Adel", phone: "01012345678", email: "m@x.com", file: "IGNORED" });
     const stored = JSON.parse(window.sessionStorage.getItem("alshayebS2RegistrationDraft"));
     // the whitelist: five text fields, nothing else
-    expect(Object.keys(stored).sort()).toEqual(["email", "fullName", "phone", "schoolId", "schoolName"].sort());
-    expect(readDraft()).toEqual({ schoolId: "s1", schoolName: "Alpha", fullName: "Marina Adel", phone: "01012345678", email: "m@x.com" });
+    expect(Object.keys(stored).sort()).toEqual(["email", "fullName", "phone", "schoolAccessToken", "schoolName"].sort());
+    expect(readDraft()).toEqual({ schoolAccessToken: "s1", schoolName: "Alpha", fullName: "Marina Adel", phone: "01012345678", email: "m@x.com" });
   });
 
   test("a draft saved before email existed reads back with an empty email", () => {
     window.sessionStorage.setItem(
       "alshayebS2RegistrationDraft",
-      JSON.stringify({ schoolId: "s1", schoolName: "A", fullName: "Marina Adel", phone: "01012345678" })
+      JSON.stringify({ schoolAccessToken: "s1", schoolName: "A", fullName: "Marina Adel", phone: "01012345678" })
     );
-    expect(readDraft()).toEqual({ schoolId: "s1", schoolName: "A", fullName: "Marina Adel", phone: "01012345678", email: "" });
+    expect(readDraft()).toEqual({ schoolAccessToken: "s1", schoolName: "A", fullName: "Marina Adel", phone: "01012345678", email: "" });
   });
 
   test("an email alone counts as draft content", () => {
-    expect(hasDraftContent({ schoolId: "", schoolName: "", fullName: "", phone: "", email: "a@b.co" })).toBe(true);
+    expect(hasDraftContent({ schoolAccessToken: "", schoolName: "", fullName: "", phone: "", email: "a@b.co" })).toBe(true);
   });
 
   test("an empty draft removes the key; clearDraft removes it", () => {
-    writeDraft({ schoolId: "s1", schoolName: "A", fullName: "", phone: "", email: "" });
-    writeDraft({ schoolId: "", schoolName: "", fullName: "", phone: "", email: "" });
+    writeDraft({ schoolAccessToken: "s1", schoolName: "A", fullName: "", phone: "", email: "" });
+    writeDraft({ schoolAccessToken: "", schoolName: "", fullName: "", phone: "", email: "" });
     expect(window.sessionStorage.getItem("alshayebS2RegistrationDraft")).toBeNull();
-    writeDraft({ schoolId: "s1", schoolName: "A", fullName: "", phone: "", email: "" });
+    writeDraft({ schoolAccessToken: "s1", schoolName: "A", fullName: "", phone: "", email: "" });
     clearDraft();
     expect(readDraft()).toBeNull();
     expect(hasDraftContent(null)).toBe(false);
@@ -169,7 +178,7 @@ describe("draft storage", () => {
 });
 
 describe("firstIncompleteStep (order: Details -> School -> Photo)", () => {
-  const ok = { schoolId: "s1", schoolName: "A", fullName: "Marina Adel", phone: "01012345678", email: "marina@example.com" };
+  const ok = { schoolAccessToken: "s1", schoolName: "A", fullName: "Marina Adel", phone: "01012345678", email: "marina@example.com" };
 
   test("Details is the first gate: any invalid detail sends you to Details", () => {
     expect(firstIncompleteStep({ ...ok, fullName: "" })).toBe(PATHS.incomerNewDetails);
@@ -179,12 +188,12 @@ describe("firstIncompleteStep (order: Details -> School -> Photo)", () => {
   });
 
   test("Details wins over School: a missing school never masks bad details", () => {
-    expect(firstIncompleteStep({ ...ok, schoolId: "", email: "" })).toBe(PATHS.incomerNewDetails);
-    expect(firstIncompleteStep({ schoolId: "", schoolName: "", fullName: "", phone: "", email: "" })).toBe(PATHS.incomerNewDetails);
+    expect(firstIncompleteStep({ ...ok, schoolAccessToken: "", email: "" })).toBe(PATHS.incomerNewDetails);
+    expect(firstIncompleteStep({ schoolAccessToken: "", schoolName: "", fullName: "", phone: "", email: "" })).toBe(PATHS.incomerNewDetails);
   });
 
   test("School is the second gate: valid Details but no school", () => {
-    expect(firstIncompleteStep({ ...ok, schoolId: "" })).toBe(PATHS.incomerNewSchool);
+    expect(firstIncompleteStep({ ...ok, schoolAccessToken: "" })).toBe(PATHS.incomerNewSchool);
   });
 
   test("Photo is reachable only with valid Details AND a school", () => {
@@ -196,6 +205,6 @@ describe("firstIncompleteStep (order: Details -> School -> Photo)", () => {
   test("detailsIncomplete gates the School step", () => {
     expect(detailsIncomplete(ok)).toBe(false);
     expect(detailsIncomplete({ ...ok, email: "" })).toBe(true);
-    expect(detailsIncomplete({ ...ok, schoolId: "" })).toBe(false); // the school is not a detail
+    expect(detailsIncomplete({ ...ok, schoolAccessToken: "" })).toBe(false); // the school is not a detail
   });
 });

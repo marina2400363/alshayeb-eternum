@@ -1,14 +1,21 @@
 // Marina-owned API layer for the Season 2 public onboarding flow.
-// Deliberately private (not a shared client): only schools, Incomer
-// registration and the Already Registered lookup live here.
+// Deliberately private (not a shared client): only the School Access Code
+// check, Incomer registration and the Already Registered lookup live here.
 //
-// Contracts (backend/src/routes/schoolRoutes.js + attendeeRoutes.js):
-//   GET  /api/schools                        → { success, schools:[{ _id, name, ticketPrice }] }
+// Contracts (backend/src/routes/schoolAccessRoutes.js + attendeeRoutes.js):
+//   POST /api/school-access/verify           → 200 { success, schoolAccessToken, schoolName }
+//                                            | 422 { success:false, message } (invalid code — no School data)
 //   GET  /api/attendees/season2/lookup?phone → { success, found, attendee:{ id, fullName, phone, attendeeType } | null }
 //   POST /api/attendees/register (multipart) → 201 { success, attendee:{ id, fullName, phone, attendeeType } }
 //                                            | 200 { success, duplicate:true, attendee:{ …same shape… } }
-//     fields: attendeeType, fullName, phoneNumber, email, schoolId, incomerPhoto
+//     fields: attendeeType, fullName, phoneNumber, email, schoolAccessToken, incomerPhoto
 //     (email is required customer data — never identity; phone stays the key)
+//
+// There is no public School list or search: the customer's browser only ever
+// learns a School's name after POST /api/school-access/verify resolves a
+// correct Access Code, and the schoolAccessToken it returns is the only way a
+// registration can ever be associated with a School — a raw schoolId is never
+// sent or trusted (see attendeeRoutes.js's resolveSchoolIdFromAccessToken).
 //
 // Season 2 never calls the legacy GET /api/attendees/lookup: Season 1's ticket
 // and QR flows depend on that response's shape (qrToken included), so it is
@@ -107,15 +114,19 @@ export function toCustomer(attendee) {
   };
 }
 
-// Schools are the Admin-managed list. ticketPrice is intentionally dropped:
-// onboarding never shows payment amounts.
-export async function fetchSchools({ signal } = {}) {
-  const body = await request("/api/schools", { signal });
-  const schools = Array.isArray(body.schools) ? body.schools : [];
+// Resolves { schoolAccessToken, schoolName } for a correct School Access
+// Code. There is no School list to search or validate against client-side —
+// the backend is the sole authority, and an invalid code throws (kind:"http",
+// status 422) with a generic message that reveals no School data.
+export async function verifySchoolAccessCode(code, { signal } = {}) {
+  const body = await request("/api/school-access/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: String(code || "").trim() }),
+    signal
+  });
 
-  return schools
-    .filter((school) => school && school._id && school.name)
-    .map((school) => ({ id: String(school._id), name: String(school.name) }));
+  return { schoolAccessToken: body.schoolAccessToken, schoolName: body.schoolName };
 }
 
 // Resolves { found, customer }. Phone only: the dedicated Season 2 endpoint
@@ -139,13 +150,13 @@ export async function lookupIncomer(phone, { signal } = {}) {
 
 // Resolves { duplicate, customer }. A duplicate (HTTP 200) means the phone was
 // already registered; the backend ignores the submitted details in that case.
-export async function registerIncomer({ fullName, phone, email, schoolId, photo }, { signal } = {}) {
+export async function registerIncomer({ fullName, phone, email, schoolAccessToken, photo }, { signal } = {}) {
   const form = new FormData();
   form.append("attendeeType", "incomer");
   form.append("fullName", fullName);
   form.append("phoneNumber", normalizePhone(phone));
   form.append("email", normalizeEmail(email));
-  form.append("schoolId", schoolId);
+  form.append("schoolAccessToken", schoolAccessToken);
   form.append("incomerPhoto", photo);
 
   const body = await request("/api/attendees/register", {

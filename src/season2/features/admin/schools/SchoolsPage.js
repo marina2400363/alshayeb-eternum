@@ -20,7 +20,7 @@ function parsePrice(raw) {
 }
 
 export default function SchoolsPage() {
-  const { status, schools, error, retry, addSchool, editSchool } = useAdminSchools();
+  const { status, schools, error, retry, addSchool, editSchool, setAccessCode } = useAdminSchools();
   const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
@@ -39,14 +39,18 @@ export default function SchoolsPage() {
 
   const [priceDraft, setPriceDraft] = useState("");
   const [nameDraft, setNameDraft] = useState("");
+  const [accessCodeDraft, setAccessCodeDraft] = useState("");
   const [detailError, setDetailError] = useState("");
-  const [detailSaving, setDetailSaving] = useState(null); // "name" | "price" | "visibility" | null
+  const [detailSaving, setDetailSaving] = useState(null); // "name" | "price" | "visibility" | "accessCode" | null
+  const [copyStatus, setCopyStatus] = useState("");
 
   useEffect(() => {
     if (selectedSchool) {
       setPriceDraft(String(selectedSchool.ticketPrice));
       setNameDraft(selectedSchool.name);
+      setAccessCodeDraft(selectedSchool.accessCode || "");
       setDetailError("");
+      setCopyStatus("");
     }
   }, [selectedSchool?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -120,6 +124,46 @@ export default function SchoolsPage() {
       setDetailError(failure?.message || "Couldn't change the ticket price visibility.");
     } finally {
       setDetailSaving(null);
+    }
+  }
+
+  async function handleSaveAccessCode() {
+    setDetailError("");
+    if (!accessCodeDraft.trim()) {
+      setDetailError("Enter an access code, or use Generate new code.");
+      return;
+    }
+    setDetailSaving("accessCode");
+    try {
+      const school = await setAccessCode(selectedSchool._id, accessCodeDraft);
+      setAccessCodeDraft(school.accessCode || "");
+    } catch (failure) {
+      setDetailError(failure?.message || "Couldn't set this access code.");
+    } finally {
+      setDetailSaving(null);
+    }
+  }
+
+  async function handleGenerateAccessCode() {
+    setDetailError("");
+    setDetailSaving("accessCode");
+    try {
+      const school = await setAccessCode(selectedSchool._id, "");
+      setAccessCodeDraft(school.accessCode || "");
+    } catch (failure) {
+      setDetailError(failure?.message || "Couldn't generate a new access code.");
+    } finally {
+      setDetailSaving(null);
+    }
+  }
+
+  async function handleCopyAccessCode() {
+    if (!selectedSchool?.accessCode) return;
+    try {
+      await navigator.clipboard.writeText(selectedSchool.accessCode);
+      setCopyStatus("Copied!");
+    } catch {
+      setCopyStatus("Couldn't copy — select and copy manually.");
     }
   }
 
@@ -255,6 +299,38 @@ export default function SchoolsPage() {
                   <p className="s2-admin-muted-text">
                     When hidden, customers of this School don't see a ticket price at all — it isn't sent to their
                     screen. Payments and finance are unaffected.
+                  </p>
+                </div>
+
+                <div className="s2-admin-field-row">
+                  <span className="s2-admin-field-label" id="s2-access-code-label">
+                    School access code
+                  </span>
+                  <div className="s2-admin-inline-form">
+                    <input
+                      className="s2-admin-input"
+                      aria-labelledby="s2-access-code-label"
+                      value={accessCodeDraft}
+                      onChange={(e) => setAccessCodeDraft(e.target.value.toUpperCase())}
+                      placeholder="No code set"
+                      spellCheck={false}
+                      autoComplete="off"
+                    />
+                    <Button variant="ghost" size="sm" disabled={detailSaving === "accessCode"} onClick={handleSaveAccessCode}>
+                      {detailSaving === "accessCode" ? "Saving…" : "Save"}
+                    </Button>
+                  </div>
+                  <div className="s2-admin-inline-form">
+                    <Button variant="secondary" size="sm" disabled={detailSaving === "accessCode"} onClick={handleGenerateAccessCode}>
+                      Generate new code
+                    </Button>
+                    <Button variant="ghost" size="sm" disabled={!selectedSchool.accessCode} onClick={handleCopyAccessCode}>
+                      {copyStatus || "Copy"}
+                    </Button>
+                  </div>
+                  <p className="s2-admin-muted-text">
+                    Share this code with the School committee — students enter it to start registration. It is never
+                    shown publicly, and replacing it invalidates the old code immediately.
                   </p>
                 </div>
 

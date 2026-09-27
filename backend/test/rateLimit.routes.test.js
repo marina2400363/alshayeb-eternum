@@ -18,13 +18,21 @@ process.env.VERCEL = "1";
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
 const resendPkg = require("resend");
 
 const app = require("../src/app");
 const rl = require("../src/middleware/rateLimit");
 const { LIMITS } = require("../src/config/rateLimits");
+const { SCHOOL_ACCESS_TOKEN_PURPOSE } = require("../src/utils/schoolAccessCode");
 const { createMemoryDb } = require("./support/memoryDb");
 const { MemoryRateLimitStore } = require("./support/rateLimitMemoryStore");
+
+function schoolAccessTokenFor(school) {
+  return jwt.sign({ schoolId: String(school._id), purpose: SCHOOL_ACCESS_TOKEN_PURPOSE }, process.env.JWT_SECRET, {
+    expiresIn: "2h"
+  });
+}
 
 const NOW = Date.parse("2026-09-20T10:00:00Z");
 const IP_A = "198.51.100.10";
@@ -304,7 +312,13 @@ test("B. Season 2 lookup", async (t) => {
 // ---------------------------------------------------------------------------
 
 function registrationFields(school, overrides = {}) {
-  return { fullName: "Marina Adel", phone: "01012345678", email: "marina@example.com", schoolId: String(school._id), ...overrides };
+  return {
+    fullName: "Marina Adel",
+    phone: "01012345678",
+    email: "marina@example.com",
+    schoolAccessToken: schoolAccessTokenFor(school),
+    ...overrides
+  };
 }
 
 test("C. Season 2 registration", async (t) => {

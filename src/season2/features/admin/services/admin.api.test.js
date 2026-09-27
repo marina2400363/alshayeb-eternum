@@ -3,6 +3,7 @@ import {
   fetchSchools,
   createSchool,
   updateSchool,
+  setSchoolAccessCode,
   fetchSchoolPaymentOptions,
   createPaymentOption,
   updatePaymentOption,
@@ -86,6 +87,31 @@ describe("schools", () => {
     expect(url).toMatch(/\/api\/admin\/schools\/s1$/);
     expect(options.method).toBe("PUT");
     expect(JSON.parse(options.body)).toEqual({ ticketPrice: 5000 });
+  });
+
+  test("setSchoolAccessCode POSTs a trimmed custom code to /:id/access-code", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, school: { _id: "s1", accessCode: "MYCODE1" } }));
+    await setSchoolAccessCode("s1", "  myCode1  ");
+    const [url, options] = fetch.mock.calls[0];
+    expect(url).toMatch(/\/api\/admin\/schools\/s1\/access-code$/);
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body)).toEqual({ code: "myCode1" });
+  });
+
+  test("setSchoolAccessCode with no code sends an empty body (backend auto-generates)", async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { success: true, school: { _id: "s1", accessCode: "RANDOM1" } }));
+    const school = await setSchoolAccessCode("s1", "");
+    const [, options] = fetch.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({});
+    expect(school.accessCode).toBe("RANDOM1");
+  });
+
+  test("setSchoolAccessCode surfaces a 409 when the custom code clashes with another School", async () => {
+    fetch.mockResolvedValue(jsonResponse(409, { success: false, message: "This access code is already used by another School." }));
+    await expect(setSchoolAccessCode("s1", "TAKEN")).rejects.toMatchObject({
+      status: 409,
+      message: "This access code is already used by another School."
+    });
   });
 });
 

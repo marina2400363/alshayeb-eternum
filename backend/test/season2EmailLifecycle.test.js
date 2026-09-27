@@ -31,9 +31,17 @@ const Deposit = require("../src/models/Deposit");
 const FullPaymentStatus = require("../src/models/FullPaymentStatus");
 const SchoolFinanceConfig = require("../src/models/SchoolFinanceConfig");
 const emailModule = require("../src/utils/email");
+const { SCHOOL_ACCESS_TOKEN_PURPOSE } = require("../src/utils/schoolAccessCode");
 const { createMemoryDb, queryResult } = require("./support/memoryDb");
 
 const SHEET_ID = "1AbCdEf123456789_ABCDEFGHIJKLMNOPQRSTUVWX";
+
+// As if issued by POST /api/school-access/verify for this School.
+function schoolAccessTokenFor(school) {
+  return jwt.sign({ schoolId: String(school._id), purpose: SCHOOL_ACCESS_TOKEN_PURPOSE }, process.env.JWT_SECRET, {
+    expiresIn: "2h"
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Harness
@@ -196,7 +204,7 @@ test("A. registration received", async (t) => {
           fullName: "Marina Adel",
           phone: "01012345678",
           email: "marina@example.com",
-          schoolId: String(school._id)
+          schoolAccessToken: schoolAccessTokenFor(school)
         });
         assert.equal(res.status, 201, JSON.stringify(res.body));
 
@@ -226,7 +234,7 @@ test("A. registration received", async (t) => {
           fullName: "Existing Person",
           phone: "01099998888",
           email: "existing@example.com",
-          schoolId: String(school._id)
+          schoolAccessToken: schoolAccessTokenFor(school)
         });
         assert.equal(res.status, 200);
         assert.equal(res.body.duplicate, true);
@@ -248,7 +256,7 @@ test("A. registration received", async (t) => {
           fullName: "Race Customer",
           phone: "01055556666",
           email: "race@example.com",
-          schoolId: String(school._id)
+          schoolAccessToken: schoolAccessTokenFor(school)
         };
         const [first, second] = await Promise.all([api.register(fields), api.register(fields)]);
         const statuses = [first.status, second.status].sort();
@@ -271,7 +279,7 @@ test("A. registration received", async (t) => {
           fullName: "Resilient Customer",
           phone: "01033334444",
           email: "resilient@example.com",
-          schoolId: String(school._id)
+          schoolAccessToken: schoolAccessTokenFor(school)
         });
         assert.equal(res.status, 201, "registration succeeds regardless of email provider failure");
         const attendee = attendeeById(res.body.attendee.id);
@@ -292,7 +300,7 @@ test("A. registration received", async (t) => {
           fullName: "Timestamp Customer",
           phone: "01066667777",
           email: "timestamp@example.com",
-          schoolId: String(school._id)
+          schoolAccessToken: schoolAccessTokenFor(school)
         });
         const attendee = attendeeById(res.body.attendee.id);
         assert.ok(attendee.season2EmailNotifications.registrationSentAt instanceof Date);
@@ -670,7 +678,7 @@ test("privacy: no lifecycle email ever contains internal/forbidden fields", asyn
         fullName: "Privacy Customer",
         phone: "01044443333",
         email: "privacy@example.com",
-        schoolId: String(school._id)
+        schoolAccessToken: schoolAccessTokenFor(school)
       });
       const submitted = await api.submitDeposit(customer, db.optionOf(school, 500));
       await api.reject(submitted.body.deposit.id, "Screenshot unclear.");
@@ -740,7 +748,7 @@ test("legacy isolation: Season 2 routes never call sendStatusEmail", async () =>
         fullName: "Legacy Isolation",
         phone: "01077778888",
         email: "isolation@example.com",
-        schoolId: String(school._id)
+        schoolAccessToken: schoolAccessTokenFor(school)
       });
       assert.equal(registered.status, 201, JSON.stringify(registered.body));
 

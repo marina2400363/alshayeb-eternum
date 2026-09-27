@@ -80,7 +80,7 @@ app.use("/api/scanner", requireAdmin, scannerRoutes);
 
 const roomRoutes = require("./routes/roomRoutes");
 const roomAdminRoutes = require("./routes/roomAdminRoutes");
-const schoolRoutes = require("./routes/schoolRoutes");
+const schoolAccessRoutes = require("./routes/schoolAccessRoutes");
 const schoolAdminRoutes = require("./routes/schoolAdminRoutes");
 const paymentOptionAdminRoutes = require("./routes/paymentOptionAdminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -93,7 +93,7 @@ const sheetEditRoutes = require("./routes/sheetEditRoutes");
 app.use("/api/settings", settingsRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/admin/rooms", requireAdmin, roomAdminRoutes);
-app.use("/api/schools", schoolRoutes);
+app.use("/api/school-access", schoolAccessRoutes);
 app.use("/api/admin/schools", requireAdmin, schoolAdminRoutes);
 app.use("/api/admin/payment-options", requireAdmin, paymentOptionAdminRoutes);
 app.use("/api/payments", paymentRoutes);
