@@ -8,7 +8,7 @@
   align-items: flex-end;
   padding: var(--s2-space-7) var(--s2-gutter) max(var(--s2-space-7), env(safe-area-inset-bottom));
   background:
-    radial-gradient(120% 70% at 50% 0%, var(--s2-accent-soft), transparent 60%),
+    radial-gradient(120% 70% at 50% 0%, var(--s2-lift), transparent 60%),
     var(--s2-bg-0);
   color: var(--s2-text-primary);
   overflow-y: auto;
@@ -29,7 +29,7 @@
   width: 48px;
   height: 2px;
   margin-bottom: var(--s2-space-6);
-  background: var(--s2-accent);
+  background: var(--s2-text-primary);
 }
 
 /* "CONFIRMED" is the wider line (measured 7.0em in Archivo 800 @ 112%),

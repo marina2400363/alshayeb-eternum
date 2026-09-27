@@ -7,9 +7,9 @@
   uppercase type, hairlines instead of boxes, photo-graded panels — composed
   across the whole screen.
 
-  No cards inside cards and no UI-kit widgets. Blue lives only in the photo
-  tint (.s2-tint). The primary CTA is the shared Button, identical to the
-  homepage "Enter"; every other control is high-contrast type.
+  No cards inside cards and no UI-kit widgets. The primary CTA is the shared
+  Button, identical to the homepage "Enter"; every other control is
+  high-contrast type.
 
   Desktop and mobile are composed separately (mobile first, then >= 900px).
   Tokens only; no new colours. Prefix: s2-ob-
@@ -48,8 +48,8 @@ body:has(.s2-ob-ca) {
   background: var(--s2-bg-0);
 }
 
-/* The Hero's own atmosphere: graded fallback gradient + blue lift. The
-   shared .s2-photo-treatment supplies grayscale / contrast / vignette. */
+/* The Hero's own atmosphere: graded fallback gradient, matching the homepage
+   backdrop. The shared .s2-photo-treatment supplies grayscale / contrast / vignette. */
 .s2-ob-backdrop {
   position: fixed;
   inset: 0;
@@ -62,7 +62,7 @@ body:has(.s2-ob-ca) {
 .s2-ob-backdrop .s2-ob-backdrop-media {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(120% 100% at 50% 20%, #142238 0%, #05070c 55%, #000 100%);
+  background-image: radial-gradient(120% 100% at 50% 20%, var(--s2-bg-2) 0%, var(--s2-bg-1) 55%, var(--s2-bg-0) 100%);
 }
 
 /* The spine: one hairline down the left margin, half a gutter from the edge —
