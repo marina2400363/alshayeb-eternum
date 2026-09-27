@@ -1,0 +1,39 @@
+.s2-gate-action {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Deliberately NOT the shared pill Button: this is an inert placeholder, not
+   a CTA — thin square-cornered border, muted type, no bright colour. */
+.s2-root .s2-gate-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2-space-3);
+  width: 100%;
+  padding: var(--s2-space-4);
+  background: var(--s2-bg-0);
+  border: 1px solid var(--s2-border);
+  border-radius: var(--s2-radius-sm);
+  color: var(--s2-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: left;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.s2-gate-action-btn-label {
+  text-transform: uppercase;
+  letter-spacing: var(--s2-tracking-wide);
+}
+
+.s2-gate-action-btn-tag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--s2-tracking-wide);
+  text-transform: uppercase;
+  color: var(--s2-text-muted);
+}

@@ -1,0 +1,40 @@
+/*
+  Page-level layout only — the payment section itself is untouched (still
+  PaymentArea's own .s2-pay-area, capped at 560/640px). On mobile the two
+  columns simply stack, main content first. On desktop, .s2-ca-main keeps the
+  payment column at its existing width instead of stretching it, and
+  .s2-ca-side uses the space that would otherwise sit empty to the right.
+*/
+.s2-ca-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-8);
+}
+
+.s2-ca-main {
+  min-width: 0;
+}
+
+.s2-ca-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2-space-6);
+}
+
+@media (min-width: 1024px) {
+  .s2-ca-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: clamp(48px, 6vw, 96px);
+  }
+
+  .s2-ca-main {
+    flex: 0 1 640px;
+  }
+
+  .s2-ca-side {
+    flex: 1 1 240px;
+    max-width: 320px;
+    padding-top: var(--s2-space-2);
+  }
+}

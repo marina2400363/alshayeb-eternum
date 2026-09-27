@@ -32,6 +32,10 @@
 //   GET  /api/admin/season2/customers?page&pageSize&q&schoolId&payment&fullPayment&from&to
 //                                                                → { success, customers:[row], pagination:{page,pageSize,total,totalPages} }
 //   GET  /api/admin/season2/customers/:id                        → { success, customer }
+//   GET  /api/admin/season2/settings                             → { success, statusCounter:{accepted,rejected,pending} }
+//   PUT  /api/admin/season2/settings/status-counter               → { success, statusCounter:{accepted,rejected,pending} }
+//     body: { accepted, rejected, pending } — each a non-negative integer.
+//     Its own Season2Settings document, never the legacy SiteSettings one.
 
 import { getSnapshot, clearAdminSession } from "../state/adminSession";
 
@@ -314,4 +318,25 @@ export async function saveInstaPayLink(instapayLink) {
     body: JSON.stringify({ instapayLink })
   });
   return body.settings || {};
+}
+
+// ---------------------------------------------------------------------------
+// Customer Status Counter (Accepted/Rejected/Pending) — its own Season2Settings
+// document, entirely separate from the legacy SiteSettings one above. Values
+// are manually admin-typed; never derived from Deposit/Attendee data.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_STATUS_COUNTER = { accepted: 0, rejected: 0, pending: 0 };
+
+export async function fetchStatusCounterSettings({ signal } = {}) {
+  const body = await request("/api/admin/season2/settings", { signal });
+  return body.statusCounter || DEFAULT_STATUS_COUNTER;
+}
+
+export async function saveStatusCounterSettings({ accepted, rejected, pending }) {
+  const body = await request("/api/admin/season2/settings/status-counter", {
+    method: "PUT",
+    body: JSON.stringify({ accepted, rejected, pending })
+  });
+  return body.statusCounter || DEFAULT_STATUS_COUNTER;
 }

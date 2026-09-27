@@ -88,6 +88,8 @@ const depositRoutes = require("./routes/depositRoutes");
 const depositAdminRoutes = require("./routes/depositAdminRoutes");
 const schoolFinanceConfigAdminRoutes = require("./routes/schoolFinanceConfigAdminRoutes");
 const season2AdminRoutes = require("./routes/season2AdminRoutes");
+const season2SettingsAdminRoutes = require("./routes/season2SettingsAdminRoutes");
+const season2SettingsRoutes = require("./routes/season2SettingsRoutes");
 const sheetEditRoutes = require("./routes/sheetEditRoutes");
 
 app.use("/api/settings", settingsRoutes);
@@ -100,7 +102,9 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/deposits", depositRoutes);
 app.use("/api/admin/deposits", requireAdmin, depositAdminRoutes);
 app.use("/api/admin/school-finance-config", requireAdmin, schoolFinanceConfigAdminRoutes);
+app.use("/api/admin/season2/settings", requireAdmin, season2SettingsAdminRoutes);
 app.use("/api/admin/season2", requireAdmin, season2AdminRoutes);
+app.use("/api/season2/settings", season2SettingsRoutes);
 app.use("/api/sheets", sheetEditRoutes);
 app.use("/api", syncRoutes);
 
