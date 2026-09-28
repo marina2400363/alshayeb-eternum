@@ -11,10 +11,10 @@ import "./ExperiencesJourney.css";
 //
 // Hero is a standalone section: it never shares a frame with the cards, so
 // there is nothing for the cards to clutter. `.s2-transition` is a normal,
-// one-screen section — never pinned or sticky. When enough of it is visible
-// each card glides once from the scattered collage into its rail slot (see
-// motion/useExperienceJourney); vertical scrolling stays fully native, and
-// `.s2-rail` then becomes a plain native horizontal scroller.
+// one-screen section — never pinned or sticky. Native vertical scroll scrubs
+// the cards from the scattered collage into their rail slots (see
+// motion/useExperienceJourney); the moment they land `.s2-rail` becomes a
+// plain native horizontal scroller.
 //
 // Only the first PREVIEW_CARD_COUNT cards are in the scattered preview. The
 // rest sit in the rail from the start (so the rail's layout never changes)

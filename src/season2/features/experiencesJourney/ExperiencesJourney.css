@@ -1,9 +1,16 @@
+/* The bottom padding is plain page distance AFTER the 100svh scene: once the
+   cards land (scrub progress 1) the user still has room to swipe the gallery
+   before the next section arrives. On the outer wrapper on purpose — the
+   scene itself (and so card sizing, scatter anchors and the scrub's
+   START/END, all measured from .s2-transition) is unchanged. No pin/sticky. */
 .s2-journey {
   background: var(--s2-bg-0);
+  padding-bottom: 40vh;
+  padding-bottom: 40svh;
 }
 
-/* One-screen section. Never pinned or sticky: the card sequence is time-based
-   and plays once when the section comes into view (motion/useExperienceJourney). */
+/* One-screen section. Never pinned or sticky: the card sequence is scrubbed
+   by native vertical scroll (motion/useExperienceJourney). */
 .s2-transition {
   position: relative;
   min-height: 100vh;
@@ -105,10 +112,14 @@
 }
 
 /* Cards beyond the scattered preview (see experienceContent.js,
-   PREVIEW_CARD_COUNT). They hold their rail slots from first paint — so the
-   rail never re-lays-out — but are invisible (and out of the a11y tree)
-   until the rail lands, then fade in briefly. Pure CSS from the first
-   render: nothing can flash before JS runs. */
+   PREVIEW_CARD_COUNT). This is only the pre-JS/no-motion fallback: hidden
+   from first paint so nothing can flash before the layout effect runs, and
+   shown once landed if the reduced-motion path (no scroll-scrub at all)
+   applies .s2-rail--landed directly. Whenever the scrub itself is running,
+   motion/useExperienceJourney.js cross-fades these cards as part of the SAME
+   scroll-linked GSAP timeline (inline autoAlpha, easing in/out with actual
+   scroll position, not a fixed-duration CSS transition — deliberately no
+   `transition` here, since one would fight GSAP's frame-by-frame writes). */
 .s2-exp-card--extra {
   visibility: hidden;
   opacity: 0;
@@ -117,13 +128,6 @@
 .s2-rail--landed .s2-exp-card--extra {
   visibility: visible;
   opacity: 1;
-  transition: opacity 0.45s var(--s2-ease-standard);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .s2-rail--landed .s2-exp-card--extra {
-    transition: none;
-  }
 }
 
 /* ---------------------------------------------------------------------
