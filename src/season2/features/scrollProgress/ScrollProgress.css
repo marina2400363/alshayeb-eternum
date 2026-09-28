@@ -1,0 +1,39 @@
+/* Post-hero progress line: 1px, far left edge, vertically centred. Part of
+   the page's margin, not a scrollbar — no dot, no rounding, no accent.
+   --p (fill, 0..1) and --v (visibility, 0..1) are written by
+   motion/usePageScrollProgress; everything here is transform/opacity only.
+
+   Height is in svh so Safari's collapsing toolbar never resizes it
+   mid-scroll. The left inset sits well inside the content gutter (headings
+   and the resting cards start at 8vw), plus the safe-area inset in
+   landscape. */
+.s2-scroll-progress {
+  --p: 0;
+  --v: 0;
+
+  position: fixed;
+  top: 50%;
+  left: calc(max(10px, env(safe-area-inset-left, 0px) + 6px));
+  z-index: 50;
+  width: 1px;
+  height: 24svh;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.35);
+  /* Very low overall weight: ~25% at full visibility. */
+  opacity: calc(var(--v) * 0.25);
+  pointer-events: none;
+}
+
+.s2-scroll-progress i {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  transform: scaleY(var(--p));
+  transform-origin: top;
+}
+
+@media (min-width: 1200px) {
+  .s2-scroll-progress {
+    left: calc(max(20px, env(safe-area-inset-left, 0px) + 8px));
+  }
+}

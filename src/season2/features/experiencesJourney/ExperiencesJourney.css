@@ -5,8 +5,8 @@
    START/END, all measured from .s2-transition) is unchanged. No pin/sticky. */
 .s2-journey {
   background: var(--s2-bg-0);
-  padding-bottom: 40vh;
-  padding-bottom: 40svh;
+  padding-bottom: 24vh;
+  padding-bottom: 24svh;
 }
 
 /* One-screen section. Never pinned or sticky: the card sequence is scrubbed
