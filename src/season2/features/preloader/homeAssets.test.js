@@ -18,11 +18,11 @@ function streamingResponse(chunks, { contentLength, status = 200 } = {}) {
 describe("critical asset list", () => {
   test("is the hero followed by the four preview card photographs only", () => {
     expect(CRITICAL_IMAGES).toEqual([
-      "/season2/media/home/hero-main.png",
-      "/season2/media/home/card1.PNG",
-      "/season2/media/home/card2.JPEG",
-      "/season2/media/home/card3.JPEG",
-      "/season2/media/home/card4.JPEG"
+      "/season2/media/home/hero-main.webp",
+      "/season2/media/home/card1.webp",
+      "/season2/media/home/card2.webp",
+      "/season2/media/home/card3.webp",
+      "/season2/media/home/card4.webp"
     ]);
   });
 
