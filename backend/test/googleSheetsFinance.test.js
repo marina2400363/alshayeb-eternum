@@ -163,7 +163,23 @@ function installFinanceStores() {
       obj[method] = original;
     });
   };
-  const matchesSchool = (doc, filter) => !filter.schoolId || String(doc.schoolId) === String(filter.schoolId);
+  const matchesSchool = (doc, filter) =>
+    (!filter.schoolId || String(doc.schoolId) === String(filter.schoolId)) &&
+    // The manual sync's dirty-flag check (see financeAutoSync): honor it so a
+    // plain run never looks like "a change arrived mid-run".
+    (!("autoSync.dirty" in filter) || (doc.autoSync && doc.autoSync.dirty) === filter["autoSync.dirty"]);
+  // Mongo dotted-path $set ("autoSync.lockedUntil") onto a plain object.
+  const applySet = (doc, set = {}) => {
+    for (const [path, value] of Object.entries(set)) {
+      const parts = path.split(".");
+      let target = doc;
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        if (typeof target[parts[i]] !== "object" || target[parts[i]] === null) target[parts[i]] = {};
+        target = target[parts[i]];
+      }
+      target[parts[parts.length - 1]] = value;
+    }
+  };
 
   stub(SchoolFinanceConfig, "find", (filter = {}) => queryResult(configs.filter((doc) => matchesSchool(doc, filter))));
   stub(SchoolFinanceConfig, "findOne", (filter = {}) =>
@@ -181,8 +197,14 @@ function installFinanceStores() {
       };
       configs.push(doc);
     }
-    Object.assign(doc, update.$set || {});
+    applySet(doc, update.$set);
     return queryResult(doc);
+  });
+  // The per-School lease / dirty flag writes the manual sync now performs.
+  stub(SchoolFinanceConfig, "updateOne", async (filter, update) => {
+    const doc = configs.find((candidate) => matchesSchool(candidate, filter));
+    if (doc) applySet(doc, update.$set);
+    return { matchedCount: doc ? 1 : 0 };
   });
 
   stub(FullPaymentStatus, "find", (filter = {}) => {
@@ -507,37 +529,39 @@ test("sync customers to sheet", async (t) => {
     const at = (customer) => sheet.imageFor(customer._id);
     assert.equal(at(mixed)[6], 3, "3 approved of 5 deposits");
     assert.equal(at(mixed)[7], 3500, "500 + 1000 + 2000, never the pending 750 or rejected 300");
-    assert.equal(at(pendingOnly)[6], 0);
-    assert.equal(at(pendingOnly)[7], 0);
-    assert.equal(at(rejectedOnly)[6], 0);
-    assert.equal(at(rejectedOnly)[7], 0);
+    // Approved-payments-only export: pending-only / rejected-only are not exported.
+    assert.equal(at(pendingOnly), null);
+    assert.equal(at(rejectedOnly), null);
     assert.equal(at(four)[6], 4);
     assert.equal(at(four)[7], 1000);
-    for (const customer of [mixed, pendingOnly, rejectedOnly, four]) {
+    for (const customer of [mixed, four]) {
       assert.ok(Number.isInteger(at(customer)[6]));
     }
   });
 
-  await t.test("a customer with no deposits is exported with an empty summary and no proof link", async () => {
+  await t.test("a customer with no deposits is NOT exported (approved-payments-only)", async () => {
     const school = db.addSchool({ ticketPrice: 6000 });
     const customer = db.addAttendee(school);
     finance.addConfig(school);
 
     await withServer(async (base) => {
-      await client(base).syncToSheet(school);
+      const res = await client(base).syncToSheet(school);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.syncedCount, 0);
     });
 
-    const image = sheet.imageFor(customer._id);
-    assert.equal(image[5], "");
-    assert.equal(image[6], 0);
-    assert.equal(image[7], 0);
-    assert.equal(image[11], "", "no approved deposit => no Payment Proof Links");
+    assert.equal(sheet.imageFor(customer._id), null);
+    assert.equal(sheet.rowFor(customer._id), null);
+    // The customer is still registered in MongoDB / the Admin Dashboard.
+    assert.ok(db.attendees.some((doc) => String(doc._id) === String(customer._id)));
   });
 
   await t.test("J Email and K Customer Photo Link come from the attendee; both blank when absent", async () => {
     const school = db.addSchool({ ticketPrice: 6000 });
     const complete = db.addAttendee(school, { email: "a@example.com", incomerPhoto: { url: "https://cdn.example/a.jpg" } });
     const bare = db.addAttendee(school);
+    addDeposit(complete, { amount: 500 });
+    addDeposit(bare, { amount: 500 });
     finance.addConfig(school);
 
     await withServer(async (base) => {
@@ -578,8 +602,8 @@ test("sync customers to sheet", async (t) => {
     // the Nth link belongs to the Nth amount
     assert.equal(image[11].split(", ").length, image[6], "one link per approved payment (Number of Payments)");
     assert.equal(sheet.imageFor(single._id)[11], "https://cdn.example/single.png");
-    assert.equal(sheet.imageFor(pendingOnly._id)[11], "", "blank when nothing is approved");
-    assert.equal(sheet.imageFor(rejectedOnly._id)[11], "");
+    assert.equal(sheet.imageFor(pendingOnly._id), null, "not exported: nothing is approved");
+    assert.equal(sheet.imageFor(rejectedOnly._id), null);
     const written = JSON.stringify(sheet.state.writes);
     assert.ok(!written.includes("rejected.png") && !written.includes("pending.png"));
     assert.ok(!written.includes("never-in-the-sheet"), "no Cloudinary public ids");
@@ -605,6 +629,8 @@ test("sync customers to sheet", async (t) => {
     const school = db.addSchool({ ticketPrice: 9000 });
     const locked = db.addAttendee(school, { ticketPrice: 6000, ticketPriceLocked: true });
     const unlocked = db.addAttendee(school, { ticketPrice: 9000 });
+    addDeposit(locked, { amount: 500 });
+    addDeposit(unlocked, { amount: 500 });
     finance.addConfig(school);
 
     await withServer(async (base) => {
@@ -635,9 +661,10 @@ test("sync customers to sheet", async (t) => {
       assert.equal(written.includes(stateText), false, `${stateText} must not be written`);
     }
     // Column H is Total Paid (a number) for every customer.
-    for (const customer of [pending, awaiting, done]) {
+    for (const customer of [awaiting, done]) {
       assert.equal(typeof sheet.imageFor(customer._id)[7], "number");
     }
+    assert.equal(sheet.imageFor(pending._id), null, "pending-only customer is not exported");
   });
 
   await t.test("only that School's customers are exported", async () => {
@@ -646,6 +673,7 @@ test("sync customers to sheet", async (t) => {
     const inA = db.addAttendee(schoolA);
     const inB = db.addAttendee(schoolB);
     const outcomer = db.addAttendee(schoolA, { attendeeType: "outcomer" });
+    for (const customer of [inA, inB, outcomer]) addDeposit(customer, { amount: 500 });
     finance.addConfig(schoolA);
 
     await withServer(async (base) => {
@@ -663,6 +691,7 @@ test("sync customers to sheet", async (t) => {
     const existing = db.addAttendee(school, { fullName: "Existing" });
     const fresh = db.addAttendee(school, { fullName: "Fresh" });
     addDeposit(existing, { amount: 500 });
+    addDeposit(fresh, { amount: 500 });
     finance.addConfig(school);
 
     // The sheet already has the CURRENT header and this customer's row, with
@@ -695,7 +724,7 @@ test("sync customers to sheet", async (t) => {
     const done = db.addAttendee(school);
     const other = db.addAttendee(school);
     const blank = db.addAttendee(school);
-    addDeposit(done, { amount: 500 });
+    for (const customer of [done, other, blank]) addDeposit(customer, { amount: 500 });
     finance.addConfig(school);
 
     sheet.setRows([
@@ -1147,7 +1176,7 @@ test("neither sync direction mutates Deposits", async (t) => {
 
 test("write sync sends RAW values so phone numbers keep their leading zero", async () => {
   const school = db.addSchool({ name: "RAW School", ticketPrice: 6000 });
-  db.addAttendee(school, { fullName: "Leading Zero", phone: "01000000001", ticketPrice: 6000 });
+  addDeposit(db.addAttendee(school, { fullName: "Leading Zero", phone: "01000000001", ticketPrice: 6000 }), { amount: 500 });
   finance.addConfig(school);
 
   await withServer(async (base) => {

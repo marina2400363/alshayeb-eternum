@@ -143,7 +143,7 @@ async function syncSchoolFinanceSheet(schoolId) {
     const attendeeIds = attendees.map((attendee) => attendee._id);
     const deposits = attendeeIds.length
       ? await Deposit.find({ attendeeId: { $in: attendeeIds } })
-          .select("attendeeId amount status createdAt paymentProof.url")
+          .select("attendeeId amount status createdAt reviewedAt paymentProof.url")
           .sort({ createdAt: 1 })
           .lean()
       : [];
@@ -157,7 +157,40 @@ async function syncSchoolFinanceSheet(schoolId) {
       depositsByAttendee.get(key).push(deposit);
     }
 
-    const rows = attendees.map((attendee) => {
+    // APPROVED-PAYMENTS-ONLY EXPORT: a customer is written to the Sheet only
+    // once they have at least ONE approved Deposit. Registered, pending-only and
+    // rejected-only customers stay in MongoDB and the Admin Dashboard but are
+    // never exported. An approval is permanent (approve/reject only act on
+    // "pending"), so eligibility is never lost. Existing Sheet rows are never
+    // removed here: this function only updates rows in place or appends.
+    //
+    // ORDER: eligible customers are ordered by WHEN THEY FIRST BECAME ELIGIBLE
+    // (their earliest approval), not by registration date. New rows are appended
+    // at the end of the sheet, with positions computed from this sync's own
+    // snapshot. Every sync path is serialized by the per-School lease
+    // (services/financeAutoSync.js), so syncs normally never overlap; this order
+    // is defense in depth for the rare case where they could (e.g. a lease that
+    // expired after a crashed run). In first-approval order a newly approved
+    // customer always sorts AFTER everyone already eligible, so two overlapping
+    // syncs agree on the rows they share. In registration order an older
+    // registrant approved between them would land in the MIDDLE and the syncs
+    // could overwrite each other's appended rows (a duplicate and a lost customer).
+    const approvedAt = (deposit) => new Date(deposit.reviewedAt || deposit.createdAt || 0).getTime();
+    const firstApprovalAt = (attendee) =>
+      Math.min(
+        ...(depositsByAttendee.get(String(attendee._id)) || [])
+          .filter((deposit) => deposit.status === "approved")
+          .map(approvedAt)
+      );
+    const eligibleAttendees = attendees
+      .filter((attendee) =>
+        (depositsByAttendee.get(String(attendee._id)) || []).some((deposit) => deposit.status === "approved")
+      )
+      .map((attendee) => ({ attendee, at: firstApprovalAt(attendee) }))
+      .sort((a, b) => a.at - b.at || String(a.attendee._id).localeCompare(String(b.attendee._id)))
+      .map((entry) => entry.attendee);
+
+    const rows = eligibleAttendees.map((attendee) => {
       const attendeeDeposits = depositsByAttendee.get(String(attendee._id)) || [];
 
       return {

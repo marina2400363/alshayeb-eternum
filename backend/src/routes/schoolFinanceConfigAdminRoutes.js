@@ -5,7 +5,7 @@ const School = require("../models/School");
 const SchoolFinanceConfig = require("../models/SchoolFinanceConfig");
 const asyncHandler = require("../middleware/asyncHandler");
 const apiError = require("../utils/apiError");
-const { syncSchoolFinanceSheet } = require("../services/googleSheetsSchoolFinanceSync");
+const { syncSchoolFinanceManually } = require("../services/financeAutoSync");
 const { syncFullPaymentFromSchoolSheet } = require("../services/googleSheetsFullPaymentSync");
 const { parseSpreadsheetId } = require("../utils/googleSheetUrl");
 
@@ -106,7 +106,9 @@ router.post(
       throw apiError("No finance config found for this school.", 404);
     }
 
-    const result = await syncSchoolFinanceSheet(schoolId);
+    // Serialized through the per-School lease (services/financeAutoSync.js), so
+    // it can never overlap an automatic sync on the same Sheet.
+    const result = await syncSchoolFinanceManually(schoolId);
     res.json(result);
   })
 );

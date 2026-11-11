@@ -308,10 +308,11 @@ test("registration triggers a NON-BLOCKING sync of that School's sheet", async (
     await settle();
   });
 
-  assert.equal(sheet.reads, 1);
-  const row = writtenRowFor(db.attendees[0]._id);
-  assert.ok(row, "the new customer reached the sheet");
-  assert.equal(row[1], "Marina Adel");
+  assert.equal(sheet.reads, 1, "the sync still ran in the background");
+  // Approved-payments-only: a freshly registered customer (no approved payment)
+  // is NOT exported. They stay registered in MongoDB.
+  assert.equal(writtenRowFor(db.attendees[0]._id), null, "a customer with no approved payment is not in the sheet");
+  assert.equal(db.attendees.length, 1, "the customer is still registered");
   assert.equal(config.lastSync.status, "success");
   assert.equal(getPath(config, "autoSync.lockedUntil"), null, "the lease is released after the run");
   assert.ok(allWrittenRanges().every((range) => /^A\d+:H\d+$|^J\d+:L\d+$|^A1:L1$/.test(range)), "column I is never written");
@@ -604,7 +605,7 @@ test("the scheduled cron also reconciles every enabled School sheet (backup for 
 test("the manual Sync button still works (admin recovery)", async () => {
   const school = db.addSchool({ name: "Heliopolis", ticketPrice: 6000 });
   addConfig(school);
-  db.addAttendee(school);
+  addDeposit(db.addAttendee(school), { status: "approved" });
 
   await withServer(async (base) => {
     const res = await fetch(`${base}/api/admin/school-finance-config/${school._id}/sync`, { method: "POST", headers: adminHeaders() }).then(parse);
@@ -754,6 +755,7 @@ test("DONE cleared and re-entered flips the status back and forth but the email 
 test("the cron never writes column I while it reads it (Mongo -> Sheet leaves the accountant cell alone)", async () => {
   const school = db.addSchool({ name: "Heliopolis", ticketPrice: 6000 });
   const customer = db.addAttendee(school);
+  addDeposit(customer, { status: "approved" });
   addConfig(school);
   sheet.rows = [HEADER, sheetRow(customer, "DONE")];
 
