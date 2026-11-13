@@ -183,3 +183,46 @@ test("shows the server's error (e.g. a Sheet already used) without losing the fo
   expect(await within(form).findByRole("alert")).toHaveTextContent(/School Finance Sheet/);
   expect(within(form).getByLabelText("Event name")).toHaveValue("Fictional Prom");
 });
+
+test("Edit sits next to the event name, in the same cell", async () => {
+  adminApi.fetchAdminEvents.mockResolvedValue([makeEvent()]);
+  render(<EventsPage />);
+  const name = await screen.findByText("Fictional Prom");
+  const edit = screen.getByRole("button", { name: "Edit Fictional Prom" });
+  expect(name.closest("td")).toBe(edit.closest("td"));
+});
+
+test("a failed School list shows a clear error with Retry (not 'No schools match') and keeps the form", async () => {
+  adminApi.fetchSchools.mockRejectedValueOnce(new Error("Schools are unavailable right now."));
+  render(<EventsPage />);
+  await screen.findByText(/no events yet/i);
+
+  await userEvent.click(screen.getByRole("button", { name: "+ New event" }));
+  const form = screen.getByRole("form", { name: "Create event" });
+  await userEvent.type(within(form).getByLabelText("Event name"), "Half filled");
+
+  const alert = await within(form).findByText(/Schools are unavailable right now/);
+  expect(alert).toBeInTheDocument();
+  expect(within(form).queryByText(/no schools match/i)).not.toBeInTheDocument();
+  expect(within(form).queryByLabelText("Search schools")).not.toBeInTheDocument();
+
+  await userEvent.click(within(form).getByRole("button", { name: /retry loading schools/i }));
+  expect(await within(form).findByLabelText("Fictional School A")).toBeInTheDocument();
+  expect(adminApi.fetchSchools).toHaveBeenCalledTimes(2);
+  // The retry did not wipe what the Admin had already typed.
+  expect(within(form).getByLabelText("Event name")).toHaveValue("Half filled");
+});
+
+test("editing keeps the saved Schools selected when the School list fails to load", async () => {
+  adminApi.fetchSchools.mockRejectedValue(new Error("Schools are unavailable right now."));
+  adminApi.fetchAdminEvents.mockResolvedValue([makeEvent()]);
+  adminApi.updateAdminEvent.mockImplementation(async (id, fields) => makeEvent({ ...fields, schoolIds: fields.schoolIds }));
+  render(<EventsPage />);
+  await screen.findByText("Fictional Prom");
+  await userEvent.click(screen.getByRole("button", { name: "Edit Fictional Prom" }));
+  const form = screen.getByRole("form", { name: "Edit event" });
+  expect(await within(form).findByText(/2 selected/)).toBeInTheDocument();
+  await userEvent.click(within(form).getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(adminApi.updateAdminEvent).toHaveBeenCalled());
+  expect(adminApi.updateAdminEvent.mock.calls[0][1].schoolIds).toEqual(["school-a", "school-b"]);
+});

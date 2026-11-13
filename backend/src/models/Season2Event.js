@@ -41,7 +41,10 @@ const season2EventSchema = new mongoose.Schema(
 
 season2EventSchema.index({ startsAt: 1 });
 season2EventSchema.index({ schoolIds: 1 });
-season2EventSchema.index({ "sheet.spreadsheetId": 1 }, { sparse: true });
+// Database-level guarantee: two events can never share a Spreadsheet id, even if
+// two Admins save at the same moment (the route maps the duplicate-key error to
+// the same clear 409). Only affects this new collection.
+season2EventSchema.index({ "sheet.spreadsheetId": 1 }, { unique: true, sparse: true, name: "sheet_spreadsheetId_unique" });
 
 const Season2Event = mongoose.model("Season2Event", season2EventSchema);
 Season2Event.EVENT_STATUSES = EVENT_STATUSES;

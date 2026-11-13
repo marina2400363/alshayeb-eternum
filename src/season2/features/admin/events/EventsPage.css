@@ -67,3 +67,17 @@
   filter: grayscale(1);
   opacity: 0.6;
 }
+
+/* Edit sits right next to the event name so it is always reachable, even when
+   the wide table scrolls sideways or stacks on small screens. */
+.s2-events-name-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-space-3);
+  flex-wrap: wrap;
+}
+
+/* Season 1's global input/select rule centers text; Admin fields read left. */
+.s2-root .s2-events-page .s2-admin-input {
+  text-align: left;
+}

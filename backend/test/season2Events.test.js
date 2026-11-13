@@ -513,3 +513,50 @@ test("event admin never touches customers, payments or School records", async ()
     assert.deepEqual(touchedCustomerData, []);
   });
 });
+
+// --------------------------------------------------------------------------
+// Database-level Sheet uniqueness (simultaneous saves)
+// --------------------------------------------------------------------------
+
+test("the model declares a UNIQUE index on the Spreadsheet id", () => {
+  const index = Season2Event.schema.indexes().find(([fields]) => fields["sheet.spreadsheetId"] === 1);
+  assert.ok(index, "index on sheet.spreadsheetId exists");
+  assert.equal(index[1].unique, true);
+});
+
+test("a simultaneous duplicate Sheet (database duplicate-key error) still returns the clear 409", async () => {
+  await withServer(async (base) => {
+    const first = (await call(base, "POST", "", { body: validBody() })).body.event;
+    const second = (await call(base, "POST", "", { body: validBody({ name: "Second", sheetUrl: SHEET_B }) })).body.event;
+
+    // Simulate the race: the pre-check saw no clash, but the database unique index rejects the save.
+    const realSave = Season2Event.prototype.save;
+    const raceError = () => {
+      const error = new Error("E11000 duplicate key error collection: season2events index: sheet_spreadsheetId_unique");
+      error.code = 11000;
+      error.keyPattern = { "sheet.spreadsheetId": 1 };
+      return error;
+    };
+    stub(Season2Event.prototype, "save", async function save() {
+      throw raceError();
+    });
+
+    const created = await call(base, "POST", "", { body: validBody({ name: "Racer", sheetUrl: "1RaceSheetFictionalXXXXXXXXXXXXXXXXXXXX" }) });
+    assert.equal(created.status, 409);
+    assert.match(created.body.message, /already assigned to another event/);
+
+    const edited = await call(base, "PUT", `/${second._id}`, { body: { sheetUrl: "1RaceSheetFictionalYYYYYYYYYYYYYYYYYYYY" } });
+    assert.equal(edited.status, 409);
+    assert.match(edited.body.message, /already assigned to another event/);
+
+    // Unrelated database errors are not disguised as a Sheet clash.
+    stub(Season2Event.prototype, "save", async function save() {
+      const error = new Error("E11000 duplicate key error index: something_else");
+      error.code = 11000;
+      throw error;
+    });
+    const other = await call(base, "PUT", `/${first._id}`, { body: { name: "Another name" } });
+    assert.equal(other.status, 500);
+    Season2Event.prototype.save = realSave;
+  });
+});

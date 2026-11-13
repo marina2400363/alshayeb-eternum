@@ -40,7 +40,7 @@ function SchoolsCell({ schools }) {
 
 export default function EventsPage() {
   const { status, events, error, retry, addEvent, editEvent, setThumbnail } = useAdminEvents();
-  const { schools, status: schoolsStatus } = useAdminSchools();
+  const { schools, status: schoolsStatus, error: schoolsError, retry: retrySchools } = useAdminSchools();
   const [mode, setMode] = useState(null); // null | "create" | id of the event being edited
   const [filter, setFilter] = useState("");
   const [saving, setSaving] = useState(false);
@@ -71,13 +71,15 @@ export default function EventsPage() {
     }
   }
 
-  if (status === "loading" || schoolsStatus === "loading") return <LoadingState label="Loading events" />;
+  // Only the events gate the page. The Schools list loads (and can be retried)
+  // inside the form, so a retry never unmounts a half-filled form.
+  if (status === "loading") return <LoadingState label="Loading events" />;
   if (status === "error") return <ErrorState title="Couldn't load events" message={error?.message} onRetry={retry} />;
 
   const visible = filter ? events.filter((event) => event.status === filter) : events;
 
   return (
-    <div className="s2-admin-page">
+    <div className="s2-admin-page s2-events-page">
       <div className="s2-admin-page-header">
         <div>
           <h1 className="s2-admin-page-title">Events</h1>
@@ -102,6 +104,9 @@ export default function EventsPage() {
           key={mode}
           event={editing}
           schools={schools}
+          schoolsStatus={schoolsStatus}
+          schoolsError={schoolsError}
+          onRetrySchools={retrySchools}
           saving={saving}
           serverError={formError}
           onSave={handleSave}
@@ -141,7 +146,6 @@ export default function EventsPage() {
                 <th>Outcomer price</th>
                 <th>Status</th>
                 <th>Google Sheet</th>
-                <th />
               </tr>
             </thead>
             <tbody>
@@ -154,7 +158,22 @@ export default function EventsPage() {
                       <span className="s2-events-thumb s2-events-thumb--empty" aria-label="No thumbnail" />
                     )}
                   </td>
-                  <td data-label="Event"><strong>{event.name}</strong></td>
+                  <td data-label="Event">
+                    <div className="s2-events-name-cell">
+                      <strong>{event.name}</strong>
+                      <button
+                        type="button"
+                        className="s2-admin-icon-btn"
+                        onClick={() => {
+                          setFormError("");
+                          setMode(event._id);
+                        }}
+                        aria-label={`Edit ${event.name}`}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </td>
                   <td data-label="Date & time">{formatEventWhen(event)}</td>
                   <td data-label="Location">{event.location}</td>
                   <td data-label="Schools"><SchoolsCell schools={event.schools} /></td>
@@ -169,19 +188,6 @@ export default function EventsPage() {
                       <span className="s2-admin-warn-text">No Sheet linked</span>
                     )}
                     <div className="s2-admin-muted-text">Tab: {event.sheet?.tabName || "Sheet1"}</div>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="s2-admin-icon-btn"
-                      onClick={() => {
-                        setFormError("");
-                        setMode(event._id);
-                      }}
-                      aria-label={`Edit ${event.name}`}
-                    >
-                      Edit
-                    </button>
                   </td>
                 </tr>
               ))}

@@ -99,7 +99,23 @@ async function assertSheetIsDedicated(spreadsheetId, ownEventId) {
     throw apiError("This Sheet is already used by an existing (Season 1) event. Each event needs its own separate Sheet.", 409);
   }
   if (eventClash) {
-    throw apiError("This Sheet is already assigned to another event. Each event needs its own Sheet.", 409);
+    throw apiError(SHEET_ALREADY_ASSIGNED_MESSAGE, 409);
+  }
+}
+
+const SHEET_ALREADY_ASSIGNED_MESSAGE =
+  "This Sheet is already assigned to another event. Each event needs its own Sheet.";
+
+// Saves an event; a duplicate-key error on the Sheet index (two Admins saving the
+// same Sheet at once) becomes the same clear 409 as the pre-check.
+async function saveEvent(event) {
+  try {
+    await event.save();
+  } catch (error) {
+    if (error && error.code === 11000 && /spreadsheetId/i.test(String(error.message) + JSON.stringify(error.keyPattern || {}))) {
+      throw apiError(SHEET_ALREADY_ASSIGNED_MESSAGE, 409);
+    }
+    throw error;
   }
 }
 
@@ -193,7 +209,7 @@ router.post(
       status: body.status === undefined || body.status === "" ? "COMING_SOON" : parseStatus(body.status),
       sheet
     });
-    await event.save();
+    await saveEvent(event);
 
     await respondWith(res, event, 201);
   })
@@ -246,7 +262,7 @@ router.put(
       event.sheet = { ...current, spreadsheetId };
     }
 
-    await event.save();
+    await saveEvent(event);
     await respondWith(res, event);
   })
 );

@@ -36,7 +36,17 @@ function draftFrom(event) {
 
 // Create / edit form. Server validation is authoritative; the checks here only
 // give the Admin faster feedback.
-export default function EventFormPanel({ event, schools, onSave, onCancel, saving, serverError }) {
+export default function EventFormPanel({
+  event,
+  schools,
+  schoolsStatus = "ready",
+  schoolsError = null,
+  onRetrySchools,
+  onSave,
+  onCancel,
+  saving,
+  serverError
+}) {
   const [draft, setDraft] = useState(() => draftFrom(event));
   const [thumbnail, setThumbnail] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -146,6 +156,9 @@ export default function EventFormPanel({ event, schools, onSave, onCancel, savin
           selectedIds={draft.schoolIds}
           onChange={(schoolIds) => setDraft((prev) => ({ ...prev, schoolIds }))}
           disabled={saving}
+          loadStatus={schoolsStatus}
+          loadError={schoolsError}
+          onRetry={onRetrySchools}
         />
       </div>
 
