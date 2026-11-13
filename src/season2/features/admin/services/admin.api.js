@@ -327,3 +327,49 @@ export async function saveInstaPayLink(instapayLink) {
   });
   return body.settings || {};
 }
+
+// ---------------------------------------------------------------------------
+// Events Management (Admin-only, Season 2): /api/admin/season2-events, separate
+// from the legacy Season 1 /api/events. No delete — an event is retired by
+// setting it UNAVAILABLE.
+//   GET  /api/admin/season2-events                    -> { success, events:[Event] }
+//   POST /api/admin/season2-events                    -> 201 { success, event }
+//   PUT  /api/admin/season2-events/:id                -> { success, event }
+//   POST /api/admin/season2-events/:id/thumbnail      -> { success, event } (multipart, field "thumbnail")
+// ---------------------------------------------------------------------------
+
+export const EVENT_STATUSES = ["AVAILABLE", "UNAVAILABLE", "COMING_SOON"];
+
+export async function fetchAdminEvents({ signal } = {}) {
+  const body = await request("/api/admin/season2-events", { signal });
+  return Array.isArray(body.events) ? body.events : [];
+}
+
+// fields: { name, eventDate, eventTime, location, outcomerTicketPriceEGP,
+//           status, schoolIds, sheetUrl, sheetTabName }
+export async function createAdminEvent(fields) {
+  const body = await request("/api/admin/season2-events", {
+    method: "POST",
+    body: JSON.stringify(fields)
+  });
+  return body.event;
+}
+
+export async function updateAdminEvent(id, fields) {
+  const body = await request(`/api/admin/season2-events/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(fields)
+  });
+  return body.event;
+}
+
+export async function uploadAdminEventThumbnail(id, file) {
+  const form = new FormData();
+  form.append("thumbnail", file);
+  const body = await request(`/api/admin/season2-events/${encodeURIComponent(id)}/thumbnail`, {
+    method: "POST",
+    body: form,
+    timeoutMs: 45000
+  });
+  return body.event;
+}

@@ -89,6 +89,7 @@ const depositAdminRoutes = require("./routes/depositAdminRoutes");
 const schoolFinanceConfigAdminRoutes = require("./routes/schoolFinanceConfigAdminRoutes");
 const season2AdminRoutes = require("./routes/season2AdminRoutes");
 const sheetEditRoutes = require("./routes/sheetEditRoutes");
+const season2EventAdminRoutes = require("./routes/season2EventAdminRoutes");
 
 app.use("/api/settings", settingsRoutes);
 app.use("/api/rooms", roomRoutes);
@@ -101,6 +102,8 @@ app.use("/api/deposits", depositRoutes);
 app.use("/api/admin/deposits", requireAdmin, depositAdminRoutes);
 app.use("/api/admin/school-finance-config", requireAdmin, schoolFinanceConfigAdminRoutes);
 app.use("/api/admin/season2", requireAdmin, season2AdminRoutes);
+// Admin-only Season 2 Events Management (separate from the legacy /api/events).
+app.use("/api/admin/season2-events", requireAdmin, season2EventAdminRoutes);
 app.use("/api/sheets", sheetEditRoutes);
 app.use("/api", syncRoutes);
 

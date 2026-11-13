@@ -279,6 +279,67 @@ function uploadRoomPaymentProof(file) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Season 2 event thumbnails (Admin Events Management). Own folder, never shared
+// with customer photos/proofs or the Season 1 banners above.
+// ---------------------------------------------------------------------------
+const SEASON2_EVENT_THUMBNAIL_FOLDER = "alshayeb/season2-event-thumbnails";
+
+function uploadSeason2EventThumbnail(file) {
+  if (!file) {
+    return Promise.resolve(null);
+  }
+
+  if (!configureCloudinary()) {
+    const error = new Error("Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.");
+    error.statusCode = 503;
+    return Promise.reject(error);
+  }
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: SEASON2_EVENT_THUMBNAIL_FOLDER,
+        resource_type: "image",
+        unique_filename: true,
+        overwrite: false,
+        width: 1200,
+        crop: "limit",
+        quality: "80",
+        fetch_format: "auto"
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(result);
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+}
+
+// Only ever removes an asset inside the Season 2 event-thumbnail folder, so a
+// bad/forged publicId can never delete a customer photo, proof or banner.
+function deleteSeason2EventThumbnail(publicId) {
+  if (
+    !publicId ||
+    typeof publicId !== "string" ||
+    !publicId.startsWith(`${SEASON2_EVENT_THUMBNAIL_FOLDER}/`) ||
+    publicId.includes("..") ||
+    !configureCloudinary()
+  ) {
+    return Promise.resolve(null);
+  }
+
+  return cloudinary.uploader.destroy(publicId).catch((error) => {
+    console.error("Failed to delete replaced Season 2 event thumbnail:", publicId, error.message);
+    return null;
+  });
+}
+
 module.exports = {
   uploadPaymentProof,
   uploadOutcomerPhoto,
@@ -287,5 +348,8 @@ module.exports = {
   uploadIncomerDepositProof,
   deleteIncomerDepositProof,
   uploadEventBanner,
-  uploadRoomPaymentProof
+  uploadRoomPaymentProof,
+  uploadSeason2EventThumbnail,
+  deleteSeason2EventThumbnail,
+  SEASON2_EVENT_THUMBNAIL_FOLDER
 };

@@ -6,6 +6,7 @@ import DashboardPage from "../../features/admin/dashboard/DashboardPage";
 import CustomersPage from "../../features/admin/customers/CustomersPage";
 import SchoolsPage from "../../features/admin/schools/SchoolsPage";
 import DepositsPage from "../../features/admin/deposits/DepositsPage";
+import EventsPage from "../../features/admin/events/EventsPage";
 import FinancePage from "../../features/admin/finance/FinancePage";
 import SettingsPage from "../../features/admin/settings/SettingsPage";
 
@@ -23,6 +24,7 @@ export default function AdminPage() {
         <Route path="customers" element={<CustomersPage />} />
         <Route path="schools" element={<SchoolsPage />} />
         <Route path="deposits" element={<DepositsPage />} />
+        <Route path="events" element={<EventsPage />} />
         <Route path="finance" element={<FinancePage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/season2/admin/dashboard" replace />} />
