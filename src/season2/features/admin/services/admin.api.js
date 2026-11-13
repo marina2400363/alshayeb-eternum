@@ -373,3 +373,48 @@ export async function uploadAdminEventThumbnail(id, file) {
   });
   return body.event;
 }
+
+// ---------------------------------------------------------------------------
+// Full Payments (Admin-only, MANUAL). The Admin alone decides every DONE; no
+// amount is ever compared. Customers are addressed by id.
+//   GET  /api/admin/season2-full-payments?page&pageSize&q&customerType&schoolId&eventId&manual
+//        -> { success, customers:[row], pagination:{page,pageSize,total,totalPages}, outcomers:{available} }
+//   GET  /api/admin/season2-full-payments/:id/deposits -> { success, customer, summary, deposits:[deposit] }
+//   POST /api/admin/season2-full-payments/:id/done     -> { success, changed, manualStatus, doneAt, doneBy }
+//   POST /api/admin/season2-full-payments/:id/revoke   -> { success, changed, manualStatus, doneAt, doneBy }
+// ---------------------------------------------------------------------------
+
+// params: { page, pageSize, q, customerType, schoolId, eventId, manual } - empty
+// values are simply not sent.
+export async function fetchFullPayments(params = {}, { signal } = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      query.set(key, String(value).trim());
+    }
+  });
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const body = await request(`/api/admin/season2-full-payments${suffix}`, { signal });
+  return {
+    customers: Array.isArray(body.customers) ? body.customers : [],
+    pagination: body.pagination || { page: 1, pageSize: 25, total: 0, totalPages: 1 },
+    outcomers: body.outcomers || { available: false }
+  };
+}
+
+export async function fetchFullPaymentDeposits(id, { signal } = {}) {
+  const body = await request(`/api/admin/season2-full-payments/${encodeURIComponent(id)}/deposits`, { signal });
+  return {
+    customer: body.customer || {},
+    summary: body.summary || {},
+    deposits: Array.isArray(body.deposits) ? body.deposits : []
+  };
+}
+
+export async function markFullPaymentDone(id) {
+  return request(`/api/admin/season2-full-payments/${encodeURIComponent(id)}/done`, { method: "POST" });
+}
+
+export async function revokeFullPaymentDone(id) {
+  return request(`/api/admin/season2-full-payments/${encodeURIComponent(id)}/revoke`, { method: "POST" });
+}

@@ -582,6 +582,8 @@ module.exports = {
   getDashboard,
   listCustomers,
   parseCustomerQuery,
+  approvedStatsLookup,
+  buildSearchClauses,
   startOfToday,
   startOfZonedDay
 };

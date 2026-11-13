@@ -13,6 +13,10 @@ process.env.CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "test-s
 process.env.GOOGLE_CLIENT_EMAIL = "qa-service-account@example.iam.gserviceaccount.com";
 process.env.GOOGLE_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\nnot-a-real-key\\n-----END PRIVATE KEY-----\\n";
 process.env.NODE_ENV = "test";
+// These tests cover the LEGACY Sheet -> Mongo Full Payment read-back, which is retired by
+// default now that the Admin Portal decides every DONE (see fullPaymentManual.test.js for the
+// default behaviour). They opt back in explicitly so the legacy code stays covered.
+process.env.FULL_PAYMENT_SHEET_SYNC = "legacy";
 
 const test = require("node:test");
 const assert = require("node:assert/strict");

@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: "/season2/admin/dashboard", label: "Dashboard" },
   { to: "/season2/admin/customers", label: "Registered Customers" },
   { to: "/season2/admin/deposits", label: "Payments / Deposits" },
+  { to: "/season2/admin/full-payments", label: "Full Payments" },
   { to: "/season2/admin/schools", label: "Schools & Payment Options" },
   { to: "/season2/admin/events", label: "Events" },
   { to: "/season2/admin/finance", label: "Finance / Google Sheets" },

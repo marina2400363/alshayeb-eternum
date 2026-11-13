@@ -41,7 +41,26 @@ function normalizeFullPaymentCell(rawValue) {
 // finance sheet and mirrors it into FullPaymentStatus. Read-only against
 // Google Sheets — never writes a cell. MongoDB deposit/ticket data is never
 // touched here; this only ever writes FullPaymentStatus documents.
+// The Admin Portal (Full Payments page) is now the SOLE authority for a Full
+// Payment DONE. The Sheet read-back therefore does nothing (it neither sets nor
+// clears FullPaymentStatus, and sends no email) unless an operator deliberately
+// re-enables it with FULL_PAYMENT_SHEET_SYNC=legacy (an emergency rollback
+// only). Even then it never touches a record that has an Admin decision.
+// Callers (cron reconciliation, the Sheets on-edit trigger, the manual backup
+// button) all go through this one function, so this single guard covers all
+// three without any change to Google Sheets or Apps Script.
+const SHEET_SYNC_RETIRED_REASON =
+  "Full Payment is now decided manually in the Admin Portal (Full Payments). The Sheet's Full Payment column is no longer read.";
+
+function isLegacySheetSyncEnabled() {
+  return String(process.env.FULL_PAYMENT_SHEET_SYNC || "").trim().toLowerCase() === "legacy";
+}
+
 async function syncFullPaymentFromSchoolSheet(schoolId) {
+  if (!isLegacySheetSyncEnabled()) {
+    return { success: false, skipped: true, reason: SHEET_SYNC_RETIRED_REASON };
+  }
+
   const config = await SchoolFinanceConfig.findOne({ schoolId });
 
   if (!config) {
@@ -144,6 +163,10 @@ async function syncFullPaymentFromSchoolSheet(schoolId) {
 
     for (const item of toApply) {
       const existing = existingMap.get(item.attendeeId);
+
+      // An Admin decision is final: the Sheet can never override it.
+      if (existing && existing.decision && existing.decision.source === "admin") continue;
+
       const wasConfirmed = existing ? existing.confirmed : false;
 
       // Only bump confirmedAt on a false/absent -> true transition; leave it
@@ -228,5 +251,7 @@ async function syncFullPaymentFromSchoolSheet(schoolId) {
 }
 
 module.exports = {
-  syncFullPaymentFromSchoolSheet
+  syncFullPaymentFromSchoolSheet,
+  isLegacySheetSyncEnabled,
+  SHEET_SYNC_RETIRED_REASON
 };

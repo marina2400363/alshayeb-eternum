@@ -12,6 +12,10 @@
 const SECRET = "test-cron-secret-0123456789-abcdefghij";
 process.env.JWT_SECRET = "test-jwt-secret-not-real";
 process.env.NODE_ENV = "test";
+// These tests cover the LEGACY Sheet -> Mongo Full Payment read-back, which is retired by
+// default now that the Admin Portal decides every DONE (see fullPaymentManual.test.js for the
+// default behaviour). They opt back in explicitly so the legacy code stays covered.
+process.env.FULL_PAYMENT_SHEET_SYNC = "legacy";
 process.env.RATE_LIMIT_MODE = "off";
 process.env.CRON_SECRET = SECRET;
 process.env.CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "test-cloud";

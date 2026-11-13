@@ -39,6 +39,28 @@ const fullPaymentStatusSchema = new mongoose.Schema(
     // sync must never re-send, and this is the durable guard for that.
     season2EmailNotifications: {
       completionSentAt: Date
+    },
+    // ADMIN PORTAL decision (Full Payments page): the sole authority for a Full
+    // Payment DONE going forward. Absent on every pre-existing record (those
+    // were mirrored from the old Sheet column and are left exactly as they
+    // are). `decision` is the LATEST manual decision; `auditLog` is the
+    // append-only history of every manual change (who, what, when). A record
+    // with an Admin decision can never be changed by the legacy Sheet read-back.
+    decision: {
+      source: { type: String, enum: ["admin"] },
+      by: { type: String, trim: true },
+      at: Date
+    },
+    auditLog: {
+      type: [
+        {
+          _id: false,
+          action: { type: String, enum: ["marked_done", "revoked_done"], required: true },
+          by: { type: String, trim: true },
+          at: { type: Date, required: true }
+        }
+      ],
+      default: undefined
     }
   },
   { timestamps: true }

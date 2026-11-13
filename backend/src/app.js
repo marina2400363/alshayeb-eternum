@@ -90,6 +90,7 @@ const schoolFinanceConfigAdminRoutes = require("./routes/schoolFinanceConfigAdmi
 const season2AdminRoutes = require("./routes/season2AdminRoutes");
 const sheetEditRoutes = require("./routes/sheetEditRoutes");
 const season2EventAdminRoutes = require("./routes/season2EventAdminRoutes");
+const fullPaymentAdminRoutes = require("./routes/fullPaymentAdminRoutes");
 
 app.use("/api/settings", settingsRoutes);
 app.use("/api/rooms", roomRoutes);
@@ -104,6 +105,8 @@ app.use("/api/admin/school-finance-config", requireAdmin, schoolFinanceConfigAdm
 app.use("/api/admin/season2", requireAdmin, season2AdminRoutes);
 // Admin-only Season 2 Events Management (separate from the legacy /api/events).
 app.use("/api/admin/season2-events", requireAdmin, season2EventAdminRoutes);
+// Admin-only manual Full Payments (the Admin Portal decides every DONE).
+app.use("/api/admin/season2-full-payments", requireAdmin, fullPaymentAdminRoutes);
 app.use("/api/sheets", sheetEditRoutes);
 app.use("/api", syncRoutes);
 
